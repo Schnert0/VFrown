@@ -2,6 +2,7 @@
 
 static Controller_t controllers[2];
 
+// Initialize the Controller Component
 bool Controller_Init() {
   for (int32_t i = 0; i < 2; i++) {
     Controller_t* this = &controllers[i];
@@ -88,7 +89,6 @@ uint8_t Controller_SendByte() {
 
 
 void Controller_RecieveByte(uint8_t data) {
-  // VSmile_Log("recieved byte from console %02x at %06x", data, CPU_GetCSPC());
   if (controllers[0].select) {
     controllers[0].rxBuffer = data;
      Controller_RxTimerReset(0);
@@ -101,34 +101,8 @@ void Controller_RecieveByte(uint8_t data) {
 }
 
 
-void Controller_PrintTxFIFO(uint8_t ctrlNum) {
-  Controller_t* this = &controllers[ctrlNum];
-
-  for (int i = 0; i < 16; i++) {
-    if (i == this->txHead)
-      printf(" V ");
-    else
-      printf("   ");
-  }
-  printf("\n");
-  for (int i = 0; i < 16; i++) {
-    printf("%02x ", this->txFifo[i]);
-  }
-  printf("\n");
-  for (int i = 0; i < 16; i++) {
-    if (i == this->txTail)
-      printf(" ^ ");
-    else
-      printf("   ");
-  }
-  printf("\n");
-}
-
-
 bool Controller_PushTx(uint8_t ctrlNum, uint8_t data) {
   Controller_t* this = &controllers[ctrlNum];
-
-  // printf("push Tx %02x\n", data);
 
   if (!this->txEmpty && (this->txHead == this->txTail)) {
     VSmile_Warning("Tx byte %02x discarded because FIFO is full", data);
@@ -138,8 +112,6 @@ bool Controller_PushTx(uint8_t ctrlNum, uint8_t data) {
   this->txFifo[this->txHead] = data;
   this->txHead = (this->txHead + 1) & 0xf;
   this->txEmpty = false;
-
-  // Controller_PrintTxFIFO(ctrlNum);
 
   return true;
 }
@@ -156,10 +128,6 @@ uint8_t Controller_PopTx(uint8_t ctrlNum) {
   uint8_t data = this->txFifo[this->txTail];
   this->txTail = (this->txTail + 1) & 0xf;
   this->txEmpty = (this->txHead == this->txTail);
-
-  // printf("pop Tx (%02x)\n", data);
-
-  // Controller_PrintTxFIFO(ctrlNum);
 
   return data;
   return 0;
@@ -190,8 +158,6 @@ void Controller_SetRequest(uint8_t ctrlNum, bool request) {
 
   Bus_SetIRQFlags(0x3d22, ctrlNum == 0 ? 0x0200 : 0x1000);
   this->request = request;
-
-  // printf("pad %d request %sset\n", ctrlNum, this->request ? "" : "re");
 }
 
 
@@ -214,13 +180,8 @@ void Controller_SetSelect(uint8_t ctrlNum, bool select) {
     this->txActive = true;
     Controller_TxTimerAdjust(ctrlNum, SYSCLOCK / 9600);
   }
-  // else {
-  //   printf("select %sasserted, Tx %sactive\n", select ? "" : "dis", this->txActive ? "" : "in");
-  // }
 
   this->select = select;
-
-  // printf("pad %d select %sset\n", ctrlNum, this->select ? "" : "re");
 }
 
 
@@ -240,15 +201,11 @@ bool Controller_QueueTx(uint8_t ctrlNum, uint8_t data) {
   if (wasEmpty) {
     Controller_SetRequest(ctrlNum, true);
     if (this->select) {
-      // printf("transmitting %02x immediately\n", data);
       this->txActive = true;
       Controller_TxTimerAdjust(ctrlNum, SYSCLOCK / 9600);
     } else {
-      // printf("asserting RTS to transmit %02x\n", data);
       Controller_RTSTimerAdjust(ctrlNum, SYSCLOCK / 2);
     }
-  } else {
-    // printf("%02x pushed to Tx FIFO\n", data);
   }
 
   return true;
@@ -257,8 +214,6 @@ bool Controller_QueueTx(uint8_t ctrlNum, uint8_t data) {
 
 void Controller_TxComplete(uint8_t ctrlNum) {
   Controller_t* this = &controllers[ctrlNum];
-
-  // printf("Tx complete\n");
 
   if (this->stale & INPUT_DIRECTIONS) {
     bool up = (this->stale & (1 << INPUT_UP)) != 0;
@@ -300,14 +255,9 @@ void Controller_TxComplete(uint8_t ctrlNum) {
     if ((this->stale & INPUT_BUTTONS) == 0) Controller_QueueTx(ctrlNum, 0xa0);
   }
 
-  // Controller_IdleTimerReset(ctrlNum);
-  // Controller_TxTimerReset(ctrlNum);
-
-  // if (!this->active)
-  //   printf("entered active state\n");
   this->active = true;
   this->stale = 0;
-  // Controller_IdleTimerReset(ctrlNum);
+  Controller_IdleTimerReset(ctrlNum);
 }
 
 
@@ -320,7 +270,6 @@ void Controller_RxComplete(uint8_t ctrlNum) {
       this->pastBytes[0] = ((data & 0xf0) == 0x70) ? 0x00 : this->pastBytes[1];
       this->pastBytes[1] = data;
       uint8_t response = ((this->pastBytes[0] + this->pastBytes[1] + 0x0f) & 0x0f) ^ 0xb5;
-      // printf("responding to check with %02x\n", response);
       Controller_QueueTx(ctrlNum, response);
       Controller_IdleTimerReset(ctrlNum);
       Controller_TxTimerReset(ctrlNum);
@@ -331,18 +280,19 @@ void Controller_RxComplete(uint8_t ctrlNum) {
 void Controller_TxTimeout(uint8_t ctrlNum) {
   Controller_t* this = &controllers[ctrlNum];
 
-  // printf("Tx timeout\n");
   if (this->active) {
     Controller_IdleTimerReset(ctrlNum);
     this->active = false;
     this->pastBytes[0] = 0x00;
     this->pastBytes[1] = 0x00;
-    // printf("exited active state\n");
   }
   Controller_QueueTx(ctrlNum, 0x55);
   Controller_TxTimerReset(ctrlNum);
 }
 
+
+// TODO: create a generic timer struct with its own adjust, reset,
+// and tick functions with callbacks to the expired functions
 
 void Controller_TxTimerReset(uint8_t ctrlNum) {
   Controller_t* this = &controllers[ctrlNum];
@@ -426,12 +376,10 @@ void Controller_TxExpired(uint8_t ctrlNum) {
   if (this->txEmpty) {
     this->txActive = false;
     Controller_SetRequest(ctrlNum, false);
-    // printf("exited active state (tx empty)\n");
   } else if (this->select) {
     Controller_TxTimerAdjust(ctrlNum, SYSCLOCK / 960);
   } else {
     this->txActive = false;
-    // printf("exited active state\n");
   }
 
 
@@ -448,7 +396,6 @@ void Controller_RTSExpired(uint8_t ctrlNum) {
   // printf("rts expired\n");
 
   if (!this->txEmpty) {
-    // printf("timeout waiting for select after asserting RTS\n");
     this->txHead = 0;
     this->txTail = 0;
     this->txEmpty = true;
@@ -477,7 +424,6 @@ void Controller_UpdateButtons(uint8_t ctrlNum, uint32_t buttons) {
   }
 
   if (!this->txEmpty) {
-    // printf("button states changed during transmission. marking as stale.\n");
     this->stale |= buttons;
     return;
   }

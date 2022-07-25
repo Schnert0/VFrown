@@ -4,6 +4,11 @@
 #include "../common.h"
 #include "vsmile.h"
 
+/*
+ * Emulates the VSmile Controller Interface
+ * TODO: this needs to be separated out to allow for emulation of
+ * the keyboard and mat controllers
+ */
 typedef struct Controller_t {
   // Timers
   int32_t txTimer,    txTimerReset;
@@ -37,7 +42,6 @@ void Controller_SetSelect(uint8_t ctrlNum, bool select);
 bool Controller_GetSelect(uint8_t ctrlNum);
 
 // Tx Fifo information
-void Controller_PrintTxFIFO(uint8_t ctrlNum);
 bool Controller_PushTx(uint8_t ctrlNum, uint8_t data);
 uint8_t Controller_PopTx(uint8_t ctrlNum);
 bool Controller_QueueTx(uint8_t ctrlNum, uint8_t data);

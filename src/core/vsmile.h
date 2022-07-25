@@ -12,7 +12,7 @@
 
 
 /*
- * vsmile connects all components of the VSmile together and is in charge of the
+ * Connects all components of the VSmile together and is in charge of the
  * initialization, cleanup, and the main emulation loop
  */
 typedef struct VSmile_t {

@@ -72,24 +72,10 @@ void Bus_UARTTick(int32_t cycles) {
 }
 
 uint32_t Bus_GetRomDecode(uint32_t addr) {
-  switch (this.romDecodeMode) {
-  case 0: return addr;
-  case 1: return addr & 0x1fffff;
-  case 2:
-  case 3: return addr & 0x0fffff;
-  }
-
-  // switch (this.romDecodeMode) {
-  // case 1:
-  //   addr &= 0x1fffff;
-  //   // addr += (0x200000 * this.chipSelectMode);
-  //   break;
-  // case 2:
-  // case 3:
-  //   addr &= 0x0fffff;
-  //   // addr += (0x100000 * this.chipSelectMode);
-  //   break;
-  // }
+  // This allows games like Dora's Fix-it Adventure and Bob's Busy Day to not
+  // crash on startup, but games like Winnie the Pooh: the Honey Hunt crash
+  // with this present. Need figure out how different ROM mappings work.
+  addr &= 0x1fffff;
 
   return addr;
 }
@@ -158,14 +144,14 @@ uint16_t Bus_Load(uint32_t addr) {
       return this.io[addr - IO_START];
 
     case 0x3d35: // UART TX Buffer
-      printf("TX read\n");
+      // printf("TX read\n");
       break;
 
     case 0x3d36: // UART RX Buffer
       return Bus_GetRxBuffer();
 
     case 0x3d37: // UART RX FIFO control
-      printf("read from UART RX FIFO control\n");
+      // printf("read from UART RX FIFO control\n");
       break;
     }
     // printf("unknown read from IO port %04x at %06x\n", addr, CPU_GetCSPC());
@@ -288,9 +274,9 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       break;
 
     case 0x3d23: // External memory ctrl
-      printf("set rom decode mode to %d\n", (data >> 6) & 0x3);
+      // printf("set rom decode mode to %d\n", (data >> 6) & 0x3);
       this.romDecodeMode = (data >> 6) & 0x3;
-      printf("set ram decode mode to %d\n", (data >> 8) & 0xf);
+      // printf("set ram decode mode to %d\n", (data >> 8) & 0xf);
       this.ramDecodeMode = (data >> 8) & 0xf;
 
       this.io[addr - IO_START] = data;
@@ -325,7 +311,6 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       case 0x3d33: // UART BAUD1
       case 0x3d34: // UART BAUD2
         this.io[addr - IO_START] = data;
-        // Controller_SetUARTBAUD(SYSCLOCK / 16 / (0x10000 - (this.io[0x3d34 - IO_START] << 8) - this.io[0x3d33 - IO_START]));
         Bus_SetUARTBAUD((this.io[0x3d34 - IO_START] << 8) | this.io[0x3d33 - IO_START]);
         break;
 
@@ -334,11 +319,11 @@ void Bus_Store(uint32_t addr, uint16_t data) {
         break;
 
       case 0x3d36: // UART RX Buffer
-        printf("RX write\n");
+        // printf("RX write\n");
         break;
 
       case 0x3d37:
-        printf("write to UART RX FIFO control with %04x\n", data);
+        // printf("write to UART RX FIFO control with %04x\n", data);
         break;
 
     case 0x3e00:
@@ -371,7 +356,6 @@ void Bus_Store(uint32_t addr, uint16_t data) {
 
 
 void Bus_SetIRQFlags(uint32_t address, uint16_t data) {
-  // printf("set IRQ %04x for %04x", data, address);
   switch (address) {
   case 0x2863:
     this.ppu[0x63] |= data;
@@ -431,7 +415,7 @@ void Bus_SetIOB(uint16_t data, uint16_t mask) {
   // printf("write to IOB (data: %04x, mask: %04x)\n", data, mask);
   if (mask & 7) {
     this.chipSelectMode = (data & 7);
-    printf("chip select set to %d\n", this.chipSelectMode);
+    // printf("chip select set to %d\n", this.chipSelectMode);
   }
 }
 
@@ -459,6 +443,8 @@ void Bus_SetIOC(uint16_t data, uint16_t mask) {
   }
 }
 
+
+// TODO: CPU-Side UART should probably be delegated to its own file
 
 void Bus_SetUARTCtrl(uint16_t data) {
   // printf("UART CTRL set to %04x at %06x\n", data, CPU_GetCSPC());

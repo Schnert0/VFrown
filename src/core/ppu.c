@@ -155,7 +155,7 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
       tileHeightOffset = tileHeight - tileHeightOffset - 1;
 
     if (!ctrl.regSet) { // Use attributes from RAM
-      // Each word has two entries
+      // Each word has two attribute entries
       uint16_t attrData = Bus_Load(attributeRow + (t>>1));
       if (t & 1) attrData >>= 8; else attrData &= 0xff;
 

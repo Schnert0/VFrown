@@ -80,7 +80,7 @@ void CPU_Reset() {
   this.pc = Bus_Load(0xfff7);
 }
 
- bool memDebug[BUS_SIZE];
+ // bool memDebug[BUS_SIZE];
 
 // Run one instruction and return the number of cycles it took to complete
 int32_t CPU_Tick() {
@@ -663,13 +663,13 @@ void CPU_OpPOP() {
     this.pc = CPU_Pop(0);
 
     if (this.fiqActive) {
-      // this.sbBanked[2] = this.sb;
-      // this.sb = this.sbBanked[this.irqActive];
+      this.sbBanked[2] = this.sb;
+      this.sb = this.sbBanked[this.irqActive];
       this.fiqActive = false;
     }
     else if (this.irqActive) {
-      // this.sbBanked[1] = this.sb;
-      // this.sb = this.sbBanked[0];
+      this.sbBanked[1] = this.sb;
+      this.sb = this.sbBanked[0];
       this.irqActive = false;
     }
 
@@ -1034,11 +1034,11 @@ void CPU_DoIRQ(uint8_t irqNum) {
 
   this.irqActive = true;
 
-  // this.sbBanked[0] = this.sb;
+  this.sbBanked[0] = this.sb;
   CPU_Push(this.pc, 0);
   CPU_Push(this.sr.raw, 0);
 
-  // this.sb = this.sbBanked[1];
+  this.sb = this.sbBanked[1];
   this.pc = Bus_Load(0xfff8+irqNum);
   this.sr.raw = 0;
 }
@@ -1051,11 +1051,11 @@ void CPU_DoFIQ() {
 
   this.fiqActive = true;
 
-  // this.sbBanked[this.irqActive] = this.sb;
+  this.sbBanked[this.irqActive] = this.sb;
   CPU_Push(this.pc, 0);
   CPU_Push(this.sr.raw, 0);
 
-  // this.sb = this.sbBanked[2];
+  this.sb = this.sbBanked[2];
   this.pc = Bus_Load(0xfff6);
   this.sr.raw = 0;
 }
