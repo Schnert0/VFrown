@@ -1,0 +1,8 @@
+# Paths
+/ROMs
+/BIOS
+
+# Files
+*.o
+.DS_Store
+VFrown
