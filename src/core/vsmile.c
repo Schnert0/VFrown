@@ -63,6 +63,7 @@ void VSmile_Run() {
 
       if (currLine >= LINES_PER_FIELD) {
         PPU_UpdateScreen();
+        Backend_PlayAudio();
         this.step = false;
       }
 
@@ -139,7 +140,7 @@ void VSmile_Error(const char* message, ...) {
     va_end(args);
 
     printf("\x1b[31m[ERROR]\x1b[0m %s\n", buffer);
-    CPU_PrintCPUState();
+    // CPU_PrintCPUState();
   }
 
   VSmile_Cleanup();

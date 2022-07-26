@@ -1,7 +1,9 @@
-# VFrown
+# V.Frown
  An experimental emulator for the V.Smile
 
-NOTE: this emulator is still a work in progress.
+ ![VFrown Logo](images/icon.png)
+
+**NOTE: this emulator is still a work in progress.**
 
 ## Building
 #### Dependencies
@@ -23,6 +25,10 @@ Space: Enter/OK
 A: Exit
 S: Help
 D: Learning Zone
+Z: Red
+X: Yellow
+C: Blue
+V: Green
 
 Backquote/~: toggle fullscreen
 1: toggle layer 1
@@ -50,8 +56,10 @@ Currently...
 
 Later on...
 - Add Savestates
+- Add support for more controllers
 - Add a graphical interface
   - Add Remappable buttons
   - Add a TAS interface
+  - Memory viewer, editor, and cheat manager
+  - Sound Channel Visualization and channel muting
   - ...and more...
-- Add more controller support

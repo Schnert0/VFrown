@@ -4,7 +4,7 @@
 #include "../common.h"
 #include "vsmile.h"
 
-#define SPU_SAMPLE_TIMER ((CYCLES_PER_LINE * LINES_PER_FIELD) / 11400)
+#define SPU_SAMPLE_TIMER (SYSCLOCK / 44100)
 
 typedef union {
   uint16_t raw;
@@ -129,6 +129,10 @@ typedef struct {
   int8_t  adpcmLastSample;
 } Channel_t;
 
+/*
+ * Sound Processing Unit
+ * Generates soundwaves from sample data
+ */
 typedef struct SPU_t {
   Channel_t channels[16];
   uint16_t  regs4[32];
@@ -138,6 +142,7 @@ typedef struct SPU_t {
   int16_t  buffer[2048];
   uint32_t bufferLen;
   int32_t  sampleTimer;
+  int16_t  prevSample, sample;
 } SPU_t;
 
 
@@ -146,7 +151,7 @@ void SPU_Cleanup();
 
 void SPU_Tick(int32_t cycles);
 int32_t SPU_TickChannel(uint8_t ch);
-int16_t SPU_GetADPCMSample(Channel_t* channel, uint8_t nybble);
+int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble);
 
 uint16_t SPU_Read(uint16_t addr);
 void SPU_Write(uint16_t addr, uint16_t data);

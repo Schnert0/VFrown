@@ -61,3 +61,10 @@ void Backend_PushAudioSample(int16_t leftSample, int16_t rightSample) {
   SDLBackend_PushAudioSample(leftSample, rightSample);
   #endif // BACKENDIMPL_SDL
 }
+
+
+void Backend_PlayAudio() {
+  #ifdef BACKENDIMPL_SDL
+  SDLBackend_PlayAudio();
+  #endif // BACKENDIMPL_SDL
+}

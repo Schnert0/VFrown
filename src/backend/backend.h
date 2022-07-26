@@ -21,5 +21,6 @@ uint32_t Backend_GetChangedButtons();
 // Audio
 void Backend_InitAudioDevice();
 void Backend_PushAudioSample(int16_t leftSample, int16_t rightSample);
+void Backend_PlayAudio();
 
 #endif // BACKEND_H

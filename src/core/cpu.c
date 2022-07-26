@@ -1003,18 +1003,18 @@ void CPU_TestIRQ() {
   if (gpuMaskedIRQ) { // Video
     CPU_DoIRQ(0);
   }
-  else if (SPU_GetIRQ()) { // SPU
-    CPU_DoIRQ(1);
-  }
+  // else if (0x0000) { // SPU
+  //   CPU_DoIRQ(1);
+  // }
   else if (maskedIRQ & 0x0c00) { // Timer A, Timer B
     CPU_DoIRQ(2);
   }
   else if (maskedIRQ & 0x6100) { // UART, ADC, SPI
     CPU_DoIRQ(3);
   }
-  else if (SPU_GetChannelIRQ()) { // SPU beat and envelope
-    CPU_DoIRQ(4);
-  }
+  // else if (0x0000) { // SPU beat and envelope
+  //   CPU_DoIRQ(4);
+  // }
   else if (maskedIRQ & 0x1200) { // Controller 1 and 2 RTS signals
     CPU_DoIRQ(5);
   }
@@ -1027,7 +1027,7 @@ void CPU_TestIRQ() {
 }
 
 
-
+// Execute Interrupt
 void CPU_DoIRQ(uint8_t irqNum) {
   if (this.irqActive || this.fiqActive || !this.irqEnabled)
     return;
@@ -1044,7 +1044,7 @@ void CPU_DoIRQ(uint8_t irqNum) {
 }
 
 
-
+// Execute Fast Interrupt
 void CPU_DoFIQ() {
   if (this.fiqActive || !this.fiqEnabled)
     return;
@@ -1058,6 +1058,12 @@ void CPU_DoFIQ() {
   this.sb = this.sbBanked[2];
   this.pc = Bus_Load(0xfff6);
   this.sr.raw = 0;
+}
+
+
+// Configure Fast Interrupt Source
+void CPU_ConfigFIQ(uint16_t fiqSource) {
+  this.fiqSource = fiqSource;
 }
 
 

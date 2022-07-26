@@ -106,14 +106,16 @@ void SPU_Tick(int32_t cycles) {
   int32_t rightSample = 0;
   int32_t numEnabled = 0;
 
+  this.prevSample = this.sample;
+
   for (int32_t i = 0; i < 16; i++) {
     if (this.regs4[0x00] & (1 << i)) { // Channel is enabled
       numEnabled++;
 
-      int32_t sample = SPU_TickChannel(i);
+      this.sample = SPU_TickChannel(i);
 
-      leftSample  = sample;
-      rightSample = sample;
+      leftSample  = this.sample;
+      rightSample = this.sample;
 
       // uint8_t pan = this.channels[i].panVol.pan;
       // uint8_t vol = this.channels[i].panVol.vol;
@@ -147,8 +149,8 @@ int32_t SPU_TickChannel(uint8_t ch) {
 
   channel->accum += channel->rate;
   int32_t sampleTicks = 0;
-  while (channel->accum >= 70312.5) {
-    channel->accum -= 70312.5;
+  while (channel->accum >= (35156.25) / 1.1875) {
+    channel->accum -= (35156.25) / (25.0/16.0);
     sampleTicks++;
   }
 
@@ -161,7 +163,6 @@ int32_t SPU_TickChannel(uint8_t ch) {
     switch (channel->mode.pcmMode) {
     case 0: // 8-bit PCM mode
       channel->sample = (int16_t)Bus_Load(waveAddr + channel->sampleOffset) >> channel->pcmShift;
-      channel->sample <<= 8;
       channel->pcmShift += 8;
       if (channel->pcmShift > 8) {
         channel->pcmShift = 0;
@@ -176,8 +177,8 @@ int32_t SPU_TickChannel(uint8_t ch) {
 
     case 2:   // ADPCM mode
     case 3: { // ???
-      uint16_t adpcmSample = (Bus_Load(waveAddr + channel->sampleOffset) >> channel->pcmShift) & 0xf;
-      channel->sample = SPU_GetADPCMSample(channel, adpcmSample);
+      uint16_t nybble = (Bus_Load(waveAddr + channel->sampleOffset) >> channel->pcmShift) & 0xf;
+      channel->sample = SPU_GetADPCMSample(ch, nybble);
       channel->pcmShift += 4;
       if (channel->pcmShift >= 16) {
         channel->pcmShift = 0;
@@ -188,18 +189,24 @@ int32_t SPU_TickChannel(uint8_t ch) {
     }
   }
 
+  if(Bus_Load(waveAddr+channel->sampleOffset+1) == 0xffff) {
+    this.regs4[0x00] &= ~(1 << ch);
+  }
+
   return channel->sample;
 }
 
 
-int16_t SPU_GetADPCMSample(Channel_t* channel, uint8_t nybble) {
+int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble) {
+  Channel_t* channel = &this.channels[ch];
+
   int16_t step = adpcmStep[channel->adpcmStepIndex];
-  int16_t e = step / 8;
-  if (nybble & 1) e += step/4;
-  if (nybble & 2) e += step/2;
+  int16_t e = (step >> 3);
+  if (nybble & 1) e += (step >> 2);
+  if (nybble & 2) e += (step >> 1);
   if (nybble & 4) e += step;
-  int16_t diff = nybble & 8 ? -e : e;
-  int16_t sample = channel->adpcmLastSample + diff;
+  int16_t offset = (nybble & 8) ? -e : e;
+  int16_t sample = channel->adpcmLastSample + offset;
 
   if (sample >  2047) sample =  2047;
   if (sample < -2048) sample = -2048;
@@ -211,6 +218,7 @@ int16_t SPU_GetADPCMSample(Channel_t* channel, uint8_t nybble) {
 
   return sample;
 }
+
 
 uint16_t SPU_Read(uint16_t addr) {
   // switch (addr & 0x0f00) {
@@ -318,7 +326,7 @@ void SPU_Write(uint16_t addr, uint16_t data) {
   else if ((addr & 0x0f00) == 0x0400) {
     uint8_t reg = (addr & 0x1f);
     switch (reg) {
-    // case 0x00: SPU_EnableChannels(data); break;
+    case 0x00: SPU_EnableChannels(data); break;
     case 0x05:
       if (data & 0xc000)
         this.irq = false;

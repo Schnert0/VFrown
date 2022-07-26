@@ -70,7 +70,7 @@ void SDLBackend_ToggleFullscreen() {
   this.isFullscreen = !this.isFullscreen;
 
   if (this.isFullscreen) {
-    SDL_SetWindowFullscreen(this.window, SDL_WINDOW_FULLSCREEN);
+    SDL_SetWindowFullscreen(this.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
   } else {
     SDL_SetWindowFullscreen(this.window, 0);
   }
@@ -157,38 +157,32 @@ void SDLBackend_InitAudioDevice() {
   SDL_AudioSpec want;
 
   memset(&want, 0, sizeof(want));
-  want.freq     = 22050;
+  want.freq     = 44100;
   want.format   = AUDIO_S16SYS;
   want.channels = 2;
   want.samples  = 4096;
-  want.callback = _SDLBackend_AudioCallback;
-  want.userdata = NULL;
 
-  this.buffer.u8 = malloc(4096);
-  memset(this.buffer.u8, 0, 4096);
-  this.audioPos = this.buffer.u8;
-
-  // this.audioDevice = SDL_OpenAudio(&want, NULL);
-  // SDL_PauseAudio(true);
+  this.audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, NULL, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+  SDL_PauseAudioDevice(this.audioDevice, false);
 }
 
 
+// static int16_t check = -2048;
 void SDLBackend_PushAudioSample(int16_t leftSample, int16_t rightSample) {
-  // if (this.audioLen > 4096)
+  this.audioBuffer[this.audioLen++] = leftSample;
+  this.audioBuffer[this.audioLen++] = rightSample;
+  this.audioBuffer[this.audioLen++] = leftSample;
+  this.audioBuffer[this.audioLen++] = rightSample;
+  // if (this.audioLen < 4096)
   //   return;
-  //
-  // this.buffer.i16[(this.audioLen >> 1)  ] = leftSample;
-  // this.buffer.i16[(this.audioLen >> 1)+1] = rightSample;
-  // this.audioLen += 4;
+  // SDL_QueueAudio(this.audioDevice, this.audioBuffer, this.audioLen);
+  // this.audioLen = 0;
 }
 
 
-void _SDLBackend_AudioCallback(void* userData, uint8_t* stream, int len) {
-  // if (this.audioLen <= 0)
-  //   return;
-  //
-  // len = (len > this.audioLen) ? this.audioLen : len;
-  // SDL_MixAudio(stream, this.audioPos, len, SDL_MIX_MAXVOLUME);
-  // this.audioPos += len;
-  // this.audioLen -= len;
+void SDLBackend_PlayAudio() {
+  if (this.audioLen < 4096)
+    return;
+  SDL_QueueAudio(this.audioDevice, this.audioBuffer, this.audioLen);
+  this.audioLen = 0;
 }

@@ -55,9 +55,10 @@ typedef struct CPU_t {
   uint8_t  sb;          // Holds bits that get shifted out of shift instruction
   uint8_t  sbBanked[3]; // Banked shifted bits
 
-  bool irqEnabled, fiqEnabled; // Are interrupts enabled?
-  bool irqActive, fiqActive;   // Are interrupts active?
-  bool irqPending;             // Is there a potential interrupt to handle?
+  bool    irqEnabled, fiqEnabled; // Are interrupts enabled?
+  bool    irqActive, fiqActive;   // Are interrupts active?
+  bool    irqPending;             // Is there a potential interrupt to handle?
+  uint8_t fiqSource;              // Where the FIQ signal coming from
 
   int32_t cycles; // cycles taken to run current instruction
 
@@ -65,8 +66,6 @@ typedef struct CPU_t {
 
 bool CPU_Init();
 void CPU_Cleanup();
-
-void CPU_PrintCPUState();
 
 void CPU_Reset();
 int32_t CPU_Tick();
@@ -152,6 +151,9 @@ uint16_t CPU_Pop(uint8_t index);
 void CPU_ActivatePendingIRQs();
 void CPU_TestIRQ();
 void CPU_DoIRQ(uint8_t irqNum);
+void CPU_ConfigFIQ(uint16_t fiqSource);
 
+// Debug
+void CPU_PrintCPUState();
 
 #endif // CPU_H

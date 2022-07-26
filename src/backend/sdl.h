@@ -22,7 +22,7 @@ uint32_t SDLBackend_GetChangedButtons();
 // Audio
 void SDLBackend_InitAudioDevice();
 void SDLBackend_PushAudioSample(int16_t leftSample, int16_t rightSample);
-void _SDLBackend_AudioCallback(void* userData, uint8_t* stream, int len);
+void SDLBackend_PlayAudio();
 
 
 typedef struct SDLBackend_t {
@@ -40,12 +40,8 @@ typedef struct SDLBackend_t {
 
   // Audio
   SDL_AudioDeviceID audioDevice;
-  union {
-    int16_t* i16;
-    uint8_t* u8;
-  } buffer;
-  uint8_t* audioPos;
-  int32_t  audioLen;
+  int16_t  audioBuffer[65536];
+  uint16_t audioLen;
 } SDLBackend_t;
 
 #endif // BACKEND_SDL_H

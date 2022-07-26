@@ -55,6 +55,10 @@ typedef union {
   };
 } TileCtrl_t;
 
+/*
+ * Picture Processing Unit
+ * Renders Tile data, bitmaps and sprites to the screen
+ */
 typedef struct PPU_t {
   uint16_t scroll[0x100];
   uint16_t hComp[0x100];

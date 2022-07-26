@@ -36,7 +36,7 @@ void Bus_Reset() {
 void Bus_LoadROM(const char* filePath) {
   FILE* file = fopen(filePath, "rb");
   if (!file) {
-    printf("[BUS] ERROR: unable to load ROM - can't open \"%s\"", filePath);
+    VSmile_Error("unable to load ROM - can't open \"%s\"", filePath);
     return;
   }
 
