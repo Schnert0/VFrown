@@ -1,5 +1,5 @@
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef TMB_H
+#define TMB_H
 
 #include "../common.h"
 #include "vsmile.h"
@@ -17,4 +17,4 @@ void TMB_Cleanup(uint32_t index);
 void TMB_Tick(uint32_t index, int32_t cycles);
 void TMB_SetInterval(uint32_t index, uint32_t interval);
 
-#endif // TIMER_H
+#endif // TMB_H

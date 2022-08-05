@@ -3,6 +3,10 @@
 
 #include "../common.h"
 #include "vsmile.h"
+#include "timer.h"
+
+typedef void (*Func_t)();
+struct Timer_t;
 
 /*
  * Emulates the VSmile Controller Interface
@@ -11,10 +15,10 @@
  */
 typedef struct Controller_t {
   // Timers
-  int32_t txTimer,    txTimerReset;
-  int32_t rxTimer,    rxTimerReset;
-  int32_t rtsTimer,   rtsTimerReset;
-  int32_t idleTimer,  idleTimerReset;
+  struct Timer_t* txTimer;
+  struct Timer_t* rxTimer;
+  struct Timer_t* rtsTimer;
+  struct Timer_t* idleTimer;
 
   bool select, request, active;
 
@@ -49,18 +53,21 @@ void Controller_TxComplete(uint8_t ctrlNum);
 void Controller_TxTimeout(uint8_t ctrlNum);
 
 // UART Timers
-void Controller_RxTimerReset(uint8_t ctrlNum);
-void Controller_RxTimerAdjust(uint8_t ctrlNum, int32_t newReset);
-void Controller_TxTimerReset(uint8_t ctrlNum);
-void Controller_TxTimerAdjust(uint8_t ctrlNum, int32_t newReset);
-void Controller_RTSTimerReset(uint8_t ctrlNum);
-void Controller_RTSTimerAdjust(uint8_t ctrlNum, int32_t newReset);
-void Controller_IdleTimerReset(uint8_t ctrlNum);
-void Controller_IdleTimerAdjust(uint8_t ctrlNum, int32_t newReset);
-void Controller_RxExpired(uint8_t ctrlNum);
 void Controller_TxExpired(uint8_t ctrlNum);
+void Controller_Tx0Expired();
+void Controller_Tx1Expired();
+
+void Controller_RxExpired(uint8_t ctrlNum);
+void Controller_Rx0Expired();
+void Controller_Rx1Expired();
+
 void Controller_RTSExpired(uint8_t ctrlNum);
+void Controller_RTS0Expired();
+void Controller_RTS1Expired();
+
 void Controller_IdleExpired(uint8_t ctrlNum);
+void Controller_Idle0Expired();
+void Controller_Idle1Expired();
 
 void Controller_UpdateButtons(uint8_t ctrlNum, uint32_t buttons);
 
