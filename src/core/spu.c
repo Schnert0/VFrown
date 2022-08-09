@@ -48,7 +48,7 @@ static SPU_t this;
 //   "zero cross",            // 0x0c
 //   "ctrl",                  // 0x0d
 //   "compression ctrl",      // 0x0e
-//   "stat",                   // 0x0f
+//   "stat",                  // 0x0f
 //   "L wave in",             // 0x10
 //   "R wave in",             // 0x11
 //   "L wave out",            // 0x12
@@ -141,8 +141,8 @@ void SPU_Tick(int32_t cycles) {
 
       this.sample = SPU_TickChannel(i);
 
-      leftSample  += this.sample;
-      rightSample += this.sample;
+      leftSample  += this.sample >> 4;
+      rightSample += this.sample >> 4;
 
       // uint8_t pan = this.channels[i].panVol.pan;
       // uint8_t vol = this.channels[i].panVol.vol;
@@ -190,7 +190,7 @@ int32_t SPU_TickChannel(uint8_t ch) {
     if (channel->isPlaying) {
       switch (channel->mode.pcmMode) {
       case 0: // 8-bit PCM mode
-        channel->sample = (int16_t)(Bus_Load(waveAddr + channel->sampleOffset) >> channel->pcmShift) >> 3;
+        channel->sample = (int16_t)Bus_Load(waveAddr + channel->sampleOffset) >> channel->pcmShift;
         channel->pcmShift += 8;
         if (channel->pcmShift > 8) {
           channel->pcmShift = 0;
@@ -199,7 +199,7 @@ int32_t SPU_TickChannel(uint8_t ch) {
         break;
 
       case 1: // 16-bit PCM mode
-        channel->sample = (int16_t)Bus_Load(waveAddr + channel->sampleOffset) >> 4;
+        channel->sample = (int16_t)Bus_Load(waveAddr + channel->sampleOffset);
         channel->sampleOffset++;
         break;
 
@@ -217,6 +217,8 @@ int32_t SPU_TickChannel(uint8_t ch) {
       }
     }
   }
+
+  // Envelope and Ramp Down go Here?
 
   if(Bus_Load(waveAddr+channel->sampleOffset+1) == 0xffff) {
     if (channel->mode.playMode == 1) { // One shot mode
@@ -399,10 +401,14 @@ void SPU_Write(uint16_t addr, uint16_t data) {
 
 
 void SPU_EnableChannels(uint16_t data) {
-  if ((this.regs4[0x00] ^ data) != 0x0000) {
+  const uint16_t changed = (this.regs4[0x00] ^ data);
 
+  if (changed) {
     for (int32_t i = 0; i < 16; i++) {
-      uint16_t mask = 1 << i;
+      uint16_t mask = (1 << i);
+
+      if (!(changed & mask))
+        continue;
 
       if (data & mask) {
         SPU_StartChannel(i);
@@ -412,9 +418,8 @@ void SPU_EnableChannels(uint16_t data) {
 
     }
 
+    this.regs4[0x00] = data;
   }
-
-  this.regs4[0x00] = data;
 }
 
 
@@ -481,23 +486,32 @@ void SPU_WriteBeatCount(uint16_t data) {
 
 
 void SPU_TriggerBeatIRQ(uint8_t index) {
-  uint16_t beatCount = this.regs4[0x05];
+  if (this.currBeatBase > 0)
+    this.currBeatBase--;
 
-  uint16_t beatsLeft = beatCount & 0x3fff;
-  if (beatsLeft > 0)
-    beatsLeft--;
+  if (this.currBeatBase == 0) {
+    this.currBeatBase = this.regs4[0x4];
 
-  if (beatsLeft == 0) {
-    beatsLeft = SPU_Read(0x3404); // Beat Base Count
-    beatCount |= 0x4000;
+    uint16_t beatCount = this.regs4[0x05];
+    uint16_t beatsLeft = beatCount & 0x3fff;
+    beatCount &= ~0x3fff;
+    if (beatsLeft > 0)
+      beatsLeft--;
 
-    if ((beatCount & 0xc000) == 0xc000) {
-      this.irq = true;
-      CPU_ActivatePendingIRQs();
+    if (beatsLeft == 0) {
+      beatsLeft = SPU_Read(0x3405) & 0x3fff;
+      if (beatCount & 0x8000)
+        beatCount |= 0x4000;
+
+      if ((beatCount & 0xc000) == 0xc000) {
+        this.irq = true;
+        CPU_ActivatePendingIRQs();
+      }
     }
-  }
+    beatCount |= beatsLeft;
 
-  this.regs4[0x05] = beatCount;
+    this.regs4[0x05] = beatCount;
+  }
 
   Timer_Reset(this.beatTimer);
 }

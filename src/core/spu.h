@@ -146,7 +146,7 @@ typedef struct SPU_t {
   struct Timer_t* beatTimer;
   bool irq, channelIrq;
 
-  int16_t  buffer[2048];
+  uint16_t currBeatBase;
   uint32_t bufferLen;
   int32_t  sampleTimer;
   int16_t  prevSample, sample;
