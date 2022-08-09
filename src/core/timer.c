@@ -1,12 +1,13 @@
 #include "timer.h"
 
-typedef void (*Func_t)();
+typedef void (*TimerFunc_t)(int32_t index);
 
-struct Timer_t* Timer_Init(int32_t resetValue, Func_t callback) {
+struct Timer_t* Timer_Init(int32_t resetValue, TimerFunc_t callback, uint8_t index) {
   struct Timer_t* this = malloc(sizeof(Timer_t));
   memset(this, 0, sizeof(Timer_t));
   this->resetValue = resetValue;
   this->callback = callback;
+  this->index = index;
 
   return this;
 }
@@ -22,7 +23,7 @@ void Timer_Tick(struct Timer_t* this, int32_t cycles) {
   if (this->ticksLeft > 0) {
     this->ticksLeft -= cycles;
     if (this->ticksLeft <= 0 && this->callback) {
-      this->callback();
+      this->callback(this->index);
     }
   }
 }
@@ -36,4 +37,9 @@ void Timer_Reset(struct Timer_t* this) {
 void Timer_Adjust(struct Timer_t* this, int32_t newResetValue) {
   this->resetValue = newResetValue;
   this->ticksLeft = newResetValue;
+}
+
+
+void Timer_Stop(struct Timer_t* this) {
+  this->ticksLeft = 0;
 }

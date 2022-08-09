@@ -18,6 +18,8 @@ bool Bus_Init() {
   this.io[0x2c] = 0x1418; // 3d2c - PRNG1
   this.io[0x2d] = 0x1658; // 3d2d - PRNG2
 
+  this.io[0x2e] = 0x0007; // FIQ source: N/A
+
   return true;
 }
 
@@ -57,7 +59,27 @@ void Bus_LoadROM(const char* filePath) {
 }
 
 
-void Bus_UARTTick(int32_t cycles) {
+void Bus_Tick(int32_t cycles) {
+  // Timers
+  uint16_t timerIrq = 0x0040; // 4096 hz
+	this.timer2khz++;
+	if (this.timer2khz == 2) {
+		this.timer2khz = 0;
+		timerIrq |= 0x0020; // 2048 hz
+		this.timer1khz++;
+		if (this.timer1khz == 2) {
+			this.timer1khz = 0;
+			timerIrq |= 0x0010; // 1024 hz
+			this.timer4hz++;
+			if (this.timer4hz == 256) {
+				this.timer4hz = 0;
+				timerIrq |= 0x0008; // 4 hz
+			}
+		}
+  }
+  Bus_SetIRQFlags(0x3d22, timerIrq);
+
+  // UART Transmit and Recieve
   if (this.txTimer > 0) {
     this.txTimer -= cycles;
     if (this.txTimer <= 0)
@@ -290,6 +312,11 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       // printf("ADC set to %04x at %06x\n", data, CPU_GetCSPC());
       // this.io[addr - IO_START] = data;
       this.io[addr - IO_START] = ((data | this.io[addr - IO_START]) & 0x2000) ^ data;
+      break;
+
+    case 0x3d2e:
+      CPU_SetFIQSource(data);
+      this.io[addr - IO_START] = data;
       break;
 
     case 0x3d2f: // Set DS

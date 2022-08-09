@@ -54,20 +54,9 @@ void Controller_TxTimeout(uint8_t ctrlNum);
 
 // UART Timers
 void Controller_TxExpired(uint8_t ctrlNum);
-void Controller_Tx0Expired();
-void Controller_Tx1Expired();
-
 void Controller_RxExpired(uint8_t ctrlNum);
-void Controller_Rx0Expired();
-void Controller_Rx1Expired();
-
 void Controller_RTSExpired(uint8_t ctrlNum);
-void Controller_RTS0Expired();
-void Controller_RTS1Expired();
-
 void Controller_IdleExpired(uint8_t ctrlNum);
-void Controller_Idle0Expired();
-void Controller_Idle1Expired();
 
 void Controller_UpdateButtons(uint8_t ctrlNum, uint32_t buttons);
 

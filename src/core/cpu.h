@@ -6,6 +6,17 @@
 
 typedef void (*Func_t)();
 
+enum {
+  FIQSRC_PPU = 0,
+  FIQSRC_SPU,
+  FIQSRC_TIMERA,
+  FIQSRC_TIMERB,
+  FIQSRC_UART,
+  FIQSRC_EXT,
+  FIQSRC_ADC,
+  FIQSRC_NONE
+};
+
 typedef union {
   uint16_t raw;
   struct {
@@ -58,7 +69,10 @@ typedef struct CPU_t {
   bool    irqEnabled, fiqEnabled; // Are interrupts enabled?
   bool    irqActive, fiqActive;   // Are interrupts active?
   bool    irqPending;             // Is there a potential interrupt to handle?
+  bool    fiq;                    // Do FIQ on next IRQ handle
   uint8_t fiqSource;              // Where the FIQ signal coming from
+
+  bool firMov; // FIR move?
 
   int32_t cycles; // cycles taken to run current instruction
 
@@ -151,7 +165,9 @@ uint16_t CPU_Pop(uint8_t index);
 void CPU_ActivatePendingIRQs();
 void CPU_TestIRQ();
 void CPU_DoIRQ(uint8_t irqNum);
-void CPU_ConfigFIQ(uint16_t fiqSource);
+void CPU_DoFIQ();
+void CPU_SetFIQSource(uint16_t fiqSource);
+void CPU_TriggerFIQ(uint16_t fiqSource);
 
 // Debug
 void CPU_PrintCPUState();

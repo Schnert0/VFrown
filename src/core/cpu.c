@@ -77,6 +77,8 @@ void CPU_Cleanup() {
 void CPU_Reset() {
   memset(&this, 0, sizeof(CPU_t));
 
+  this.fiqSource = FIQSRC_NONE;
+
   this.pc = Bus_Load(0xfff7);
 }
 
@@ -501,12 +503,23 @@ void CPU_OpMISC() {
     this.fiqEnabled = true;
     break;
 
+  case 0x04: // FIR_MOV ON
+    this.firMov = true;
+    break;
+
+  case 0x05: // FIR_MOV OFF
+    this.firMov = false;
+    break;
+
   case 0x0c: // FIQ OFF
     this.fiqEnabled = false;
     break;
 
   case 0x0e: // FIQ ON
     this.fiqEnabled = true;
+    break;
+
+  case 0x25: // NOP
     break;
 
   default: VSmile_Error("unimplemented special instruction at 0x%06x (op1 = 0x%01x, offset = 0x%02x)", CPU_GetCSPC(), this.ins.op1, this.ins.imm);
@@ -705,7 +718,7 @@ void CPU_OpPSH() {
 
 
 void CPU_OpBAD() {
-  VSmile_Error("unknown CPU instruction %04x at %06x", this.ins.raw, this.pc);
+  VSmile_Warning("unknown CPU instruction %04x at %06x", this.ins.raw, this.pc);
 }
 
 
@@ -992,18 +1005,23 @@ void CPU_TestIRQ() {
 
   uint16_t maskedIRQ = Bus_Load(0x3d21) & Bus_Load(0x3d22);
   uint16_t gpuMaskedIRQ = Bus_Load(0x2862) & Bus_Load(0x2863);
+  uint16_t spuIRQ = SPU_GetIRQ();
+  uint16_t spuChannelIRQ = SPU_GetChannelIRQ();
 
   // If there's no active IRQs to handle, break out early
   // and hint that there's no more IRQs to the CPU
-  if (!gpuMaskedIRQ && !maskedIRQ) {
+  if (!maskedIRQ && !gpuMaskedIRQ && !spuIRQ && !spuChannelIRQ) {
     this.irqPending = false;
     return;
   }
 
-  if (gpuMaskedIRQ) { // Video
+  if (this.fiq) {
+    CPU_DoFIQ();
+  }
+  else if (gpuMaskedIRQ) { // Video
     CPU_DoIRQ(0);
   }
-  // else if (0x0000) { // SPU
+  // else if (spuChannelIRQ) { // SPU
   //   CPU_DoIRQ(1);
   // }
   else if (maskedIRQ & 0x0c00) { // Timer A, Timer B
@@ -1012,9 +1030,9 @@ void CPU_TestIRQ() {
   else if (maskedIRQ & 0x6100) { // UART, ADC, SPI
     CPU_DoIRQ(3);
   }
-  // else if (0x0000) { // SPU beat and envelope
-  //   CPU_DoIRQ(4);
-  // }
+  else if (spuIRQ) { // SPU beat and envelope
+    CPU_DoIRQ(4);
+  }
   else if (maskedIRQ & 0x1200) { // Controller 1 and 2 RTS signals
     CPU_DoIRQ(5);
   }
@@ -1050,6 +1068,7 @@ void CPU_DoFIQ() {
     return;
 
   this.fiqActive = true;
+  this.fiq = false;
 
   this.sbBanked[this.irqActive] = this.sb;
   CPU_Push(this.pc, 0);
@@ -1060,10 +1079,16 @@ void CPU_DoFIQ() {
   this.sr.raw = 0;
 }
 
-
-// Configure Fast Interrupt Source
-void CPU_ConfigFIQ(uint16_t fiqSource) {
+// Configure FIQ Source
+void CPU_SetFIQSource(uint16_t fiqSource) {
   this.fiqSource = fiqSource;
+}
+
+
+// Trigger FIQ if the FIQ source matches the selected FIQ source
+void CPU_TriggerFIQ(uint16_t fiqSource) {
+  if (this.fiqSource == fiqSource)
+    this.fiq = true;
 }
 
 

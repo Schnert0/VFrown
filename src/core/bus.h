@@ -51,6 +51,8 @@ typedef struct Bus_t {
   uint8_t ramDecodeMode;
   uint8_t chipSelectMode;
 
+  uint16_t timer2khz, timer1khz, timer4hz;
+
 
   uint32_t romSize;
   uint16_t* romBuffer;
@@ -63,7 +65,7 @@ void Bus_Cleanup();
 void Bus_Reset();
 void Bus_LoadROM(const char* filePath);
 
-void Bus_UARTTick(int32_t cycles);
+void Bus_Tick(int32_t cycles);
 
 uint32_t Bus_GetRomDecode(uint32_t addr);
 uint16_t Bus_Load(uint32_t addr);

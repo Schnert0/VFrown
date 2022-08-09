@@ -42,7 +42,7 @@ void VSmile_Run() {
         cyclesLeft -= cycles;
 
         SPU_Tick(cycles);
-        Bus_UARTTick(cycles);
+        Bus_Tick(cycles);
         Controller_Tick(cycles);
         TMB_Tick(0, cycles);
         TMB_Tick(1, cycles);

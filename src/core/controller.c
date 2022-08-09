@@ -2,11 +2,6 @@
 
 static Controller_t controllers[2];
 
-static Func_t txExpired[]   = { Controller_Tx0Expired,   Controller_Tx1Expired   };
-static Func_t rxExpired[]   = { Controller_Rx0Expired,   Controller_Rx1Expired   };
-static Func_t rtsExpired[]  = { Controller_RTS0Expired,  Controller_RTS1Expired  };
-static Func_t idleExpired[] = { Controller_Idle0Expired, Controller_Idle1Expired };
-
 // Initialize the Controller Component
 bool Controller_Init() {
   for (int32_t i = 0; i < 2; i++) {
@@ -14,10 +9,10 @@ bool Controller_Init() {
 
     memset(this, 0, sizeof(Controller_t));
     this->txEmpty = true;
-    this->txTimer   = Timer_Init(SYSCLOCK / 9600, txExpired[i]);
-    this->rxTimer   = Timer_Init(SYSCLOCK / 9600, rxExpired[i]);
-    this->rtsTimer  = Timer_Init(SYSCLOCK,        rtsExpired[i]);
-    this->idleTimer = Timer_Init(SYSCLOCK,        idleExpired[i]);
+    this->txTimer   = Timer_Init(SYSCLOCK / 9600, (TimerFunc_t)Controller_TxExpired,   i);
+    this->rxTimer   = Timer_Init(SYSCLOCK / 9600, (TimerFunc_t)Controller_RxExpired,   i);
+    this->rtsTimer  = Timer_Init(SYSCLOCK,        (TimerFunc_t)Controller_RTSExpired,  i);
+    this->idleTimer = Timer_Init(SYSCLOCK,        (TimerFunc_t)Controller_IdleExpired, i);
     // Timer_Reset(this->idleTimer);
   }
 
@@ -295,16 +290,10 @@ void Controller_TxExpired(uint8_t ctrlNum) {
   }
 }
 
-void Controller_Tx0Expired() { Controller_TxExpired(0); }
-void Controller_Tx1Expired() { Controller_TxExpired(1); }
-
 
 void Controller_RxExpired(uint8_t ctrlNum) {
   Controller_RxComplete(ctrlNum);
 }
-
-void Controller_Rx0Expired() { Controller_RxExpired(0); }
-void Controller_Rx1Expired() { Controller_RxExpired(1); }
 
 
 void Controller_RTSExpired(uint8_t ctrlNum) {
@@ -321,17 +310,11 @@ void Controller_RTSExpired(uint8_t ctrlNum) {
   }
 }
 
-void Controller_RTS0Expired() { Controller_RTSExpired(0); }
-void Controller_RTS1Expired() { Controller_RTSExpired(1); }
-
 
 void Controller_IdleExpired(uint8_t ctrlNum) {
   Controller_QueueTx(ctrlNum, 0x55);
   Timer_Reset(controllers[ctrlNum].idleTimer);
 }
-
-void Controller_Idle0Expired() { Controller_IdleExpired(0); }
-void Controller_Idle1Expired() { Controller_IdleExpired(1); }
 
 
 void Controller_UpdateButtons(uint8_t ctrlNum, uint32_t buttons) {

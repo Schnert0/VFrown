@@ -3,8 +3,11 @@
 
 #include "../common.h"
 #include "vsmile.h"
+#include "timer.h"
 
 #define SPU_SAMPLE_TIMER (SYSCLOCK / 44100)
+
+struct Timer_t;
 
 typedef union {
   uint16_t raw;
@@ -124,9 +127,12 @@ typedef struct {
   uint32_t sampleOffset;
   int32_t  sample;
   uint8_t  pcmShift;
+  bool     isPlaying;
 
   int16_t adpcmStepIndex;
   int8_t  adpcmLastSample;
+
+  struct Timer_t* timer;
 } Channel_t;
 
 /*
@@ -137,7 +143,8 @@ typedef struct SPU_t {
   Channel_t channels[16];
   uint16_t  regs4[32];
 
-  bool irq;
+  struct Timer_t* beatTimer;
+  bool irq, channelIrq;
 
   int16_t  buffer[2048];
   uint32_t bufferLen;
@@ -150,14 +157,21 @@ bool SPU_Init();
 void SPU_Cleanup();
 
 void SPU_Tick(int32_t cycles);
+
 int32_t SPU_TickChannel(uint8_t ch);
 int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble);
+void SPU_TriggerChannelIRQ(uint8_t ch);
+void SPU_StartChannel(uint8_t ch);
+void SPU_StopChannel(uint8_t ch);
+
 
 uint16_t SPU_Read(uint16_t addr);
 void SPU_Write(uint16_t addr, uint16_t data);
 
 void SPU_EnableChannels(uint16_t data);
+void SPU_WriteBeatCount(uint16_t data);
 
+void SPU_TriggerBeatIRQ(uint8_t index);
 uint16_t SPU_GetIRQ();
 uint16_t SPU_GetChannelIRQ();
 
