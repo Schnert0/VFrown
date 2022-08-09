@@ -2,70 +2,70 @@
 
 static SPU_t this;
 
-static const char* registerNames0[] = {
-  "wave address",          // 0x0
-  "audio mode",            // 0x1
-  "loop address",          // 0x2
-  "pan volume",            // 0x3
-  "envelope 0",            // 0x4
-  "envelope data",         // 0x5
-  "envelope 1",            // 0x6
-  "envelope high address", // 0x7
-  "envelope address",      // 0x8
-  "prev wave data",        // 0x9
-  "envelope loop ctrl",    // 0xA
-  "wave data",             // 0xB
-  "adpcm select",          // 0xC
-  "unknown 13",            // 0xD
-  "unknown 14",            // 0xE
-  "unknown 15",            // 0xF
-};
-
-static const char* registerNames2[] = {
-  "phase high",             // 0x0
-  "phase accumulator high", // 0x1
-  "target phase high",      // 0x2
-  "ramp down clock",        // 0x3
-  "phase",                  // 0x4
-  "phase accumulator",      // 0x5
-  "target phase",           // 0x6
-  "phase ctrl",             // 0x7
-};
-
-static const char* registerNames4[] = {
-  "enable",                // 0x00
-  "volume",                // 0x01
-  "FIQ enable",            // 0x02
-  "FIQ stat",              // 0x03
-  "beat base count",       // 0x04
-  "beat count",            // 0x05
-  "envelope clock 0",      // 0x06
-  "envelope clock 0 high", // 0x07
-  "envelope clock 1",      // 0x08
-  "envelope clock 1 high", // 0x09
-  "envelope ramp down",    // 0x0a
-  "stop",                  // 0x0b
-  "zero cross",            // 0x0c
-  "ctrl",                  // 0x0d
-  "compression ctrl",      // 0x0e
-  "stat",                   // 0x0f
-  "L wave in",             // 0x10
-  "R wave in",             // 0x11
-  "L wave out",            // 0x12
-  "R wave out",            // 0x13
-  "channel repeat",        // 0x14
-  "channel env mode",      // 0x15
-  "channel tone release",  // 0x16
-  "channel env irq",       // 0x17
-  "channel pitch bend",    // 0x18
-  "channel soft phase",    // 0x19
-  "attack release",        // 0x1a
-  "eq cutoff 10",          // 0x1b
-  "eq cutoff 32",          // 0x1c
-  "eq gain 10",            // 0x1d
-  "eq gain 32",            // 0x1e
-  "unknown 0x1f"           // 0x1f
-};
+// static const char* registerNames0[] = {
+//   "wave address",          // 0x0
+//   "audio mode",            // 0x1
+//   "loop address",          // 0x2
+//   "pan volume",            // 0x3
+//   "envelope 0",            // 0x4
+//   "envelope data",         // 0x5
+//   "envelope 1",            // 0x6
+//   "envelope high address", // 0x7
+//   "envelope address",      // 0x8
+//   "prev wave data",        // 0x9
+//   "envelope loop ctrl",    // 0xA
+//   "wave data",             // 0xB
+//   "adpcm select",          // 0xC
+//   "unknown 13",            // 0xD
+//   "unknown 14",            // 0xE
+//   "unknown 15",            // 0xF
+// };
+//
+// static const char* registerNames2[] = {
+//   "phase high",             // 0x0
+//   "phase accumulator high", // 0x1
+//   "target phase high",      // 0x2
+//   "ramp down clock",        // 0x3
+//   "phase",                  // 0x4
+//   "phase accumulator",      // 0x5
+//   "target phase",           // 0x6
+//   "phase ctrl",             // 0x7
+// };
+//
+// static const char* registerNames4[] = {
+//   "enable",                // 0x00
+//   "volume",                // 0x01
+//   "FIQ enable",            // 0x02
+//   "FIQ stat",              // 0x03
+//   "beat base count",       // 0x04
+//   "beat count",            // 0x05
+//   "envelope clock 0",      // 0x06
+//   "envelope clock 0 high", // 0x07
+//   "envelope clock 1",      // 0x08
+//   "envelope clock 1 high", // 0x09
+//   "envelope ramp down",    // 0x0a
+//   "stop",                  // 0x0b
+//   "zero cross",            // 0x0c
+//   "ctrl",                  // 0x0d
+//   "compression ctrl",      // 0x0e
+//   "stat",                   // 0x0f
+//   "L wave in",             // 0x10
+//   "R wave in",             // 0x11
+//   "L wave out",            // 0x12
+//   "R wave out",            // 0x13
+//   "channel repeat",        // 0x14
+//   "channel env mode",      // 0x15
+//   "channel tone release",  // 0x16
+//   "channel env irq",       // 0x17
+//   "channel pitch bend",    // 0x18
+//   "channel soft phase",    // 0x19
+//   "attack release",        // 0x1a
+//   "eq cutoff 10",          // 0x1b
+//   "eq cutoff 32",          // 0x1c
+//   "eq gain 10",            // 0x1d
+//   "eq gain 32",            // 0x1e
+//   "unknown 0x1f"           // 0x1f
+// };
 
 static int16_t adpcmStep[] = {
   16,   17,   19,   21,   23,   25,   28,   31,  34,   37,   41,   45,
@@ -270,27 +270,27 @@ void SPU_TriggerChannelIRQ(uint8_t ch) {
 
 
 uint16_t SPU_Read(uint16_t addr) {
-  switch (addr & 0x0f00) {
-  case 0x0000: {
-    uint8_t channel = (addr >> 0x4) & 0xf;
-    uint8_t reg     = (addr &  0xf);
-    printf("read from channel %d %s (%04x) at %06x\n", channel, registerNames0[reg], addr, CPU_GetCSPC());
-  } break;
-
-  case 0x0200: {
-    uint8_t channel = (addr >> 0x4) & 0xf;
-    uint8_t reg     = (addr &  0x7);
-    printf("read from channel %d %s (%04x) at %06x\n", channel, registerNames2[reg], addr, CPU_GetCSPC());
-  } break;
-
-  case 0x0400: {
-    uint8_t reg = (addr & 0x1f);
-    printf("read from channel %s (%04x) at %06x\n", registerNames4[reg], addr, CPU_GetCSPC());
-  } break;
-
-  default:
-    printf("read from unknown register %04x at %06x\n", addr, CPU_GetCSPC());
-  }
+  // switch (addr & 0x0f00) {
+  // case 0x0000: {
+  //   uint8_t channel = (addr >> 0x4) & 0xf;
+  //   uint8_t reg     = (addr &  0xf);
+  //   printf("read from channel %d %s (%04x) at %06x\n", channel, registerNames0[reg], addr, CPU_GetCSPC());
+  // } break;
+  //
+  // case 0x0200: {
+  //   uint8_t channel = (addr >> 0x4) & 0xf;
+  //   uint8_t reg     = (addr &  0x7);
+  //   printf("read from channel %d %s (%04x) at %06x\n", channel, registerNames2[reg], addr, CPU_GetCSPC());
+  // } break;
+  //
+  // case 0x0400: {
+  //   uint8_t reg = (addr & 0x1f);
+  //   printf("read from channel %s (%04x) at %06x\n", registerNames4[reg], addr, CPU_GetCSPC());
+  // } break;
+  //
+  // default:
+  //   printf("read from unknown register %04x at %06x\n", addr, CPU_GetCSPC());
+  // }
 
   if ((addr & 0x0f00) == 0x0000) {
     uint8_t channel = (addr >> 0x4) & 0xf;
