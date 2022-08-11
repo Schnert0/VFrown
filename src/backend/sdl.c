@@ -159,7 +159,7 @@ void SDLBackend_InitAudioDevice() {
   memset(&want, 0, sizeof(want));
   want.freq     = 44100;
   want.format   = AUDIO_S16SYS;
-  want.channels = 2;
+  want.channels = 1;
   want.samples  = 4096;
 
   this.audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, NULL, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
@@ -171,8 +171,7 @@ void SDLBackend_InitAudioDevice() {
 void SDLBackend_PushAudioSample(int16_t leftSample, int16_t rightSample) {
   this.audioBuffer[this.audioLen++] = leftSample;
   this.audioBuffer[this.audioLen++] = rightSample;
-  this.audioBuffer[this.audioLen++] = leftSample;
-  this.audioBuffer[this.audioLen++] = rightSample;
+
   // if (this.audioLen < 4096)
   //   return;
   // SDL_QueueAudio(this.audioDevice, this.audioBuffer, this.audioLen);
@@ -181,8 +180,9 @@ void SDLBackend_PushAudioSample(int16_t leftSample, int16_t rightSample) {
 
 
 void SDLBackend_PlayAudio() {
-  if (this.audioLen < 4096)
-    return;
+  // if (this.audioLen < 4096)
+  //   return;
   SDL_QueueAudio(this.audioDevice, this.audioBuffer, this.audioLen);
   this.audioLen = 0;
+  memset(this.audioBuffer, 0, 65536);
 }

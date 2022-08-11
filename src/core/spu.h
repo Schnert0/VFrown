@@ -124,13 +124,14 @@ typedef struct {
 
   float    accum;
   float    rate;
-  uint32_t sampleOffset;
   int32_t  sample;
   uint8_t  pcmShift;
   bool     isPlaying;
 
   int16_t adpcmStepIndex;
   int8_t  adpcmLastSample;
+
+  uint16_t rampDownFrame, envelopeFrame;
 
   struct Timer_t* timer;
 } Channel_t;
@@ -148,8 +149,7 @@ typedef struct SPU_t {
 
   uint16_t currBeatBase;
   uint32_t bufferLen;
-  int32_t  sampleTimer;
-  int16_t  prevSample, sample;
+  int32_t  sampleTimer, accumulatedSamples;
 } SPU_t;
 
 
@@ -160,6 +160,7 @@ void SPU_Tick(int32_t cycles);
 
 int32_t SPU_TickChannel(uint8_t ch);
 int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble);
+uint16_t SPU_GetEnvelopeClock(uint8_t ch);
 void SPU_TriggerChannelIRQ(uint8_t ch);
 void SPU_StartChannel(uint8_t ch);
 void SPU_StopChannel(uint8_t ch);
