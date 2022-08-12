@@ -40,7 +40,7 @@ typedef struct SDLBackend_t {
 
   // Audio
   SDL_AudioDeviceID audioDevice;
-  int16_t  audioBuffer[65536];
+  int16_t  audioBuffer[2];
   uint16_t audioLen;
 } SDLBackend_t;
 

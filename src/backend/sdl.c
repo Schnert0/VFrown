@@ -167,10 +167,12 @@ void SDLBackend_InitAudioDevice() {
 }
 
 
-// static int16_t check = -2048;
 void SDLBackend_PushAudioSample(int16_t leftSample, int16_t rightSample) {
-  this.audioBuffer[this.audioLen++] = leftSample;
-  this.audioBuffer[this.audioLen++] = rightSample;
+  this.audioBuffer[0] = leftSample;
+  this.audioBuffer[1] = rightSample;
+
+  SDL_QueueAudio(this.audioDevice, this.audioBuffer, 2);
+  this.audioLen = 0;
 
   // if (this.audioLen < 4096)
   //   return;
@@ -182,7 +184,7 @@ void SDLBackend_PushAudioSample(int16_t leftSample, int16_t rightSample) {
 void SDLBackend_PlayAudio() {
   // if (this.audioLen < 4096)
   //   return;
-  SDL_QueueAudio(this.audioDevice, this.audioBuffer, this.audioLen);
-  this.audioLen = 0;
-  memset(this.audioBuffer, 0, 65536);
+  // SDL_QueueAudio(this.audioDevice, this.audioBuffer, this.audioLen);
+  // this.audioLen = 0;
+  // memset(this.audioBuffer, 0, 65536);
 }

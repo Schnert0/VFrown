@@ -13,7 +13,8 @@
 #define CYCLES_PER_LINE 1716
 #define LINES_PER_FIELD 262
 // Is this correct? or is it 27000000?
-#define SYSCLOCK (CYCLES_PER_LINE * LINES_PER_FIELD * 60)
+#define SYSCLOCK 27000000
+//(CYCLES_PER_LINE * LINES_PER_FIELD * 60)
 
 #define IN_RANGE(addr, start, size) \
   (addr >= start && addr < start+size)

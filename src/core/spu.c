@@ -2,7 +2,7 @@
 
 static SPU_t this;
 
-const float rateCutoff = 35156.25 / (25.0f / 16.0f);
+const float rateCutoff = 44100.0f;
 
 // static const char* registerNames0[] = {
 //   "wave address",          // 0x0
@@ -78,9 +78,9 @@ static const int16_t adpcmStep[] = {
 
 static const int8_t adpcmStepShift[] = { -1, -1, -1, -1, 2, 4, 6, 8 };
 
-// static const int16_t envelopeFrameCounts[] = {
-// 	4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 8192, 8192, 8192, 8192
-// };
+static const int16_t envelopeFrameCounts[] = {
+	4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 8192, 8192, 8192, 8192
+};
 
 bool SPU_Init() {
   memset(&this, 0, sizeof(SPU_t));
@@ -93,7 +93,7 @@ bool SPU_Init() {
     this.channels[i].timer = Timer_Init(0, (TimerFunc_t)SPU_TriggerChannelIRQ, i);
   }
 
-  this.beatTimer = Timer_Init(SYSCLOCK / 90000, (TimerFunc_t)SPU_TriggerBeatIRQ, 0); // (281250.0f / 3.125f) = 9000
+  this.beatTimer = Timer_Init(SYSCLOCK / (281250.0f/4.0f), (TimerFunc_t)SPU_TriggerBeatIRQ, 0);
   Timer_Reset(this.beatTimer);
 
   return true;
@@ -138,26 +138,21 @@ void SPU_Tick(int32_t cycles) {
 
   int32_t leftSample = 0;
   int32_t rightSample = 0;
-  int32_t numEnabled = 0;
 
   for (int32_t i = 0; i < 16; i++) {
     if ((this.regs4[0x00] & (1 << i)) && !(this.regs4[0x0b] & (1 << i))) { // Channel is enabled
       Channel_t* channel = &this.channels[i];
-      numEnabled++;
 
       SPU_TickChannel(i);
 
       int32_t sample = (int16_t)(channel->waveData ^ 0x8000);
     	if (!(this.regs4[0xd] & 0x0200)) { // Audio CTRL
     		int32_t prevSample = (int16_t)(channel->prevWaveData ^ 0x8000);
-    		int16_t lerp = (int16_t)((channel->rate / 70312.5f) * 256.0f);
+    		int16_t lerp = (int16_t)((channel->rate / 44100.0f) * 256.0f);
     		prevSample = (prevSample * (0x100 - lerp)) >> 8;
     		sample = (sample * lerp) >> 8;
     		sample += prevSample;
     	}
-
-      leftSample  += sample;
-      rightSample += sample;
 
       // uint8_t pan = channel->panVol.pan;
       // uint8_t vol = channel->panVol.vol;
@@ -171,18 +166,45 @@ void SPU_Tick(int32_t cycles) {
       //   panRight =  127 * vol;
       // }
       //
-      // leftSample  += (sample * (int16_t)panLeft)  >> 14;
-      // rightSample += (sample * (int16_t)panRight) >> 14;
+      // leftSample  += (sample * (int32_t)panLeft)  >> 14;
+      // rightSample += (sample * (int32_t)panRight) >> 14;
+
+      if (this.regs4[0xa] & (1 << i)) { // Ramp Down
+        if (channel->rampDownFrame > 0)
+          channel->rampDownFrame--;
+
+        if (channel->rampDownFrame == 0) {
+          uint8_t prevEnvData = channel->envData.envelopeData;
+          uint8_t currEnvData = prevEnvData - channel->envLoopCtrl.rampDownOffset;
+          if (currEnvData > prevEnvData)
+            currEnvData = 0;
+
+          if (currEnvData > 0) {
+            channel->envData.envelopeData = currEnvData;
+          } else {
+            SPU_StopChannel(i);
+          }
+        }
+      }
+      else if (!(this.regs4[0x15])) { // Envelope mode
+        if (channel->envelopeFrame > 0)
+          channel->envelopeFrame--;
+
+        if (channel->envelopeFrame == 0) {
+
+          channel->envelopeFrame = envelopeFrameCounts[SPU_GetEnvelopeClock(i)];
+        }
+      }
+
+      leftSample  += sample;
+      rightSample += sample;
     }
+
   }
 
-  if (numEnabled > 0) {
-    leftSample >>= 4;
-    rightSample >>= 4;
-    Backend_PushAudioSample(leftSample, rightSample);
-  } else {
-    Backend_PushAudioSample(0, 0);
-  }
+  leftSample >>= 4;
+  rightSample >>= 4;
+  Backend_PushAudioSample(leftSample, rightSample);
 
 }
 
@@ -266,25 +288,6 @@ int32_t SPU_TickChannel(uint8_t ch) {
     channel->waveAddr = waveAddr & 0xffff;
     channel->mode.waveHi = (waveAddr >> 16) & 0x3f;
   }
-
-
-  // if (this.regs4[0xa] & (1 << ch)) { // Ramp Down
-  //   if (channel->rampDownFrame > 0)
-  //     channel->rampDownFrame--;
-  //
-  //   if (channel->rampDownFrame == 0) {
-  //
-  //   }
-  // }
-  // else if (!(this.regs4[0x15])) { // Envelope mode
-  //   if (channel->envelopeFrame > 0)
-  //     channel->envelopeFrame--;
-  //
-  //   if (channel->envelopeFrame == 0) {
-  //
-  //     channel->envelopeFrame = envelopeFrameCounts[SPU_GetEnvelopeClock(ch)];
-  //   }
-  // }
 
   return channel->waveData;
 }
