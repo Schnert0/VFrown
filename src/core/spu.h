@@ -23,6 +23,7 @@ typedef union {
   uint16_t raw;
   struct {
     uint16_t vol : 7;
+    uint16_t     : 1;
     uint16_t pan : 7;
   };
 } SPUPanVol_t;
@@ -30,8 +31,8 @@ typedef union {
 typedef union {
   uint16_t raw;
   struct {
-    uint16_t tableIncrement : 8;
-    uint16_t loopStart      : 7;
+    uint16_t increment      : 8;
+    uint16_t target         : 7;
     uint16_t loopEnable     : 1;
   };
 } SPUEnv0_t;
@@ -57,7 +58,7 @@ typedef union {
 typedef union {
   uint16_t raw;
   struct {
-    uint16_t envAddrHigh : 6;
+    uint16_t envAddrHi   : 6;
     uint16_t irqEnable   : 1;
     uint16_t irqAddr     : 9;
   };
@@ -67,7 +68,7 @@ typedef union {
   uint16_t raw;
   struct {
     uint16_t envAddrOffset  : 9;
-    uint16_t rampDownOffset : 5;
+    uint16_t rampDownOffset : 7;
   };
 } SPUEnvLoopCtrl_t;
 
@@ -104,7 +105,7 @@ typedef struct {
       uint16_t         prevWaveData;
       SPUEnvLoopCtrl_t envLoopCtrl;
       uint16_t         waveData;
-      SPUADPCMSel_t   adpcmSel;
+      SPUADPCMSel_t    adpcmSel;
     };
   };
 
@@ -158,8 +159,9 @@ void SPU_Cleanup();
 
 void SPU_Tick(int32_t cycles);
 
-int32_t SPU_TickChannel(uint8_t ch);
+uint16_t SPU_TickChannel(uint8_t ch);
 int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble);
+void SPU_TickEnvelope(uint8_t ch);
 uint16_t SPU_GetEnvelopeClock(uint8_t ch);
 void SPU_TriggerChannelIRQ(uint8_t ch);
 void SPU_StartChannel(uint8_t ch);
