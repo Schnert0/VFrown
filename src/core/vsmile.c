@@ -40,14 +40,13 @@ void VSmile_Run() {
       while (cyclesLeft > 0) {
         int32_t cycles = CPU_Tick();
         cyclesLeft -= cycles;
-
         SPU_Tick(cycles);
-        Bus_Tick(cycles);
-        Controller_Tick(cycles);
-        TMB_Tick(0, cycles);
-        TMB_Tick(1, cycles);
       }
-      CPU_TestIRQ();
+
+      Bus_Tick(CYCLES_PER_LINE - cyclesLeft);
+      Controller_Tick(CYCLES_PER_LINE - cyclesLeft);
+      TMB_Tick(0, CYCLES_PER_LINE - cyclesLeft);
+      TMB_Tick(1, CYCLES_PER_LINE - cyclesLeft);
 
       PPU_RenderLine();
 
@@ -63,7 +62,6 @@ void VSmile_Run() {
 
       if (currLine >= LINES_PER_FIELD) {
         PPU_UpdateScreen();
-        Backend_PlayAudio();
         this.step = false;
       }
 

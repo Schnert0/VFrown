@@ -123,15 +123,7 @@ void SPU_Reset() {
 
 
 void SPU_Tick(int32_t cycles) {
-  if (this.channelIrq) {
-    CPU_TriggerFIQ(FIQSRC_SPU);
-    this.channelIrq = false;
-  }
-
   Timer_Tick(this.beatTimer, cycles);
-  for (int32_t i = 0; i < 16; i++) {
-    Timer_Tick(this.channels[i].timer, cycles);
-  }
 
   if (this.sampleTimer > 0) {
     this.sampleTimer -= cycles;
@@ -139,6 +131,18 @@ void SPU_Tick(int32_t cycles) {
     return;
   }
   this.sampleTimer += SPU_SAMPLE_TIMER;
+
+  while (this.accumulatedSamples > 0) {
+    for (int32_t i = 0; i < 16; i++) {
+      Timer_Tick(this.channels[i].timer, SPU_SAMPLE_TIMER);
+    }
+    this.accumulatedSamples -= SPU_SAMPLE_TIMER;
+  }
+
+  if (this.channelIrq) {
+    CPU_TriggerFIQ(FIQSRC_SPU);
+    this.channelIrq = false;
+  }
 
   int32_t leftSample = 0;
   int32_t rightSample = 0;
@@ -160,6 +164,8 @@ void SPU_Tick(int32_t cycles) {
 
       // if (!(this.regs4[0x15] & (1 << i)))
       sample = (sample * (int32_t)channel->envData.envelopeData) >> 7;
+
+      SDLBackend_PushOscilloscopeSample(i, sample);
 
       int32_t pan = channel->panVol.pan;
       int32_t vol = channel->panVol.vol;
@@ -205,6 +211,8 @@ void SPU_Tick(int32_t cycles) {
           channel->envelopeFrame = envelopeFrameCounts[SPU_GetEnvelopeClock(i)];
         }
       }
+    } else {
+      SDLBackend_PushOscilloscopeSample(i, 0);
     }
 
   }
@@ -641,16 +649,15 @@ void SPU_TriggerBeatIRQ(uint8_t index) {
     this.currBeatBase--;
 
   if (this.currBeatBase == 0) {
-    this.currBeatBase = this.regs4[0x4];
+    this.currBeatBase = this.regs4[0x04];
 
     uint16_t beatCount = this.regs4[0x05];
     uint16_t beatsLeft = beatCount & 0x3fff;
-    beatCount &= ~0x3fff;
+
     if (beatsLeft > 0)
       beatsLeft--;
 
     if (beatsLeft == 0) {
-      beatsLeft = SPU_Read(0x3405) & 0x3fff;
       if (beatCount & 0x8000)
         beatCount |= 0x4000;
 
@@ -659,8 +666,9 @@ void SPU_TriggerBeatIRQ(uint8_t index) {
         CPU_ActivatePendingIRQs();
       }
     }
-    beatCount |= beatsLeft;
 
+    beatCount &= ~0x3fff;
+    beatCount |= (beatsLeft & 0x3fff);
     this.regs4[0x05] = beatCount;
   }
 

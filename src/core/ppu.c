@@ -31,23 +31,28 @@ void PPU_UpdateScreen() {
 
 
 void PPU_RenderLine() {
-  uint16_t line = PPU_GetCurrLine();
 
-  if (line >= 240) { // Out of frame, don't render line
-    PPU_IncrementCurrLine();
+  if (this.currLine >= 240) { // Out of frame, don't render line
+    this.currLine++;
+    if (this.currLine > LINES_PER_FIELD)
+      this.currLine = 0;
     return;
   }
 
-  this.scanlineBuffer = Backend_GetScanlinePointer(line);
+  if (Backend_RenderScanline()) {
+    this.scanlineBuffer = Backend_GetScanlinePointer(this.currLine);
 
-  this.isFirstLayer = true;
-  for (int32_t i = 0; i < 4; i++) {
-    PPU_RenderLayerStrip(0, i, line);
-    PPU_RenderLayerStrip(1, i, line);
-    PPU_RenderSpriteStrips(i, line);
+    this.isFirstLayer = true;
+    for (int32_t i = 0; i < 4; i++) {
+      PPU_RenderLayerStrip(0, i, this.currLine);
+      PPU_RenderLayerStrip(1, i, this.currLine);
+      PPU_RenderSpriteStrips(i, this.currLine);
+    }
   }
 
-  PPU_IncrementCurrLine();
+  this.currLine++;
+  if (this.currLine > LINES_PER_FIELD)
+    this.currLine = 0;
 }
 
 
@@ -87,7 +92,7 @@ void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t 
           color |= 0xf800;
         if (vFlip)
           color |= 0x001f;
-        if ((x&1) == (Bus_Load(0x2838)&1) && (hFlip || vFlip))
+        if ((x&1) == (this.currLine & 1) && (hFlip || vFlip))
           this.scanlineBuffer[x] = color;
       }
     }
@@ -117,9 +122,12 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
   palOffset <<= nc;
 
   if (this.isFirstLayer) {
-    uint16_t bkgndColor = Bus_Load(0x2b00 + palOffset);
-    for (int32_t i = 0; i < 320; i++)
-      this.scanlineBuffer[i] = bkgndColor;
+    // uint16_t bkgndColor = Bus_Load(0x2b00 + palOffset);
+    // for (int32_t i = 0; i < 320; i++)
+    //   this.scanlineBuffer[i] = bkgndColor;
+
+    memset(this.scanlineBuffer, 0, 320 * sizeof(uint16_t));
+
     this.isFirstLayer = false;
   }
 
@@ -257,17 +265,7 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
 
 
 uint16_t PPU_GetCurrLine() {
-  return Bus_Load(0x2838);
-}
-
-
-void PPU_IncrementCurrLine() {
-  uint16_t currLine = Bus_Load(0x2838)+1;
-
-  if (currLine > 262)
-    currLine = 0;
-
-  Bus_Store(0x2838, currLine);
+  return this.currLine;
 }
 
 

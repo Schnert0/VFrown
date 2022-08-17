@@ -20,9 +20,20 @@ bool SDLBackend_Init() {
     return false;
 
   this.pixels = malloc(320 * 240 * sizeof(uint16_t));
-  memset(this.pixels, 0, 320 * 240 * sizeof(uint16_t));
   if (!this.pixels)
     return false;
+  memset(this.pixels, 0, 320 * 240 * sizeof(uint16_t));
+
+  this.oscilloscopeTexture = SDL_CreateTexture(this.renderer, SDL_PIXELFORMAT_ARGB1555, SDL_TEXTUREACCESS_STREAMING, 256, 128);
+  if (!this.oscilloscopeTexture)
+    return false;
+
+  for (int32_t i = 0; i < 16; i++) {
+    this.oscilloscopePixels[i] = malloc(256 * 128 * sizeof(uint16_t));
+    if (!this.oscilloscopePixels[i])
+      return false;
+    memset(this.oscilloscopePixels[i], 0, 256 * 128 * sizeof(uint16_t));
+  }
 
   return true;
 }
@@ -40,29 +51,54 @@ void SDLBackend_Cleanup() {
 
   if (this.window)
     SDL_DestroyWindow(this.window);
+
+  if (this.oscilloscopeTexture)
+    SDL_DestroyTexture(this.oscilloscopeTexture);
+
+  for (int32_t i = 0; i < 16; i++) {
+    if (this.oscilloscopePixels[i])
+      free(this.oscilloscopePixels[i]);
+  }
 }
 
-
 void SDLBackend_UpdateWindow() {
-  // SDL_BlitScaled(this.screen, NULL, SDL_GetWindowSurface(this.window), NULL);
-  // SDL_UpdateWindowSurface(this.window);
+  if (this.isOscilloscopeView) {
+    int32_t w, h;
+    SDL_GetWindowSize(this.window, &w, &h);
 
-  SDL_LockTextureToSurface(this.texture, NULL, &this.surface);
-  memcpy(this.surface->pixels, this.pixels, 320 * 240 * sizeof(uint16_t));
-  SDL_UnlockTexture(this.texture);
-  SDL_RenderCopy(this.renderer, this.texture, NULL, NULL);
+    for (int32_t i = 0; i < 16; i++) {
+      SDL_LockTextureToSurface(this.oscilloscopeTexture, NULL, &this.surface);
+      memcpy(this.surface->pixels, this.oscilloscopePixels[i], 256 * 128 * sizeof(uint16_t));
+      SDL_UnlockTexture(this.oscilloscopeTexture);
+
+      SDL_Rect rect;
+      rect.w = w / 4;
+      rect.h = h / 4;
+      rect.x = rect.w * (i  & 3);
+      rect.y = rect.h * (i >> 2);
+
+      SDL_RenderCopy(this.renderer, this.oscilloscopeTexture, NULL, &rect);
+
+      memset(this.oscilloscopePixels[i], 0, 256 * 128 * sizeof(uint16_t));
+    }
+  } else {
+    SDL_LockTextureToSurface(this.texture, NULL, &this.surface);
+    memcpy(this.surface->pixels, this.pixels, 320 * 240 * sizeof(uint16_t));
+    SDL_UnlockTexture(this.texture);
+    SDL_RenderCopy(this.renderer, this.texture, NULL, NULL);
+  }
   SDL_RenderPresent(this.renderer);
-
-  // int32_t curr = SDL_GetTicks();
-  // if ((curr-this.msCount) < 32) {
-  //   SDL_Delay(32 - (curr-this.msCount));
-  // }
-  // this.msCount = SDL_GetTicks();
+  this.currOscilloscopeSample = 0;
 }
 
 
 uint16_t* SDLBackend_GetScanlinePointer(uint16_t scanlineNum) {
   return this.pixels + (320 * scanlineNum);
+}
+
+
+bool SDLBackend_RenderScanline() {
+  return !this.isOscilloscopeView;
 }
 
 
@@ -99,6 +135,7 @@ bool SDLBackend_GetInput() {
       case SDLK_5: VSmile_Step(); break;
       case SDLK_6: PPU_ToggleSpriteOutlines(); break;
       case SDLK_7: PPU_ToggleFlipVisual(); break;
+      case SDLK_8: this.isOscilloscopeView = !this.isOscilloscopeView; break;
       case SDLK_0: VSmile_Reset(); break;
 
       case SDLK_UP:    this.curr |= (1 << INPUT_UP);     break;
@@ -172,19 +209,35 @@ void SDLBackend_PushAudioSample(int16_t leftSample, int16_t rightSample) {
   this.audioBuffer[1] = rightSample;
 
   SDL_QueueAudio(this.audioDevice, this.audioBuffer, 2);
-  this.audioLen = 0;
-
-  // if (this.audioLen < 4096)
-  //   return;
-  // SDL_QueueAudio(this.audioDevice, this.audioBuffer, this.audioLen);
-  // this.audioLen = 0;
+  if (this.currOscilloscopeSample < 735)
+    this.currOscilloscopeSample++;
 }
 
 
-void SDLBackend_PlayAudio() {
-  // if (this.audioLen < 4096)
-  //   return;
-  // SDL_QueueAudio(this.audioDevice, this.audioBuffer, this.audioLen);
-  // this.audioLen = 0;
-  // memset(this.audioBuffer, 0, 65536);
+void SDLBackend_PushOscilloscopeSample(uint8_t ch, int16_t sample) {
+  if (!this.isOscilloscopeView)
+    return;
+
+  if (this.currOscilloscopeSample % 3)
+    return;
+
+  sample = (sample >> 9) + 64;
+
+  int32_t start, end;
+  if (sample > this.prevSample[ch]) {
+    start = this.prevSample[ch];
+    end = sample;
+  } else if (sample < this.prevSample[ch]) {
+    start = sample;
+    end = this.prevSample[ch];
+  } else {
+    start = sample;
+    end = sample + 1;
+  }
+
+  for (int32_t i = start; i < end; i++) {
+    this.oscilloscopePixels[ch][(i * 256) + (this.currOscilloscopeSample / 3)] = 0xffff;
+  }
+
+  this.prevSample[ch] = sample;
 }

@@ -97,7 +97,8 @@ uint32_t Bus_GetRomDecode(uint32_t addr) {
   // This allows games like Dora's Fix-it Adventure and Bob's Busy Day to not
   // crash on startup, but games like Winnie the Pooh: the Honey Hunt crash
   // with this present. Need figure out how different ROM mappings work.
-  addr &= 0x1fffff;
+  if (this.romDecodeMode == 2)
+    addr &= 0x0fffff;
 
   return addr;
 }
@@ -107,6 +108,9 @@ uint16_t Bus_Load(uint32_t addr) {
     return this.ram[addr - RAM_START];
   }
   else if (addr < PPU_START+PPU_SIZE) {
+    if (addr == 0x2838)
+      return PPU_GetCurrLine();
+
     return this.ppu[addr - PPU_START];
   }
   else if (addr < SPU_START+SPU_SIZE) {
@@ -181,8 +185,7 @@ uint16_t Bus_Load(uint32_t addr) {
   }
 
   if (this.romBuffer && addr < BUS_SIZE) {
-    if (this.romDecodeMode == 2)
-      addr &= 0x0fffff;
+    addr = Bus_GetRomDecode(addr);
 
     return this.romBuffer[addr];
   }

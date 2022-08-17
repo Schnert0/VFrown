@@ -51,7 +51,7 @@ Backquote/~: toggle fullscreen
 
 ## TODO / Roadmap
 Currently...
-- Add Sound (Top priority)
+- Improve Sound (Top priority)
 - Improve accuracy and get more games booting (Top priority)
 
 Later on...
@@ -61,5 +61,4 @@ Later on...
   - Add Remappable buttons
   - Add a TAS interface
   - Memory viewer, editor, and cheat manager
-  - Sound Channel Visualization and channel muting
   - ...and more...
