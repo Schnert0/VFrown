@@ -92,12 +92,13 @@ void SDLBackend_UpdateWindow() {
   SDL_RenderPresent(this.renderer);
   this.currOscilloscopeSample = 0;
 
+  // Delay until the end of the frame
   this.final = clock();
-  float elapsed = ((float)(this.final - this.initial)) / (float)CLOCKS_PER_SEC;
-  if (elapsed < 0.01667f) {
-    sleep(0.01667 - elapsed);
-    this.initial = clock();
+  float elapsed = (this.final - this.initial);
+  if (elapsed < 16666.67f) {
+    usleep(16666.67f - elapsed);
   }
+  this.initial = clock();
 }
 
 
