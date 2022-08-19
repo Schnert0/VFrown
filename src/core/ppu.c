@@ -152,10 +152,11 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
     tileRow += (numTilesW * (y / tileHeight));
     attributeRow += ((numTilesW/2) * (y / tileHeight));
     t = (xOffset / tileWidth) - 1;
+    t += (hOffset / tileWidth);
     t &= (numTilesW - 1);
   }
 
-  for (int16_t x = -1; x < screenTilesW; x++) {
+  for (int16_t x = -1; x < screenTilesW+1; x++) {
     uint16_t tile = Bus_Load(tileRow+t);
 
     int32_t tileHeightOffset = (y & (tileHeight-1));
@@ -191,7 +192,7 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
 
     if (tile) {
       uint32_t tileData = (Bus_Load(0x2820+layer) << 6) + tileSize + (tileHeightOffset*(tileWidth*nc/16));
-      PPU_RenderTileStrip((x*tileWidth)-(xOffset & (tileWidth-1)) + hOffset, tileWidth, nc, palOffset, tileData, attr.hFlip, attr.vFlip);
+      PPU_RenderTileStrip((x*tileWidth)-(xOffset & (tileWidth-1)) - (hOffset & (tileWidth-1)), tileWidth, nc, palOffset, tileData, attr.hFlip, attr.vFlip);
     }
 
     if (!ctrl.wallPaper) {
