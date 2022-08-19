@@ -92,7 +92,7 @@ void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t 
           color |= 0xf800;
         if (vFlip)
           color |= 0x001f;
-        if ((x&1) == (this.currLine & 1) && (hFlip || vFlip))
+        if ((x & 1) == (this.currLine & 1) && (hFlip || vFlip))
           this.scanlineBuffer[x] = color;
       }
     }
@@ -225,8 +225,8 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
     uint8_t nc = (attr.bpp + 1) << 1;
     uint16_t palOffset = attr.palBank << 4;
 
-    int16_t x = Bus_Load(0x2c01+(i<<2));
-    int16_t y = Bus_Load(0x2c02+(i<<2));
+    uint16_t x = Bus_Load(0x2c01+(i<<2));
+    uint16_t y = Bus_Load(0x2c02+(i<<2));
 
     int16_t xPos = 160 + x - (spriteWidth  / 2);
     int16_t yPos = 120 - y - (spriteHeight / 2) + 8;
@@ -244,18 +244,21 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
     PPU_RenderTileStrip(xPos, spriteWidth, nc, palOffset, tileData, attr.hFlip, attr.vFlip);
 
     if (this.spriteOutlinesEnabled) {
-      if (Bus_Load(0x2838) < 240) {
+      if (line < 240) {
         if (line == yPos || line == yPos + spriteHeight-1) {
-            for (int32_t i = xPos; i < xPos + spriteWidth; i++) {
-              if (i >= 0 && i < 320)
+            for (int32_t i = xPos; i < xPos+spriteWidth; i++) {
+              if (i >= 0 && i < 320) {
                 this.scanlineBuffer[i] = 0xf800;
+              }
             }
         } else {
-          if (xPos >= 0 && xPos < 320)
+          if (xPos >= 0 && xPos < 320) {
             this.scanlineBuffer[xPos] = 0xf800;
+          }
 
-          if (xPos+spriteHeight-1 >= 0 && xPos+spriteHeight-1 < 320)
+          if (xPos+spriteWidth-1 >= 0 && xPos+spriteWidth-1 < 320) {
             this.scanlineBuffer[xPos+spriteWidth-1] = 0xf800;
+          }
         }
       }
     }

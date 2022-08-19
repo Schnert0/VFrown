@@ -25,6 +25,7 @@ void VSmile_Cleanup();
 void VSmile_Run();
 void VSmile_Reset();
 void VSmile_LoadROM(const char* path);
+void VSmile_LoadBIOS(const char* path);
 
 void VSmile_TogglePause();
 void VSmile_Step();

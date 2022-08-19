@@ -88,6 +88,24 @@ typedef union {
   };
 } SPUPhaseCtrl_t;
 
+typedef union {
+  uint16_t raw;
+  struct {
+    uint16_t count : 14;
+    uint16_t irq   : 1;
+    uint16_t irqEn : 1;
+  };
+} SPUBeatCount_t;
+
+
+typedef union {
+  uint16_t raw;
+  struct {
+    uint16_t shift  : 4;
+    uint16_t filter : 6;
+  };
+} ADPCM36Header_t;
+
 
 typedef struct {
   union {
@@ -132,6 +150,10 @@ typedef struct {
   int16_t adpcmStepIndex;
   int8_t  adpcmLastSample;
 
+  uint16_t adpcm36Remaining;
+  ADPCM36Header_t adpcm36Header;
+  int16_t adpcm36Prev[2];
+
   uint16_t rampDownFrame, envelopeFrame;
 
   struct Timer_t* timer;
@@ -141,9 +163,46 @@ typedef struct {
  * Sound Processing Unit
  * Generates soundwaves from sample data
  */
+
 typedef struct SPU_t {
   Channel_t channels[16];
-  uint16_t  regs4[32];
+  union {
+    uint16_t  regs4[32];
+    struct {
+      uint16_t chanEnable;
+      uint16_t volumeSelect;
+      uint16_t fiqEnable;
+      uint16_t fiqStat;
+      uint16_t beatBaseCount;
+      SPUBeatCount_t beatCount;
+      uint16_t envClock0;
+      uint16_t envClock0Hi;
+      uint16_t envClock1;
+      uint16_t envClock1Hi;
+      uint16_t envRampDown;
+      uint16_t chanStop;
+      uint16_t zeroCross;
+      uint16_t ctrl;
+      uint16_t compressionCtrl;
+      uint16_t chanStat;
+      uint16_t leftIn;
+      uint16_t rightIn;
+      uint16_t leftOut;
+      uint16_t rightOut;
+      uint16_t chanRepeat;
+      uint16_t envMode;
+      uint16_t toneRelease;
+      uint16_t chanEnvIrq;
+      uint16_t chanPitchBend;
+      uint16_t chanSoftRelease;
+      uint16_t attackRelease;
+      uint16_t eqCutoff10;
+      uint16_t eqCutoff32;
+      uint16_t eqGain10;
+      uint16_t eqGain32;
+      uint16_t unknown1f;
+    };
+  };
 
   struct Timer_t* beatTimer;
   bool irq, channelIrq;
@@ -159,8 +218,10 @@ void SPU_Cleanup();
 
 void SPU_Tick(int32_t cycles);
 
-uint16_t SPU_TickChannel(uint8_t ch);
+uint16_t SPU_TickSample(uint8_t ch);
+void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right);
 int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble);
+int16_t SPU_GetADPCM36Sample(uint8_t ch, uint8_t nybble);
 void SPU_TickEnvelope(uint8_t ch);
 uint16_t SPU_GetEnvelopeClock(uint8_t ch);
 void SPU_TriggerChannelIRQ(uint8_t ch);

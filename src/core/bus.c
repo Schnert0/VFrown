@@ -25,6 +25,11 @@ bool Bus_Init() {
 
 
 void Bus_Cleanup() {
+  if (this.romBuffer)
+    free(this.romBuffer);
+
+  if (this.biosBuffer)
+    free(this.biosBuffer);
 }
 
 
@@ -44,7 +49,7 @@ void Bus_LoadROM(const char* filePath) {
 
   // Get size of ROM
   fseek(file, 0, SEEK_END);
-  this.romSize = ftell (file);
+  this.romSize = ftell(file);
   fseek(file, 0, SEEK_SET);
 
   if (this.romSize > BUS_SIZE*sizeof(uint16_t)) {
@@ -52,8 +57,38 @@ void Bus_LoadROM(const char* filePath) {
     this.romSize = BUS_SIZE*sizeof(uint16_t);
   }
 
+  if (this.romBuffer)
+    free(this.romBuffer);
+
   this.romBuffer = malloc(this.romSize);
   fread(this.romBuffer, this.romSize, sizeof(uint16_t), file);
+
+  fclose(file);
+}
+
+
+void Bus_LoadBIOS(const char* filePath) {
+  FILE* file = fopen(filePath, "rb");
+  if (!file) {
+    VSmile_Warning("unable to load BIOS - can't open \"%s\"", filePath);
+    return;
+  }
+
+  // Get size of ROM
+  fseek(file, 0, SEEK_END);
+  this.biosSize = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+  // if (this.biosSize > BIOS_SIZE*sizeof(uint16_t)) {
+  //   VSmile_Error("file too large!");
+  //   this.biosSize = BIOS_SIZE*sizeof(uint16_t);
+  // }
+
+  if (this.biosBuffer)
+    free(this.biosBuffer);
+
+  this.biosBuffer = malloc(this.biosSize);
+  fread(this.biosBuffer, this.biosSize, sizeof(uint16_t), file);
 
   fclose(file);
 }
@@ -91,16 +126,6 @@ void Bus_Tick(int32_t cycles) {
     if (this.rxTimer <= 0)
       Bus_RecieveTick();
   }
-}
-
-uint32_t Bus_GetRomDecode(uint32_t addr) {
-  // This allows games like Dora's Fix-it Adventure and Bob's Busy Day to not
-  // crash on startup, but games like Winnie the Pooh: the Honey Hunt crash
-  // with this present. Need figure out how different ROM mappings work.
-  if (this.romDecodeMode == 2)
-    addr &= 0x0fffff;
-
-  return addr;
 }
 
 uint16_t Bus_Load(uint32_t addr) {
@@ -184,9 +209,11 @@ uint16_t Bus_Load(uint32_t addr) {
     return this.io[addr - IO_START];
   }
 
-  if (this.romBuffer && addr < BUS_SIZE) {
-    addr = Bus_GetRomDecode(addr);
+  if ((this.romDecodeMode == 2) && this.biosBuffer && (addr >= BIOS_START) && (addr < BIOS_START + BIOS_SIZE)) {
+    return this.biosBuffer[addr - BIOS_START];
+  }
 
+  if (this.romBuffer && (addr < BUS_SIZE)) {
     return this.romBuffer[addr];
   }
 

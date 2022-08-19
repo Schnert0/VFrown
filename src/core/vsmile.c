@@ -84,6 +84,11 @@ void VSmile_LoadROM(const char* path) {
 }
 
 
+void VSmile_LoadBIOS(const char* path) {
+  Bus_LoadBIOS(path);
+}
+
+
 void VSmile_TogglePause() {
   this.paused ^= true;
 }

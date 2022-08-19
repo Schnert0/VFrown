@@ -718,7 +718,7 @@ void CPU_OpPSH() {
 
 
 void CPU_OpBAD() {
-  VSmile_Warning("unknown CPU instruction %04x at %06x", this.ins.raw, this.pc);
+  VSmile_Error("unknown CPU instruction %04x at %06x", this.ins.raw, this.pc);
 }
 
 
