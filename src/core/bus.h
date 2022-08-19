@@ -54,7 +54,11 @@ typedef struct Bus_t {
   uint8_t ramDecodeMode;
   uint8_t chipSelectMode;
 
+  struct Timer_t* sysTimers;
   uint16_t timer2khz, timer1khz, timer4hz;
+
+  struct Timer_t* adcTimers[4];
+  uint16_t adcValue[4];
 
   uint32_t romSize;
   uint16_t* romBuffer;
@@ -72,6 +76,7 @@ void Bus_LoadROM(const char* filePath);
 void Bus_LoadBIOS(const char* filePath);
 
 void Bus_Tick(int32_t cycles);
+void Bus_TickTimers(int32_t index);
 
 uint16_t Bus_Load(uint32_t addr);
 void Bus_Store(uint32_t addr, uint16_t data);
@@ -82,6 +87,10 @@ uint16_t Bus_GetIOB(uint16_t mask);
 void Bus_SetIOB(uint16_t data, uint16_t mask);
 uint16_t Bus_GetIOC(uint16_t mask);
 void Bus_SetIOC(uint16_t data, uint16_t mask);
+
+// ADC
+void Bus_WriteADCCtrl(uint16_t data);
+void Bus_DoADCConversion(int32_t index);
 
 // Controller handlers
 void Bus_SetUARTCtrl(uint16_t data);

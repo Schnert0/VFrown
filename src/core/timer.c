@@ -2,7 +2,7 @@
 
 typedef void (*TimerFunc_t)(int32_t index);
 
-struct Timer_t* Timer_Init(int32_t resetValue, TimerFunc_t callback, uint8_t index) {
+struct Timer_t* Timer_Init(int32_t resetValue, TimerFunc_t callback, int32_t index) {
   struct Timer_t* this = malloc(sizeof(Timer_t));
   memset(this, 0, sizeof(Timer_t));
   this->resetValue = resetValue;

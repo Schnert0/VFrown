@@ -41,9 +41,8 @@ void VSmile_Run() {
         int32_t cycles = CPU_Tick();
         cyclesLeft -= cycles;
         SPU_Tick(cycles);
+        Bus_Tick(CYCLES_PER_LINE - cyclesLeft);
       }
-
-      Bus_Tick(CYCLES_PER_LINE - cyclesLeft);
       Controller_Tick(CYCLES_PER_LINE - cyclesLeft);
       TMB_Tick(0, CYCLES_PER_LINE - cyclesLeft);
       TMB_Tick(1, CYCLES_PER_LINE - cyclesLeft);

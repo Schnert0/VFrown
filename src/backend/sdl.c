@@ -11,7 +11,7 @@ bool SDLBackend_Init() {
   if (!this.window)
     return false;
 
-  this.renderer = SDL_CreateRenderer(this.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  this.renderer = SDL_CreateRenderer(this.window, -1, SDL_RENDERER_ACCELERATED);// | SDL_RENDERER_PRESENTVSYNC);
   if (!this.renderer)
     return false;
 
@@ -34,6 +34,8 @@ bool SDLBackend_Init() {
       return false;
     memset(this.oscilloscopePixels[i], 0, 256 * 128 * sizeof(uint16_t));
   }
+
+  this.initial = clock();
 
   return true;
 }
@@ -89,6 +91,13 @@ void SDLBackend_UpdateWindow() {
   }
   SDL_RenderPresent(this.renderer);
   this.currOscilloscopeSample = 0;
+
+  this.final = clock();
+  float elapsed = ((float)(this.final - this.initial)) / (float)CLOCKS_PER_SEC;
+  if (elapsed < 0.01667f) {
+    sleep(0.01667 - elapsed);
+    this.initial = clock();
+  }
 }
 
 

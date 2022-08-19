@@ -7,6 +7,13 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "backend/backend.h"
 

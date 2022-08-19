@@ -16,6 +16,9 @@ typedef struct SDLBackend_t {
   int32_t msCount;
   bool isFullscreen;
 
+  // Timing
+  clock_t initial, final;
+
   // Input
   uint16_t curr, prev;
 

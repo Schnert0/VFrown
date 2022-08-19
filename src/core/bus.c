@@ -15,10 +15,19 @@ bool Bus_Init() {
   this.rxEmpty = true;
 
   this.io[0x23] = 0x0028; // 3d23 - External Memory Ctrl
+  // this.io[0x25] = 0x2000; // 3d25 - ADC Ctrl
   this.io[0x2c] = 0x1418; // 3d2c - PRNG1
   this.io[0x2d] = 0x1658; // 3d2d - PRNG2
 
   this.io[0x2e] = 0x0007; // FIQ source: N/A
+
+  this.sysTimers = Timer_Init(SYSCLOCK / 4096, Bus_TickTimers, 0);
+  Timer_Reset(this.sysTimers);
+
+  for (int32_t i = 0; i < 4; i++) {
+    this.adcTimers[i] = Timer_Init(0, Bus_DoADCConversion, i);
+    this.adcValue[i] = 0x07ff;
+  }
 
   return true;
 }
@@ -30,6 +39,9 @@ void Bus_Cleanup() {
 
   if (this.biosBuffer)
     free(this.biosBuffer);
+
+  if (this.sysTimers)
+    Timer_Cleanup(this.sysTimers);
 }
 
 
@@ -95,7 +107,31 @@ void Bus_LoadBIOS(const char* filePath) {
 
 
 void Bus_Tick(int32_t cycles) {
-  // Timers
+  // System Timers
+  Timer_Tick(this.sysTimers, cycles);
+
+  // ADC Conversion
+  Timer_Tick(this.adcTimers[0], cycles);
+  Timer_Tick(this.adcTimers[1], cycles);
+  Timer_Tick(this.adcTimers[2], cycles);
+  Timer_Tick(this.adcTimers[3], cycles);
+
+  // UART Transmit and Recieve
+  // TODO: Use Timer objects for these instead
+  if (this.txTimer > 0) {
+    this.txTimer -= cycles;
+    if (this.txTimer <= 0)
+      Bus_TransmitTick();
+  }
+
+  if (this.rxTimer > 0) {
+    this.rxTimer -= cycles;
+    if (this.rxTimer <= 0)
+      Bus_RecieveTick();
+  }
+}
+
+void Bus_TickTimers(int32_t index) {
   uint16_t timerIrq = 0x0040; // 4096 hz
 	this.timer2khz++;
 	if (this.timer2khz == 2) {
@@ -114,18 +150,7 @@ void Bus_Tick(int32_t cycles) {
   }
   Bus_SetIRQFlags(0x3d22, timerIrq);
 
-  // UART Transmit and Recieve
-  if (this.txTimer > 0) {
-    this.txTimer -= cycles;
-    if (this.txTimer <= 0)
-      Bus_TransmitTick();
-  }
-
-  if (this.rxTimer > 0) {
-    this.rxTimer -= cycles;
-    if (this.rxTimer <= 0)
-      Bus_RecieveTick();
-  }
+  Timer_Reset(this.sysTimers);
 }
 
 uint16_t Bus_Load(uint32_t addr) {
@@ -146,8 +171,11 @@ uint16_t Bus_Load(uint32_t addr) {
     return 0x0000;
   }
   else if (addr < IO_START+IO_SIZE+DMA_SIZE) {
-   switch (addr) {
-   case 0x3d01:
+    // if (addr != 0x3d21 && addr != 0x3d22)
+    //   VSmile_Log("Read from IO address %04x at %06x", addr, CPU_GetCSPC());
+
+    switch (addr) {
+    case 0x3d01:
   	case 0x3d06:
   	case 0x3d0b: // GPIO
   		Bus_DoGPIO(addr, false);
@@ -159,12 +187,6 @@ uint16_t Bus_Load(uint32_t addr) {
       return this.io[addr - IO_START];
   		break;
 
-    case 0x3d21:
-    case 0x3d22: return this.io[addr - IO_START];
-
-    case 0x3d25:
-      // printf("read from ADC at %06x\n", CPU_GetCSPC());
-      return this.io[addr - IO_START];
 
     case 0x3d2c:
     case 0x3d2d: {
@@ -179,31 +201,8 @@ uint16_t Bus_Load(uint32_t addr) {
     case 0x3d2f: // Get DS
       return CPU_GetDataSegment();
 
-    case 0x3d30: // UART CTRL
-      // printf("read from UART CTRL (%04x) at %06x\n", this.io[addr - IO_START], CPU_GetCSPC());
-      break;
-
-    case 0x3d31: // UART STAT
-      // printf("read from UART STAT (%04x) at %06x\n", this.io[addr - IO_START], CPU_GetCSPC());
-      break;
-
-    case 0x3d32: // UART Reset
-      return 0x0000;
-
-    case 0x3d33: // UART BAUD1
-    case 0x3d34: // UART BAUD2
-      return this.io[addr - IO_START];
-
-    case 0x3d35: // UART TX Buffer
-      // printf("TX read\n");
-      break;
-
     case 0x3d36: // UART RX Buffer
       return Bus_GetRxBuffer();
-
-    case 0x3d37: // UART RX FIFO control
-      // printf("read from UART RX FIFO control\n");
-      break;
     }
     // printf("unknown read from IO port %04x at %06x\n", addr, CPU_GetCSPC());
     return this.io[addr - IO_START];
@@ -288,6 +287,8 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     return;
   }
   else if (addr < IO_START+IO_SIZE+DMA_SIZE) {
+    // VSmile_Log("Write to IO address %04x with %04x at %06x", addr, data, CPU_GetCSPC());
+
     switch (addr) {
     case 0x3d01:
     case 0x3d06:
@@ -321,6 +322,10 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       this.io[addr - IO_START] = data;
       break;
 
+    case 0x3d21:
+      this.io[addr - IO_START] = data;
+      CPU_ActivatePendingIRQs();
+      break;
     case 0x3d22: // IRQ ack
       this.io[addr - IO_START] &= ~data;
       break;
@@ -339,9 +344,7 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       break;
 
     case 0x3d25: // ADC ctrl
-      // printf("ADC set to %04x at %06x\n", data, CPU_GetCSPC());
-      // this.io[addr - IO_START] = data;
-      this.io[addr - IO_START] = ((data | this.io[addr - IO_START]) & 0x2000) ^ data;
+      Bus_WriteADCCtrl(data);
       break;
 
     case 0x3d2e:
@@ -427,6 +430,7 @@ void Bus_SetIRQFlags(uint32_t address, uint16_t data) {
   CPU_ActivatePendingIRQs(); // Notify CPU that there might be IRQ's to handle
 }
 
+
 void Bus_DoGPIO(uint16_t addr, bool write) {
   uint32_t port    = (addr - 0x3d01) / 5;
 
@@ -464,9 +468,11 @@ void Bus_DoGPIO(uint16_t addr, bool write) {
 
 }
 
+
 uint16_t Bus_GetIOB(uint16_t mask) {
   return 0x00c8 | this.chipSelectMode;
 }
+
 
 void Bus_SetIOB(uint16_t data, uint16_t mask) {
   // printf("write to IOB (data: %04x, mask: %04x)\n", data, mask);
@@ -501,8 +507,61 @@ void Bus_SetIOC(uint16_t data, uint16_t mask) {
 }
 
 
-// TODO: CPU-Side UART should probably be delegated to its own file
+void Bus_WriteADCCtrl(uint16_t data) {
+  this.io[0x25] = data;
+  return;
 
+  // Reset Interrupt status
+  if ((data & 0x2000) && (this.io[0x25] & 0x2000)) {
+    this.io[0x22] &= ~0x2000;
+    CPU_ActivatePendingIRQs();
+  }
+
+  data &= ~0x2000;
+
+  if (data & 1) { // ADE
+    data |= 0x2000;
+    uint8_t channel = (data >> 4) & 3;
+
+    if ((data & 0x1000) && !(this.io[0x25] & 0x1000)) { // Conversion Request
+      data &= ~0x3000;
+      this.io[0x27] &= ~0x8000;
+
+      int32_t ticks = 16 << ((data >> 2) & 3);
+      Timer_Adjust(this.adcTimers[channel], ticks);
+      Timer_Reset(this.adcTimers[channel]);
+    }
+
+    if (data & 0x400) { // 8KHz Auto Request
+      this.io[0x27] &= ~0x8000;
+      Timer_Adjust(this.adcTimers[channel], SYSCLOCK / 8000);
+      Timer_Reset(this.adcTimers[channel]);
+    }
+  } else {
+    for (int32_t i = 0; i < 4; i++) {
+      Timer_Adjust(this.adcTimers[i], 0);
+      Timer_Reset(this.adcTimers[i]);
+    }
+  }
+
+  this.io[0x25] = data;
+}
+
+
+void Bus_DoADCConversion(int32_t index) {
+  this.io[0x27] = (this.adcValue[index] & 0x0fff) | 0x8000;
+  this.io[0x25] |= 0x2000;
+
+  if (this.io[0x25] & 0x0200)
+    Bus_SetIRQFlags(0x3d22, 0x2000);
+
+  // printf("ADC conversion request complete. Output: %03x\n", this.io[0x27]);
+
+  Timer_Reset(this.adcTimers[index]);
+}
+
+
+// TODO: CPU-Side UART should probably be delegated to its own file
 void Bus_SetUARTCtrl(uint16_t data) {
   // printf("UART CTRL set to %04x at %06x\n", data, CPU_GetCSPC());
   if (!(data & 0x40)) {
