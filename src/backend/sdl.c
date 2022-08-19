@@ -93,12 +93,15 @@ void SDLBackend_UpdateWindow() {
   this.currOscilloscopeSample = 0;
 
   // Delay until the end of the frame
-  this.final = clock();
-  float elapsed = (this.final - this.initial);
-  if (elapsed < 16666.67f) {
-    usleep(16666.67f - elapsed);
+  if (!this.isVsyncEnabled) {
+    this.final = clock();
+    float elapsed = (this.final - this.initial);
+    if (elapsed < 16666.67f) {
+      usleep(16666.67f - elapsed);
+    }
+    this.initial = clock();
   }
-  this.initial = clock();
+
 }
 
 
@@ -120,6 +123,13 @@ void SDLBackend_ToggleFullscreen() {
   } else {
     SDL_SetWindowFullscreen(this.window, 0);
   }
+}
+
+
+void SDLBackend_SetVSync(bool vsyncEnabled) {
+  this.isVsyncEnabled = vsyncEnabled;
+  SDL_RenderSetVSync(this.renderer, vsyncEnabled);
+  VSmile_Log("VSync is %sabled", vsyncEnabled ? "en" : "dis");
 }
 
 
@@ -147,6 +157,8 @@ bool SDLBackend_GetInput() {
       case SDLK_7: PPU_ToggleFlipVisual(); break;
       case SDLK_8: this.isOscilloscopeView = !this.isOscilloscopeView; break;
       case SDLK_0: VSmile_Reset(); break;
+
+      case SDLK_p: SDLBackend_SetVSync(!this.isVsyncEnabled); break;
 
       case SDLK_UP:    this.curr |= (1 << INPUT_UP);     break;
       case SDLK_DOWN:  this.curr |= (1 << INPUT_DOWN);   break;

@@ -43,6 +43,7 @@ Backquote/~: toggle fullscreen
 7: sprite flip visualization
 8: SPU channel oscilloscope view
 0: reset
+p: toggle VSync
 ```
 
 ## Examples

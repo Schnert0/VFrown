@@ -15,6 +15,7 @@ typedef struct SDLBackend_t {
   uint16_t* pixels;
   int32_t msCount;
   bool isFullscreen;
+  bool isVsyncEnabled;
 
   // Timing
   clock_t initial, final;
