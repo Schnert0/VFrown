@@ -19,6 +19,9 @@ bool Backend_GetInput();
 uint32_t Backend_GetButtonStates();
 uint32_t Backend_GetChangedButtons();
 
+// Leds
+uint32_t Backend_SetLedStates(uint8_t state);
+
 // Audio
 void Backend_InitAudioDevice();
 void Backend_PushAudioSample(int16_t leftSample, int16_t rightSample);

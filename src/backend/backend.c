@@ -41,6 +41,11 @@ bool Backend_GetInput() {
   #endif // BACKENDIMPL_SDL
 }
 
+uint32_t Backend_SetLedStates(uint8_t state) {
+  #ifdef BACKENDIMPL_SDL
+  return SDLBackend_SetLedStates(state);
+  #endif // BACKENDIMPL_SDL
+}
 
 uint32_t Backend_GetButtonStates() {
   #ifdef BACKENDIMPL_SDL

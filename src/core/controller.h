@@ -29,6 +29,7 @@ typedef struct Controller_t {
 
   uint8_t  pastBytes[2];
   uint16_t stale;
+  uint8_t  ledStatus;
 } Controller_t;
 
 bool Controller_Init();

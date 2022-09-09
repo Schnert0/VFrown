@@ -28,6 +28,13 @@
 
 
 enum {
+  LED_RED,
+  LED_YELLOW,
+  LED_BLUE,
+  LED_GREEN,
+};
+
+enum {
   INPUT_UP,
   INPUT_DOWN,
   INPUT_LEFT,
