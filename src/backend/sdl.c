@@ -176,7 +176,7 @@ bool SDLBackend_GetInput() {
       case SDLK_7: PPU_ToggleFlipVisual(); break;
       case SDLK_8: this.isOscilloscopeView = !this.isOscilloscopeView; break;
       case SDLK_0: VSmile_Reset(); break;
-      case SDLK_F10: running = false; break;
+      case SDLK_F10: running = false; break; // exit
       case SDLK_F1: this.showLed ^=1; break;
 
       case SDLK_p: SDLBackend_SetVSync(!this.isVsyncEnabled); break;
