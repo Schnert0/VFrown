@@ -36,7 +36,7 @@ bool SDLBackend_Init() {
   }
 
   this.initial = clock();
-
+  this.showLed = false;
   return true;
 }
 
@@ -89,7 +89,7 @@ void SDLBackend_UpdateWindow() {
     SDL_UnlockTexture(this.texture);
     SDL_RenderCopy(this.renderer, this.texture, NULL, NULL);
 
-    SDLBackend_RenderLeds(this.currLed);
+    if (this.showLed) SDLBackend_RenderLeds(this.currLed);
   }
   SDL_RenderPresent(this.renderer);
   this.currOscilloscopeSample = 0;
@@ -177,6 +177,7 @@ bool SDLBackend_GetInput() {
       case SDLK_8: this.isOscilloscopeView = !this.isOscilloscopeView; break;
       case SDLK_0: VSmile_Reset(); break;
       case SDLK_F10: running = false; break;
+      case SDLK_F1: this.showLed ^=1; break;
 
       case SDLK_p: SDLBackend_SetVSync(!this.isVsyncEnabled); break;
 

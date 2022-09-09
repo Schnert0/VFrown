@@ -25,6 +25,7 @@ typedef struct SDLBackend_t {
 
   // Controller Led
   uint8_t currLed;
+  bool showLed;
 
   // Audio
   SDL_AudioDeviceID audioDevice;
