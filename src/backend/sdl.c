@@ -36,7 +36,7 @@ bool SDLBackend_Init() {
   }
 
   this.initial = clock();
-
+  this.showLed = false;
   return true;
 }
 
@@ -88,6 +88,8 @@ void SDLBackend_UpdateWindow() {
     memcpy(this.surface->pixels, this.pixels, 320 * 240 * sizeof(uint16_t));
     SDL_UnlockTexture(this.texture);
     SDL_RenderCopy(this.renderer, this.texture, NULL, NULL);
+
+    if (this.showLed) SDLBackend_RenderLeds(this.currLed);
   }
   SDL_RenderPresent(this.renderer);
   this.currOscilloscopeSample = 0;
@@ -103,7 +105,24 @@ void SDLBackend_UpdateWindow() {
   }
 
 }
+void SDLBackend_RenderLeds(uint8_t ledState) {
+  int alpha = 128;
+  if (ledState & 1<<LED_RED) SDL_SetRenderDrawColor(this.renderer, 255, 0, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 50, 30, 20);
 
+  if (ledState & 1<<LED_YELLOW) SDL_SetRenderDrawColor(this.renderer, 255, 255, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 110, 30, 20);
+
+  if (ledState & 1<<LED_BLUE) SDL_SetRenderDrawColor(this.renderer, 0, 0, 255, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 170, 30, 20);
+
+  if (ledState & 1<<LED_GREEN) SDL_SetRenderDrawColor(this.renderer, 0, 255, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 230, 30, 20);
+}
 
 uint16_t* SDLBackend_GetScanlinePointer(uint16_t scanlineNum) {
   return this.pixels + (320 * scanlineNum);
@@ -157,7 +176,8 @@ bool SDLBackend_GetInput() {
       case SDLK_7: PPU_ToggleFlipVisual(); break;
       case SDLK_8: this.isOscilloscopeView = !this.isOscilloscopeView; break;
       case SDLK_0: VSmile_Reset(); break;
-      case SDLK_F10: running = false; break; // exit
+      case SDLK_F10: running = false; break;
+      case SDLK_F1: this.showLed ^=1; break;
 
       case SDLK_p: SDLBackend_SetVSync(!this.isVsyncEnabled); break;
 
@@ -212,6 +232,10 @@ uint32_t SDLBackend_GetChangedButtons() {
   return this.prev ^ this.curr;
 }
 
+uint32_t SDLBackend_SetLedStates(uint8_t state) {
+  this.currLed = state;
+  return this.currLed;
+}
 
 void SDLBackend_InitAudioDevice() {
   SDL_AudioSpec want;
@@ -276,4 +300,43 @@ void SDLBackend_PushOscilloscopeSample(uint8_t ch, int16_t sample) {
   }
 
   this.prevSample[ch] = sample;
+}
+
+uint32_t SDL_RenderDrawCircle(SDL_Renderer *renderer, int32_t x, int32_t y, uint32_t radius) {
+  int offsetx, offsety, d;
+  int status;
+
+  offsetx = 0;
+  offsety = radius;
+  d = radius - 1;
+  status = 0;
+
+  while (offsety >= offsetx) {
+    status += SDL_RenderDrawPoint(renderer, x + offsetx, y + offsety);
+    status += SDL_RenderDrawPoint(renderer, x + offsety, y + offsetx);
+    status += SDL_RenderDrawPoint(renderer, x - offsetx, y + offsety);
+    status += SDL_RenderDrawPoint(renderer, x - offsety, y + offsetx);
+
+    status += SDL_RenderDrawPoint(renderer, x + offsetx, y - offsety);
+    status += SDL_RenderDrawPoint(renderer, x + offsety, y - offsetx);
+    status += SDL_RenderDrawPoint(renderer, x - offsetx, y - offsety);
+    status += SDL_RenderDrawPoint(renderer, x - offsety, y - offsetx);
+
+    if (status < 0) {
+      status = -1;
+      break;
+    }
+    if (d >= 2*offsetx) {
+      d -= 2*offsetx + 1;
+      offsetx += 1;
+    } else if (d < 2 * (radius - offsety)) {
+      d += 2 * offsety - 1;
+      offsety -= 1;
+    } else {
+      d += 2 * (offsety - offsetx -1);
+      offsety -= 1;
+      offsetx += 1;
+    }
+  }
+  return status;
 }
