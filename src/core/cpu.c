@@ -108,7 +108,7 @@ int32_t CPU_Tick() {
 
   // uint32_t cspc = CPU_GetCSPC();
   // if (!memDebug[cspc]) {
-    // printf("%06x\n", cspc);
+  //   printf("%06x\n", cspc);
   //   memDebug[cspc] = true;
   // }
 
