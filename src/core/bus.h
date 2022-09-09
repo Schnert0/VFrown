@@ -57,8 +57,10 @@ typedef struct Bus_t {
   struct Timer_t* sysTimers;
   uint16_t timer2khz, timer1khz, timer4hz;
 
+  struct Timer_t* watchdogTimer;
+
   struct Timer_t* adcTimers[4];
-  uint16_t adcValue[4];
+  uint16_t adcValues[4];
 
   uint32_t romSize;
   uint16_t* romBuffer;
@@ -87,6 +89,9 @@ uint16_t Bus_GetIOB(uint16_t mask);
 void Bus_SetIOB(uint16_t data, uint16_t mask);
 uint16_t Bus_GetIOC(uint16_t mask);
 void Bus_SetIOC(uint16_t data, uint16_t mask);
+
+// Watchdog
+void Bus_WatchdogWakeup(int32_t index);
 
 // ADC
 void Bus_WriteADCCtrl(uint16_t data);
