@@ -14,12 +14,67 @@ bool Bus_Init() {
 
   this.rxEmpty = true;
 
-  this.io[0x23] = 0x0028; // 3d23 - External Memory Ctrl
-  // this.io[0x25] = 0x2000; // 3d25 - ADC Ctrl
+  this.io[0x00] = 0x001f; // 3d00 - GPIO Control
+  this.io[0x01] = 0xffff; // 3d01-3d05 - IOA
+  this.io[0x02] = 0xffff;
+  this.io[0x03] = 0xffff;
+  this.io[0x04] = 0xffff;
+  this.io[0x05] = 0xffff;
+
+  this.io[0x06] = 0x00ff; // 3d06-3d0a - IOB
+  this.io[0x07] = 0x00ff;
+  this.io[0x08] = 0x00ff;
+  this.io[0x09] = 0x00ff;
+  this.io[0x0a] = 0x00ff;
+
+  this.io[0x0b] = 0xffff; // 3d0b-3d0f - IOC
+  this.io[0x0c] = 0xffff;
+  this.io[0x0d] = 0xffff;
+  this.io[0x0e] = 0xffff;
+  this.io[0x0f] = 0xffff;
+
+  this.io[0x10] = 0x000f; // 3d10 - Timebase freq
+  this.io[0x11] = 0x0;    // 3d11-3d1f
+  this.io[0x12] = 0x0;
+  this.io[0x13] = 0x0;
+  this.io[0x14] = 0x0;
+  this.io[0x15] = 0x0;
+  this.io[0x16] = 0x0;
+  this.io[0x17] = 0x0;
+  this.io[0x18] = 0x0;
+  this.io[0x19] = 0x0;
+  this.io[0x1a] = 0x0;
+  this.io[0x1b] = 0x0;
+  this.io[0x1c] = 0x0;
+  this.io[0x1d] = 0x0;
+  this.io[0x1e] = 0x0;
+  this.io[0x1f] = 0x0;
+
+  this.io[0x20] = 0x4006; // 3d20 - System control
+  this.io[0x21] = 0x3ffb; // 3d21 - IRQ control
+  this.io[0x22] = 0x7fff; // 3d22 - IRQ Status
+  this.io[0x23] = 0x003e; // 3d23 - Memory control
+  this.io[0x24] = 0xffff; // 3d24 - Watchdog
+  this.io[0x25] = 0x2002; // 3d25 - ADC Ctrl
+  this.io[0x26] = 0x0;
+  this.io[0x27] = 0x0;
+  this.io[0x28] = 0xffff; // 3d28 - Sleep
+  this.io[0x29] = 0x0080; // 3d29 - Wakeup source
+  this.io[0x2a] = 0x00ff; // 3d2a - Wakeup delay
+  this.io[0x2b] = 0x0001; // 3d2b - PAL/NTSC
   this.io[0x2c] = 0x1418; // 3d2c - PRNG1
   this.io[0x2d] = 0x1658; // 3d2d - PRNG2
+  this.io[0x2e] = 0x0007; // 3d2e - FIQ source
+  this.io[0x2f] = 0x003f; // 3d2f - DS
+  this.io[0x30] = 0x00ef; // 3d30 - UART Control ?maybe wrong since init captured using uart
+  this.io[0x31] = 0x0003; // 3d31 - UART Status ?same
+  this.io[0x32] = 0x0;
+  this.io[0x33] = 0x00ff; // 3d33 - UART Baud rate ?same
+  this.io[0x34] = 0x00ff; // 3d34 - UART Baud rate ?same
+  this.io[0x35] = 0x00ff; // 3d35 - UART TX
 
-  this.io[0x2e] = 0x0007; // FIQ source: N/A
+  // this.io[0x23] = 0x0028; // 3d23 - External Memory Ctrl
+  // this.io[0x25] = 0x2000; // 3d25 - ADC Ctrl
 
   this.sysTimers = Timer_Init(SYSCLOCK / 4096, Bus_TickTimers, 0);
   Timer_Reset(this.sysTimers);
