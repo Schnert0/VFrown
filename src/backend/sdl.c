@@ -105,24 +105,7 @@ void SDLBackend_UpdateWindow() {
   }
 
 }
-void SDLBackend_RenderLeds(uint8_t ledState) {
-  int alpha = 128;
-  if (ledState & 1<<LED_RED) SDL_SetRenderDrawColor(this.renderer, 255, 0, 0, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 50, 30, 20);
 
-  if (ledState & 1<<LED_YELLOW) SDL_SetRenderDrawColor(this.renderer, 255, 255, 0, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 110, 30, 20);
-
-  if (ledState & 1<<LED_BLUE) SDL_SetRenderDrawColor(this.renderer, 0, 0, 255, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 170, 30, 20);
-
-  if (ledState & 1<<LED_GREEN) SDL_SetRenderDrawColor(this.renderer, 0, 255, 0, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 230, 30, 20);
-}
 
 uint16_t* SDLBackend_GetScanlinePointer(uint16_t scanlineNum) {
   return this.pixels + (320 * scanlineNum);
@@ -232,10 +215,32 @@ uint32_t SDLBackend_GetChangedButtons() {
   return this.prev ^ this.curr;
 }
 
+
 uint32_t SDLBackend_SetLedStates(uint8_t state) {
   this.currLed = state;
   return this.currLed;
 }
+
+
+void SDLBackend_RenderLeds(uint8_t ledState) {
+  int alpha = 128;
+  if (ledState & 1<<LED_RED) SDL_SetRenderDrawColor(this.renderer, 255, 0, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 50, 30, 20);
+
+  if (ledState & 1<<LED_YELLOW) SDL_SetRenderDrawColor(this.renderer, 255, 255, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 110, 30, 20);
+
+  if (ledState & 1<<LED_BLUE) SDL_SetRenderDrawColor(this.renderer, 0, 0, 255, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 170, 30, 20);
+
+  if (ledState & 1<<LED_GREEN) SDL_SetRenderDrawColor(this.renderer, 0, 255, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 230, 30, 20);
+}
+
 
 void SDLBackend_InitAudioDevice() {
   SDL_AudioSpec want;
@@ -301,6 +306,7 @@ void SDLBackend_PushOscilloscopeSample(uint8_t ch, int16_t sample) {
 
   this.prevSample[ch] = sample;
 }
+
 
 uint32_t SDL_RenderDrawCircle(SDL_Renderer *renderer, int32_t x, int32_t y, uint32_t radius) {
   int offsetx, offsety, d;
