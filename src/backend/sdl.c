@@ -39,6 +39,7 @@ bool SDLBackend_Init() {
   this.initial = clock();
   this.showLed = false;
   this.showHelp = false;
+  this.showRegisters = false;
   return true;
 }
 
@@ -94,6 +95,7 @@ void SDLBackend_UpdateWindow() {
     if (this.showLed) SDLBackend_RenderLeds(this.currLed);
   }
   if (this.showHelp) SDLBackend_PrintHelp();
+  if (this.showRegisters) SDLBackend_PrintCpu();
 
   SDL_RenderPresent(this.renderer);
   this.currOscilloscopeSample = 0;
@@ -151,6 +153,25 @@ void SDLBackend_PrintHelp() {
   SDLBackend_PrintString("s - EXIT",                280, 110);
   SDLBackend_PrintString("d - ABC",                 280, 126);
   SDLBackend_PrintString("space - BUTTON",          250, 142);
+}
+
+void SDLBackend_PrintCpu() {
+  CPU_t cpu = CPU_GetCpu();
+  char raw[9], sp[9], r1[9], r2[9], r3[9], r4[9], bp[9], sr[9], pc[11], srd[11];
+
+  sprintf(raw, "RAW %04x", cpu.ins.raw);  SDLBackend_PrintString(raw, 10, 10);
+
+  sprintf(sp, "SP %04x", cpu.sp);     SDLBackend_PrintString(sp, 10, 24);
+  sprintf(r1, "R1 %04x", cpu.r1);     SDLBackend_PrintString(r1, 10, 38);
+  sprintf(r2, "R2 %04x", cpu.r2);     SDLBackend_PrintString(r2, 10, 52);
+  sprintf(r3, "R3 %04x", cpu.r3);     SDLBackend_PrintString(r3, 10, 66);
+  sprintf(r4, "R4 %04x", cpu.r4);     SDLBackend_PrintString(r4, 10, 80);
+  sprintf(bp, "BP %04x", cpu.bp);     SDLBackend_PrintString(bp, 10, 94);
+  sprintf(sr, "SR %04x", cpu.sr.raw); SDLBackend_PrintString(sr, 10, 108);
+  sprintf(pc, "PC %02x%04x", cpu.sr.cs, cpu.pc);     SDLBackend_PrintString(pc, 10, 122);
+  SDLBackend_PrintString("c s n z ds", 115, 108);
+  sprintf(srd, "%x %x %x %x %2x", cpu.sr.c, cpu.sr.s, cpu.sr.n, cpu.sr.z, cpu.sr.ds);
+  SDLBackend_PrintString(srd, 115, 122);
 }
 
 uint16_t* SDLBackend_GetScanlinePointer(uint16_t scanlineNum) {
@@ -225,7 +246,7 @@ bool SDLBackend_GetInput() {
       case SDLK_F10: running = false; break; // exit
       case SDLK_F1: this.showLed ^=1; break;
       case SDLK_h: this.showHelp ^=1; break;
-
+      case SDLK_g: this.showRegisters ^=1; break;
 
       case SDLK_p: SDLBackend_SetVSync(!this.isVsyncEnabled); break;
 

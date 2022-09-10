@@ -38,6 +38,7 @@ typedef struct SDLBackend_t {
   int16_t currOscilloscopeSample;
   bool isOscilloscopeView;
   bool showHelp;
+  bool showRegisters;
 } SDLBackend_t;
 
 bool SDLBackend_Init();
@@ -69,4 +70,7 @@ void SDLBackend_RenderLeds(uint8_t ledState);
 void SDLBackend_PrintChar(char c, int x, int y);
 void SDLBackend_PrintString(char *str, int x, int y);
 void SDLBackend_PrintHelp(void);
+
+// Debug
+void SDLBackend_PrintCpu(void);
 #endif // BACKEND_SDL_H

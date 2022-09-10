@@ -1091,6 +1091,9 @@ void CPU_TriggerFIQ(uint16_t fiqSource) {
     this.fiq = true;
 }
 
+CPU_t CPU_GetCpu() {
+  return this;
+}
 
 // Print the CPU state to the console
 void CPU_PrintCPUState() {
