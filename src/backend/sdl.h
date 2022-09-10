@@ -55,6 +55,7 @@ uint32_t SDLBackend_GetChangedButtons();
 
 // Output
 uint32_t SDLBackend_SetLedStates(uint8_t);
+void SDLBackend_RenderLeds(uint8_t ledState);
 
 // Audio
 void SDLBackend_InitAudioDevice();
@@ -62,6 +63,5 @@ void SDLBackend_PushAudioSample(int16_t leftSample, int16_t rightSample);
 void SDLBackend_PushOscilloscopeSample(uint8_t ch, int16_t sample);
 
 uint32_t SDL_RenderDrawCircle(SDL_Renderer *renderer, int32_t x, int32_t y, uint32_t radius);
-void SDLBackend_RenderLeds(uint8_t ledState);
 
 #endif // BACKEND_SDL_H
