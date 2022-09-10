@@ -236,11 +236,6 @@ uint32_t SDLBackend_SetLedStates(uint8_t state) {
   return this.currLed;
 }
 
-uint32_t SDLBackend_SetLedStates(uint8_t state) {
-  this.currLed = state;
-  return this.currLed;
-}
-
 
 void SDLBackend_RenderLeds(uint8_t ledState) {
   int alpha = 128;
