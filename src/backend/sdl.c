@@ -243,7 +243,6 @@ bool SDLBackend_GetInput() {
       case SDLK_7: PPU_ToggleFlipVisual(); break;
       case SDLK_8: this.isOscilloscopeView = !this.isOscilloscopeView; break;
       case SDLK_0: VSmile_Reset(); break;
-      case SDLK_F10: running = false; break; // exit
       case SDLK_F1: this.showLed ^=1; break;
       case SDLK_h: this.showHelp ^=1; break;
       case SDLK_g: this.showRegisters ^=1; break;
@@ -305,6 +304,32 @@ uint32_t SDLBackend_SetLedStates(uint8_t state) {
   this.currLed = state;
   return this.currLed;
 }
+
+uint32_t SDLBackend_SetLedStates(uint8_t state) {
+  this.currLed = state;
+  return this.currLed;
+}
+
+
+void SDLBackend_RenderLeds(uint8_t ledState) {
+  int alpha = 128;
+  if (ledState & 1<<LED_RED) SDL_SetRenderDrawColor(this.renderer, 255, 0, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 50, 30, 20);
+
+  if (ledState & 1<<LED_YELLOW) SDL_SetRenderDrawColor(this.renderer, 255, 255, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 110, 30, 20);
+
+  if (ledState & 1<<LED_BLUE) SDL_SetRenderDrawColor(this.renderer, 0, 0, 255, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 170, 30, 20);
+
+  if (ledState & 1<<LED_GREEN) SDL_SetRenderDrawColor(this.renderer, 0, 255, 0, alpha);
+  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
+  SDL_RenderDrawCircle(this.renderer, 230, 30, 20);
+}
+
 
 void SDLBackend_InitAudioDevice() {
   SDL_AudioSpec want;
@@ -370,6 +395,7 @@ void SDLBackend_PushOscilloscopeSample(uint8_t ch, int16_t sample) {
 
   this.prevSample[ch] = sample;
 }
+
 
 uint32_t SDL_RenderDrawCircle(SDL_Renderer *renderer, int32_t x, int32_t y, uint32_t radius) {
   int offsetx, offsety, d;

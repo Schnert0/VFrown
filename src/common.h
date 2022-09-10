@@ -28,10 +28,10 @@
 
 
 enum {
-  LED_RED,
-  LED_YELLOW,
-  LED_BLUE,
   LED_GREEN,
+  LED_BLUE,
+  LED_YELLOW,
+  LED_RED
 };
 
 enum {
