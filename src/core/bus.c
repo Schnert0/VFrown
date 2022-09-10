@@ -137,12 +137,11 @@ void Bus_LoadROM(const char* filePath) {
     VSmile_Error("file too large!");
     this.romSize = BUS_SIZE*sizeof(uint16_t);
   }
-
   if (this.romBuffer)
     free(this.romBuffer);
 
-  this.romBuffer = malloc(this.romSize);
-  int r = fread(this.romBuffer, this.romSize, sizeof(uint16_t), file);
+  this.romBuffer = malloc(BUS_SIZE*sizeof(uint16_t));
+  int r = fread(this.romBuffer, this.romSize, sizeof(uint8_t), file);
   if (!r) VSmile_Error("error reading romfile");
 
   fclose(file);
