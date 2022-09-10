@@ -1,4 +1,5 @@
 #include "sdl.h"
+#include "../font.xpm"
 
 static SDLBackend_t this;
 
@@ -37,6 +38,7 @@ bool SDLBackend_Init() {
 
   this.initial = clock();
   this.showLed = false;
+  this.showHelp = false;
   return true;
 }
 
@@ -91,6 +93,8 @@ void SDLBackend_UpdateWindow() {
 
     if (this.showLed) SDLBackend_RenderLeds(this.currLed);
   }
+  if (this.showHelp) SDLBackend_PrintHelp();
+
   SDL_RenderPresent(this.renderer);
   this.currOscilloscopeSample = 0;
 
@@ -122,12 +126,54 @@ void SDLBackend_RenderLeds(uint8_t ledState) {
   if (ledState & 1<<LED_GREEN) SDL_SetRenderDrawColor(this.renderer, 0, 255, 0, alpha);
   else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
   SDL_RenderDrawCircle(this.renderer, 230, 30, 20);
+
+}
+
+void SDLBackend_PrintHelp() {
+  SDLBackend_PrintString("\\ - Toggle FullScreen",  10, 30);
+  SDLBackend_PrintString("1 - Toggle layer 0",      10, 46);
+  SDLBackend_PrintString("2 - Toggle layer 1",      10, 62);
+  SDLBackend_PrintString("3 - Toggle layer 2",      10, 78);
+  SDLBackend_PrintString("4 - Pause",               10, 94);
+  SDLBackend_PrintString("5 - Step",                10, 110);
+  SDLBackend_PrintString("6 - Sprite Outline",      10, 126);
+  SDLBackend_PrintString("7 - Flip Visual",         10, 142);
+  SDLBackend_PrintString("8 - Oscilloscope",        10, 158);
+  SDLBackend_PrintString("0 - Reset",               10, 174);
+  SDLBackend_PrintString("F1 - Toggle Leds",        10, 190);
+  SDLBackend_PrintString("F10 - Quit Emu",          10, 206);
+
+  SDLBackend_PrintString("z - RED",                 280, 30);
+  SDLBackend_PrintString("x - YELLOW",              280, 46);
+  SDLBackend_PrintString("c - GREEN",               280, 62);
+  SDLBackend_PrintString("v - BLUE",                280, 78);
+  SDLBackend_PrintString("a - HELP",                280, 94);
+  SDLBackend_PrintString("s - EXIT",                280, 110);
+  SDLBackend_PrintString("d - ABC",                 280, 126);
+  SDLBackend_PrintString("space - BUTTON",          250, 142);
 }
 
 uint16_t* SDLBackend_GetScanlinePointer(uint16_t scanlineNum) {
   return this.pixels + (320 * scanlineNum);
 }
 
+void SDLBackend_PrintString(char *str, int x, int y) {
+  size_t len = strlen(str);
+  int i;
+  for(i = 0 ; i < len; i++) {
+    SDLBackend_PrintChar(str[i], y, x+=11);
+  }
+}
+void SDLBackend_PrintChar(char c, int x, int y) {
+  int i,j;
+  char p;
+  SDL_SetRenderDrawColor(this.renderer, 0,0,0,0);
+  for(i=0; i<17; i++)
+    for(j=0;j<11; j++) {
+      p = font[i+3][((c-32)*11)+j];
+      if (p == ' ') SDL_RenderDrawPoint(this.renderer, y+j, x+i);
+    }
+}
 
 bool SDLBackend_RenderScanline() {
   return !this.isOscilloscopeView;
@@ -178,6 +224,8 @@ bool SDLBackend_GetInput() {
       case SDLK_0: VSmile_Reset(); break;
       case SDLK_F10: running = false; break; // exit
       case SDLK_F1: this.showLed ^=1; break;
+      case SDLK_h: this.showHelp ^=1; break;
+
 
       case SDLK_p: SDLBackend_SetVSync(!this.isVsyncEnabled); break;
 
