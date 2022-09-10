@@ -111,25 +111,7 @@ void SDLBackend_UpdateWindow() {
   }
 
 }
-void SDLBackend_RenderLeds(uint8_t ledState) {
-  int alpha = 128;
-  if (ledState & 1<<LED_RED) SDL_SetRenderDrawColor(this.renderer, 255, 0, 0, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 50, 30, 20);
 
-  if (ledState & 1<<LED_YELLOW) SDL_SetRenderDrawColor(this.renderer, 255, 255, 0, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 110, 30, 20);
-
-  if (ledState & 1<<LED_BLUE) SDL_SetRenderDrawColor(this.renderer, 0, 0, 255, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 170, 30, 20);
-
-  if (ledState & 1<<LED_GREEN) SDL_SetRenderDrawColor(this.renderer, 0, 255, 0, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 230, 30, 20);
-
-}
 
 void SDLBackend_PrintHelp() {
   SDLBackend_PrintString("\\ - Toggle FullScreen",  10, 30);
@@ -154,6 +136,7 @@ void SDLBackend_PrintHelp() {
   SDLBackend_PrintString("d - ABC",                 280, 126);
   SDLBackend_PrintString("space - BUTTON",          250, 142);
 }
+
 
 void SDLBackend_PrintCpu() {
   CPU_t cpu = CPU_GetCpu();
@@ -244,6 +227,7 @@ bool SDLBackend_GetInput() {
       case SDLK_8: this.isOscilloscopeView = !this.isOscilloscopeView; break;
       case SDLK_0: VSmile_Reset(); break;
       case SDLK_F1: this.showLed ^=1; break;
+      case SDLK_F10: running = false; break; // exit
       case SDLK_h: this.showHelp ^=1; break;
       case SDLK_g: this.showRegisters ^=1; break;
 
@@ -298,11 +282,6 @@ uint32_t SDLBackend_GetButtonStates() {
 
 uint32_t SDLBackend_GetChangedButtons() {
   return this.prev ^ this.curr;
-}
-
-uint32_t SDLBackend_SetLedStates(uint8_t state) {
-  this.currLed = state;
-  return this.currLed;
 }
 
 uint32_t SDLBackend_SetLedStates(uint8_t state) {
