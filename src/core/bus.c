@@ -142,7 +142,8 @@ void Bus_LoadROM(const char* filePath) {
     free(this.romBuffer);
 
   this.romBuffer = malloc(this.romSize);
-  fread(this.romBuffer, this.romSize, sizeof(uint16_t), file);
+  int r = fread(this.romBuffer, this.romSize, sizeof(uint16_t), file);
+  if (!r) VSmile_Error("error reading romfile");
 
   fclose(file);
 }
@@ -169,7 +170,8 @@ void Bus_LoadBIOS(const char* filePath) {
     free(this.biosBuffer);
 
   this.biosBuffer = malloc(this.biosSize);
-  fread(this.biosBuffer, this.biosSize, sizeof(uint16_t), file);
+  int r = fread(this.biosBuffer, this.biosSize, sizeof(uint16_t), file);
+  if (!r) VSmile_Error("error reading sysrom");
 
   fclose(file);
 }
