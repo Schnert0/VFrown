@@ -252,7 +252,7 @@ void Controller_RxComplete(uint8_t ctrlNum) {
       Timer_Reset(this->idleTimer);
       Timer_Reset(this->txTimer);
     }
-    
+
     if ((data & 0xf0) == 0x60) {
       this->ledStatus = data & 0xf;
       Backend_SetLedStates(data & 0xf);
