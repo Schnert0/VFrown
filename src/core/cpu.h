@@ -171,5 +171,5 @@ void CPU_TriggerFIQ(uint16_t fiqSource);
 
 // Debug
 void CPU_PrintCPUState();
-
+CPU_t CPU_GetCpu();
 #endif // CPU_H

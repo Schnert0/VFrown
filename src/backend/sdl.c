@@ -1,4 +1,5 @@
 #include "sdl.h"
+#include "../font.xpm"
 
 static SDLBackend_t this;
 
@@ -37,6 +38,8 @@ bool SDLBackend_Init() {
 
   this.initial = clock();
   this.showLed = false;
+  this.showHelp = false;
+  this.showRegisters = false;
   return true;
 }
 
@@ -92,6 +95,9 @@ void SDLBackend_UpdateWindow() {
 
     if (this.showLed) SDLBackend_RenderLeds(this.currLed);
   }
+  if (this.showHelp) SDLBackend_PrintHelp();
+  if (this.showRegisters) SDLBackend_PrintCpu();
+
   SDL_RenderPresent(this.renderer);
   this.currOscilloscopeSample = 0;
 
@@ -108,23 +114,57 @@ void SDLBackend_UpdateWindow() {
 }
 
 
+
 void SDLBackend_RenderLeds(uint8_t ledState) {
   int alpha = 128;
   if (ledState & 1<<LED_RED) SDL_SetRenderDrawColor(this.renderer, 255, 0, 0, alpha);
   else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
   SDL_RenderDrawCircle(this.renderer, 50, 30, 20);
+}
 
-  if (ledState & 1<<LED_YELLOW) SDL_SetRenderDrawColor(this.renderer, 255, 255, 0, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 110, 30, 20);
 
-  if (ledState & 1<<LED_BLUE) SDL_SetRenderDrawColor(this.renderer, 0, 0, 255, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 170, 30, 20);
+void SDLBackend_PrintHelp() {
+  SDLBackend_PrintString("\\ - Toggle FullScreen",  10, 30);
+  SDLBackend_PrintString("1 - Toggle layer 0",      10, 46);
+  SDLBackend_PrintString("2 - Toggle layer 1",      10, 62);
+  SDLBackend_PrintString("3 - Toggle layer 2",      10, 78);
+  SDLBackend_PrintString("4 - Pause",               10, 94);
+  SDLBackend_PrintString("5 - Step",                10, 110);
+  SDLBackend_PrintString("6 - Sprite Outline",      10, 126);
+  SDLBackend_PrintString("7 - Flip Visual",         10, 142);
+  SDLBackend_PrintString("8 - Oscilloscope",        10, 158);
+  SDLBackend_PrintString("0 - Reset",               10, 174);
+  SDLBackend_PrintString("F1 - Toggle Leds",        10, 190);
+  SDLBackend_PrintString("F10 - Quit Emu",          10, 206);
 
-  if (ledState & 1<<LED_GREEN) SDL_SetRenderDrawColor(this.renderer, 0, 255, 0, alpha);
-  else SDL_SetRenderDrawColor(this.renderer, 0, 0, 0, alpha);
-  SDL_RenderDrawCircle(this.renderer, 230, 30, 20);
+  SDLBackend_PrintString("z - RED",                 280, 30);
+  SDLBackend_PrintString("x - YELLOW",              280, 46);
+  SDLBackend_PrintString("c - GREEN",               280, 62);
+  SDLBackend_PrintString("v - BLUE",                280, 78);
+  SDLBackend_PrintString("a - HELP",                280, 94);
+  SDLBackend_PrintString("s - EXIT",                280, 110);
+  SDLBackend_PrintString("d - ABC",                 280, 126);
+  SDLBackend_PrintString("space - BUTTON",          250, 142);
+}
+
+
+void SDLBackend_PrintCpu() {
+  CPU_t cpu = CPU_GetCpu();
+  char raw[9], sp[9], r1[9], r2[9], r3[9], r4[9], bp[9], sr[9], pc[11], srd[11];
+
+  sprintf(raw, "RAW %04x", cpu.ins.raw);  SDLBackend_PrintString(raw, 10, 10);
+
+  sprintf(sp, "SP %04x", cpu.sp);     SDLBackend_PrintString(sp, 10, 24);
+  sprintf(r1, "R1 %04x", cpu.r1);     SDLBackend_PrintString(r1, 10, 38);
+  sprintf(r2, "R2 %04x", cpu.r2);     SDLBackend_PrintString(r2, 10, 52);
+  sprintf(r3, "R3 %04x", cpu.r3);     SDLBackend_PrintString(r3, 10, 66);
+  sprintf(r4, "R4 %04x", cpu.r4);     SDLBackend_PrintString(r4, 10, 80);
+  sprintf(bp, "BP %04x", cpu.bp);     SDLBackend_PrintString(bp, 10, 94);
+  sprintf(sr, "SR %04x", cpu.sr.raw); SDLBackend_PrintString(sr, 10, 108);
+  sprintf(pc, "PC %02x%04x", cpu.sr.cs, cpu.pc);     SDLBackend_PrintString(pc, 10, 122);
+  SDLBackend_PrintString("c s n z ds", 115, 108);
+  sprintf(srd, "%x %x %x %x %2x", cpu.sr.c, cpu.sr.s, cpu.sr.n, cpu.sr.z, cpu.sr.ds);
+  SDLBackend_PrintString(srd, 115, 122);
 }
 
 
@@ -132,6 +172,23 @@ uint16_t* SDLBackend_GetScanlinePointer(uint16_t scanlineNum) {
   return this.pixels + (320 * scanlineNum);
 }
 
+void SDLBackend_PrintString(char *str, int x, int y) {
+  size_t len = strlen(str);
+  int i;
+  for(i = 0 ; i < len; i++) {
+    SDLBackend_PrintChar(str[i], y, x+=11);
+  }
+}
+void SDLBackend_PrintChar(char c, int x, int y) {
+  int i,j;
+  char p;
+  SDL_SetRenderDrawColor(this.renderer, 0,0,0,0);
+  for(i=0; i<17; i++)
+    for(j=0;j<11; j++) {
+      p = font[i+3][((c-32)*11)+j];
+      if (p == ' ') SDL_RenderDrawPoint(this.renderer, y+j, x+i);
+    }
+}
 
 bool SDLBackend_RenderScanline() {
   return !this.isOscilloscopeView;
@@ -182,6 +239,9 @@ bool SDLBackend_GetInput() {
       case SDLK_0: VSmile_Reset(); break;
       case SDLK_F10: running = false; break; // Exit
       case SDLK_F1: this.showLed ^=1; break;
+      case SDLK_F10: running = false; break; // exit
+      case SDLK_h: this.showHelp ^=1; break;
+      case SDLK_g: this.showRegisters ^=1; break;
 
       case SDLK_p: SDLBackend_SetVSync(!this.isVsyncEnabled); break;
 
@@ -236,11 +296,6 @@ uint32_t SDLBackend_GetChangedButtons() {
   return this.prev ^ this.curr;
 }
 
-
-uint32_t SDLBackend_SetLedStates(uint8_t state) {
-  this.currLed = state;
-  return this.currLed;
-}
 
 
 void SDLBackend_InitAudioDevice() {
