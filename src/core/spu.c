@@ -69,22 +69,72 @@ const float rateCutoff = 44100.0f;
 //   "unknown 0x1f"           // 0x1f
 // };
 
-static const int16_t adpcmStep[] = {
-  16,   17,   19,   21,   23,   25,   28,   31,  34,   37,   41,   45,
-  50,   55,   60,   66,   73,   80,   88,   97,  107,  118,  130,  143,
-  157,  173,  190,  209,  230,  253,  279,  307, 337,  371,  408,  449,
-  494,  544,  598,  658,  724,  796,  876,  963, 1060, 1166, 1282, 1411, 1552
-};
 
 static const int8_t adpcmStepShift[] = { -1, -1, -1, -1, 2, 4, 6, 8 };
+
+
+static const int16_t adpcmLookup[] = {
+    2,     6,    10,    14,    18,    22,    26,    30,    -2,    -6,   -10,   -14,   -18,   -22,   -26,   -30,
+    2,     6,    10,    14,    19,    23,    27,    31,    -2,    -6,   -10,   -14,   -19,   -23,   -27,   -31,
+    2,     6,    11,    15,    21,    25,    30,    34,    -2,    -6,   -11,   -15,   -21,   -25,   -30,   -34,
+    2,     7,    12,    17,    23,    28,    33,    38,    -2,    -7,   -12,   -17,   -23,   -28,   -33,   -38,
+    2,     7,    13,    18,    25,    30,    36,    41,    -2,    -7,   -13,   -18,   -25,   -30,   -36,   -41,
+    3,     9,    15,    21,    28,    34,    40,    46,    -3,    -9,   -15,   -21,   -28,   -34,   -40,   -46,
+    3,    10,    17,    24,    31,    38,    45,    52,    -3,   -10,   -17,   -24,   -31,   -38,   -45,   -52,
+    3,    10,    18,    25,    34,    41,    49,    56,    -3,   -10,   -18,   -25,   -34,   -41,   -49,   -56,
+    4,    12,    21,    29,    38,    46,    55,    63,    -4,   -12,   -21,   -29,   -38,   -46,   -55,   -63,
+    4,    13,    22,    31,    41,    50,    59,    68,    -4,   -13,   -22,   -31,   -41,   -50,   -59,   -68,
+    5,    15,    25,    35,    46,    56,    66,    76,    -5,   -15,   -25,   -35,   -46,   -56,   -66,   -76,
+    5,    16,    27,    38,    50,    61,    72,    83,    -5,   -16,   -27,   -38,   -50,   -61,   -72,   -83,
+    6,    18,    31,    43,    56,    68,    81,    93,    -6,   -18,   -31,   -43,   -56,   -68,   -81,   -93,
+    6,    19,    33,    46,    61,    74,    88,   101,    -6,   -19,   -33,   -46,   -61,   -74,   -88,  -101,
+    7,    22,    37,    52,    67,    82,    97,   112,    -7,   -22,   -37,   -52,   -67,   -82,   -97,  -112,
+    8,    24,    41,    57,    74,    90,   107,   123,    -8,   -24,   -41,   -57,   -74,   -90,  -107,  -123,
+    9,    27,    45,    63,    82,   100,   118,   136,    -9,   -27,   -45,   -63,   -82,  -100,  -118,  -136,
+   10,    30,    50,    70,    90,   110,   130,   150,   -10,   -30,   -50,   -70,   -90,  -110,  -130,  -150,
+   11,    33,    55,    77,    99,   121,   143,   165,   -11,   -33,   -55,   -77,   -99,  -121,  -143,  -165,
+   12,    36,    60,    84,   109,   133,   157,   181,   -12,   -36,   -60,   -84,  -109,  -133,  -157,  -181,
+   13,    39,    66,    92,   120,   146,   173,   199,   -13,   -39,   -66,   -92,  -120,  -146,  -173,  -199,
+   14,    43,    73,   102,   132,   161,   191,   220,   -14,   -43,   -73,  -102,  -132,  -161,  -191,  -220,
+   16,    48,    81,   113,   146,   178,   211,   243,   -16,   -48,   -81,  -113,  -146,  -178,  -211,  -243,
+   17,    52,    88,   123,   160,   195,   231,   266,   -17,   -52,   -88,  -123,  -160,  -195,  -231,  -266,
+   19,    58,    97,   136,   176,   215,   254,   293,   -19,   -58,   -97,  -136,  -176,  -215,  -254,  -293,
+   21,    64,   107,   150,   194,   237,   280,   323,   -21,   -64,  -107,  -150,  -194,  -237,  -280,  -323,
+   23,    70,   118,   165,   213,   260,   308,   355,   -23,   -70,  -118,  -165,  -213,  -260,  -308,  -355,
+   26,    78,   130,   182,   235,   287,   339,   391,   -26,   -78,  -130,  -182,  -235,  -287,  -339,  -391,
+   28,    85,   143,   200,   258,   315,   373,   430,   -28,   -85,  -143,  -200,  -258,  -315,  -373,  -430,
+   31,    94,   157,   220,   284,   347,   410,   473,   -31,   -94,  -157,  -220,  -284,  -347,  -410,  -473,
+   34,   103,   173,   242,   313,   382,   452,   521,   -34,  -103,  -173,  -242,  -313,  -382,  -452,  -521,
+   38,   114,   191,   267,   345,   421,   498,   574,   -38,  -114,  -191,  -267,  -345,  -421,  -498,  -574,
+   42,   126,   210,   294,   379,   463,   547,   631,   -42,  -126,  -210,  -294,  -379,  -463,  -547,  -631,
+   46,   138,   231,   323,   417,   509,   602,   694,   -46,  -138,  -231,  -323,  -417,  -509,  -602,  -694,
+   51,   153,   255,   357,   459,   561,   663,   765,   -51,  -153,  -255,  -357,  -459,  -561,  -663,  -765,
+   56,   168,   280,   392,   505,   617,   729,   841,   -56,  -168,  -280,  -392,  -505,  -617,  -729,  -841,
+   61,   184,   308,   431,   555,   678,   802,   925,   -61,  -184,  -308,  -431,  -555,  -678,  -802,  -925,
+   68,   204,   340,   476,   612,   748,   884,  1020,   -68,  -204,  -340,  -476,  -612,  -748,  -884, -1020,
+   74,   223,   373,   522,   672,   821,   971,  1120,   -74,  -223,  -373,  -522,  -672,  -821,  -971, -1120,
+   82,   246,   411,   575,   740,   904,  1069,  1233,   -82,  -246,  -411,  -575,  -740,  -904, -1069, -1233,
+   90,   271,   452,   633,   814,   995,  1176,  1357,   -90,  -271,  -452,  -633,  -814,  -995, -1176, -1357,
+   99,   298,   497,   696,   895,  1094,  1293,  1492,   -99,  -298,  -497,  -696,  -895, -1094, -1293, -1492,
+  109,   328,   547,   766,   985,  1204,  1423,  1642,  -109,  -328,  -547,  -766,  -985, -1204, -1423, -1642,
+  120,   360,   601,   841,  1083,  1323,  1564,  1804,  -120,  -360,  -601,  -841, -1083, -1323, -1564, -1804,
+  132,   397,   662,   927,  1192,  1457,  1722,  1987,  -132,  -397,  -662,  -927, -1192, -1457, -1722, -1987,
+  145,   436,   728,  1019,  1311,  1602,  1894,  2185,  -145,  -436,  -728, -1019, -1311, -1602, -1894, -2185,
+  160,   480,   801,  1121,  1442,  1762,  2083,  2403,  -160,  -480,  -801, -1121, -1442, -1762, -2083, -2403,
+  176,   528,   881,  1233,  1587,  1939,  2292,  2644,  -176,  -528,  -881, -1233, -1587, -1939, -2292, -2644,
+  194,   582,   970,  1358,  1746,  2134,  2522,  2910,  -194,  -582,  -970, -1358, -1746, -2134, -2522, -2910
+};
+
 
 static const uint32_t rampdownFrameCounts[] = {
   52, 208, 832, 3328, 13312, 53248, 106496, 106496
 };
 
+
 static const int16_t envelopeFrameCounts[] = {
 	4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 8192, 8192, 8192, 8192
 };
+
 
 bool SPU_Init() {
   memset(&this, 0, sizeof(SPU_t));
@@ -229,7 +279,6 @@ uint16_t SPU_TickSample(uint8_t ch) {
         } else {
           waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
         }
-        // SPU_StopChannel(ch); // HACK: prevents stuck intro audio in Alphabet Park Adventure
       }
     }
     break;
@@ -238,7 +287,7 @@ uint16_t SPU_TickSample(uint8_t ch) {
     for (int32_t i = 0; i < sampleTicks; i++) {
       uint16_t nybble = (Bus_Load(waveAddr) >> channel->pcmShift) & 0xf;
       channel->waveData = SPU_GetADPCMSample(ch, nybble);
-      channel->waveData = (channel->waveData << 2) ^ 0x8000;
+      channel->waveData = (channel->waveData << 4) ^ 0x8000;
       channel->pcmShift += 4;
       if (channel->pcmShift >= 16) {
         channel->pcmShift = 0;
@@ -258,7 +307,7 @@ uint16_t SPU_TickSample(uint8_t ch) {
     }
     break;
 
-  case 3: // ADPCM36 mode
+  case 3: // ADPCM36 Mode
     for (int32_t i = 0; i < sampleTicks; i++) {
       if (channel->adpcm36Remaining == 0) {
         channel->adpcm36Header.raw = Bus_Load(waveAddr++);
@@ -275,13 +324,13 @@ uint16_t SPU_TickSample(uint8_t ch) {
       }
 
       if(Bus_Load(waveAddr) == 0xffff) {
+        channel->mode.pcmMode = 1;
         if (channel->mode.playMode == 1) { // One shot mode
           SPU_StopChannel(ch);
         } else {
           waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
           channel->pcmShift = 0;
-          channel->adpcmLastSample = 0;
-          channel->adpcmStepIndex = 0;
+          channel->adpcm36Remaining = 0;
         }
       }
     }
@@ -367,32 +416,23 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
 int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble) {
   Channel_t* channel = &this.channels[ch];
 
-  int16_t step = adpcmStep[channel->adpcmStepIndex];
-  int16_t e = (step >> 3);
-  if (nybble & 1) e += (step >> 2);
-  if (nybble & 2) e += (step >> 1);
-  if (nybble & 4) e += step;
-  int16_t offset = (nybble & 8) ? -e : e;
-  int16_t sample = channel->adpcmLastSample + offset;
+  channel->adpcmLastSample += adpcmLookup[(channel->adpcmStepIndex << 4) + nybble];
+  if (channel->adpcmLastSample >  2047) channel->adpcmLastSample =  2047;
+  if (channel->adpcmLastSample < -2048) channel->adpcmLastSample = -2048;
 
-  if (sample >  2047) sample =  2047;
-  if (sample < -2048) sample = -2048;
-
-  channel->adpcmLastSample = sample;
-  channel->adpcmStepIndex += adpcmStepShift[nybble];
-  if (channel->adpcmStepIndex <  0) channel->adpcmStepIndex =  0;
+  channel->adpcmStepIndex += adpcmStepShift[nybble & 7];
   if (channel->adpcmStepIndex > 48) channel->adpcmStepIndex = 48;
+  if (channel->adpcmStepIndex <  0) channel->adpcmStepIndex =  0;
 
-  return sample;
+  return channel->adpcmLastSample;
 }
 
 
 int16_t SPU_GetADPCM36Sample(uint8_t ch, uint8_t nybble) {
   Channel_t* channel = &this.channels[ch];
 
-  int32_t f0 = channel->adpcm36Header.filter;
-  if (f0 & 0x20) f0 |= ~0x3f;
-	int32_t f1 = 1;
+  int16_t f0 = channel->adpcm36Header.filter;
+  int16_t f1 = 1;
   int16_t sample = nybble << 12;
 	sample = (sample >> channel->adpcm36Header.shift) + (((channel->adpcm36Prev[0] * f0) + (channel->adpcm36Prev[1] * f1) + 32) >> 12);
 	channel->adpcm36Prev[1] = channel->adpcm36Prev[0];
@@ -445,9 +485,9 @@ void SPU_TickEnvelope(uint8_t ch) {
           channel->env1.raw = Bus_Load(envAddr+1);
           channel->envLoopCtrl.raw = Bus_Load(envAddr+2);
           envAddr += channel->envLoopCtrl.envAddrOffset;
-          // int16_t offset = channel->envLoopCtrl.envAddrOffset;
-          // if (offset & 0x100) offset |= 0xfe00;
-          // envAddr += offset;
+          int16_t offset = channel->envLoopCtrl.envAddrOffset;
+          if (offset & 0x100) offset |= 0xfe00;
+          envAddr += offset;
         }
       } else {
         channel->env0.raw = Bus_Load(envAddr);
@@ -652,6 +692,9 @@ void SPU_StartChannel(uint8_t ch) {
 
   if (!(this.chanStop & (1 << ch))) { // Channel Stop
     this.chanStat |= (1 << ch); // Channel Status
+
+    channel->adpcmLastSample = 0;
+    channel->adpcmStepIndex = 0;
 
     channel->adpcm36Remaining = 0;
     channel->adpcm36Header.raw = 0;
