@@ -284,6 +284,7 @@ uint16_t SPU_TickSample(uint8_t ch) {
     break;
 
   case 2: // ADPCM mode
+  case 3:
     for (int32_t i = 0; i < sampleTicks; i++) {
       uint16_t nybble = (Bus_Load(waveAddr) >> channel->pcmShift) & 0xf;
       channel->waveData = SPU_GetADPCMSample(ch, nybble);
@@ -295,6 +296,9 @@ uint16_t SPU_TickSample(uint8_t ch) {
       }
 
       if(Bus_Load(waveAddr) == 0xffff) {
+        if (channel->mode.pcmMode == 3)
+          channel->mode.pcmMode = 1;
+          
         if (channel->mode.playMode == 1) { // One shot mode
           SPU_StopChannel(ch);
         } else {
@@ -307,34 +311,34 @@ uint16_t SPU_TickSample(uint8_t ch) {
     }
     break;
 
-  case 3: // ADPCM36 Mode
-    for (int32_t i = 0; i < sampleTicks; i++) {
-      if (channel->adpcm36Remaining == 0) {
-        channel->adpcm36Header.raw = Bus_Load(waveAddr++);
-        channel->adpcm36Remaining = 8;
-      }
-
-      uint16_t nybble = (Bus_Load(waveAddr) >> channel->pcmShift) & 0xf;
-      channel->waveData = SPU_GetADPCM36Sample(ch, nybble);
-      channel->pcmShift += 4;
-      if (channel->pcmShift >= 16) {
-        channel->pcmShift = 0;
-        waveAddr++;
-        channel->adpcm36Remaining--;
-      }
-
-      if(Bus_Load(waveAddr) == 0xffff) {
-        channel->mode.pcmMode = 1;
-        if (channel->mode.playMode == 1) { // One shot mode
-          SPU_StopChannel(ch);
-        } else {
-          waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
-          channel->pcmShift = 0;
-          channel->adpcm36Remaining = 0;
-        }
-      }
-    }
-    break;
+  // case 3: // ADPCM36 Mode
+  //   for (int32_t i = 0; i < sampleTicks; i++) {
+  //     if (channel->adpcm36Remaining == 0) {
+  //       channel->adpcm36Header.raw = Bus_Load(waveAddr++);
+  //       channel->adpcm36Remaining = 8;
+  //     }
+  //
+  //     uint16_t nybble = (Bus_Load(waveAddr) >> channel->pcmShift) & 0xf;
+  //     channel->waveData = SPU_GetADPCM36Sample(ch, nybble);
+  //     channel->pcmShift += 4;
+  //     if (channel->pcmShift >= 16) {
+  //       channel->pcmShift = 0;
+  //       waveAddr++;
+  //       channel->adpcm36Remaining--;
+  //     }
+  //
+  //     if(Bus_Load(waveAddr) == 0xffff) {
+  //       channel->mode.pcmMode = 1;
+  //       if (channel->mode.playMode == 1) { // One shot mode
+  //         SPU_StopChannel(ch);
+  //       } else {
+  //         waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
+  //         channel->pcmShift = 0;
+  //         channel->adpcm36Remaining = 0;
+  //       }
+  //     }
+  //   }
+  //   break;
   }
 
   channel->waveAddr = waveAddr & 0xffff;
