@@ -148,7 +148,7 @@ typedef struct {
   bool     isPlaying;
 
   int16_t adpcmStepIndex;
-  int8_t  adpcmLastSample;
+  int16_t  adpcmLastSample;
 
   uint16_t adpcm36Remaining;
   ADPCM36Header_t adpcm36Header;
