@@ -22,8 +22,8 @@
 #define DMA_START 0x003e00
 #define DMA_SIZE  0x000004
 
-#define BIOS_SIZE  0x200000
-#define BIOS_START 0x200000
+#define SYSROM_SIZE  0x200000
+#define SYSROM_START 0x200000
 
 
 /*
@@ -65,8 +65,8 @@ typedef struct Bus_t {
   uint32_t romSize;
   uint16_t* romBuffer;
 
-  uint32_t biosSize;
-  uint16_t* biosBuffer;
+  uint32_t sysRomSize;
+  uint16_t* sysRomBuffer;
 
 } Bus_t;
 
@@ -75,7 +75,7 @@ void Bus_Cleanup();
 
 void Bus_Reset();
 void Bus_LoadROM(const char* filePath);
-void Bus_LoadBIOS(const char* filePath);
+void Bus_LoadSysRom(const char* filePath);
 
 void Bus_Tick(int32_t cycles);
 void Bus_TickTimers(int32_t index);

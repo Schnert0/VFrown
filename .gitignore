@@ -1,6 +1,6 @@
 # Paths
-/ROMs
-/BIOS
+/roms
+/sysRom
 
 # Files
 *.o

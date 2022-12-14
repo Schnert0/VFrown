@@ -10,10 +10,10 @@ int main(int argc, char* argv[]) {
     return 0;
 
   VSmile_LoadROM(argv[1]);
-  if (argc > 2 && strcmp(argv[2], "-bios") == 0) {
-    VSmile_LoadBIOS(argv[3]);
+  if (argc > 3 && strcmp(argv[2], "-sysrom") == 0) {
+    VSmile_LoadSysRom(argv[3]);
   } else {
-    VSmile_LoadBIOS("BIOS/bios.bin");
+    VSmile_LoadSysRom("sysRom/sysrom.bin");
   }
   VSmile_Reset();
   VSmile_Run();

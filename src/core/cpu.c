@@ -80,9 +80,10 @@ void CPU_Reset() {
   this.fiqSource = FIQSRC_NONE;
 
   this.pc = Bus_Load(0xfff7);
+  this.sr.ds = 0x3f;
 }
 
- // bool memDebug[BUS_SIZE];
+ bool memDebug[BUS_SIZE];
 
 // Run one instruction and return the number of cycles it took to complete
 int32_t CPU_Tick() {

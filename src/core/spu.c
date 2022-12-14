@@ -298,7 +298,7 @@ uint16_t SPU_TickSample(uint8_t ch) {
       if(Bus_Load(waveAddr) == 0xffff) {
         if (channel->mode.pcmMode == 3)
           channel->mode.pcmMode = 1;
-          
+
         if (channel->mode.playMode == 1) { // One shot mode
           SPU_StopChannel(ch);
         } else {
@@ -393,6 +393,7 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
 
       if (currEnvData > 0) {
         channel->envData.envelopeData = currEnvData;
+        channel->rampDownFrame = rampdownFrameCounts[channel->rampDownClock & 7];
       } else {
         this.chanEnable  &= ~(1 << ch);
         this.chanStat    &= ~(1 << ch);
@@ -400,8 +401,6 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
         this.envRampDown &= ~(1 << ch);
         this.toneRelease &= ~(1 << ch);
       }
-
-      channel->rampDownFrame = rampdownFrameCounts[channel->rampDownClock];
     }
   }
   else if (!(this.envMode & (1 << ch))) { // Envelope mode
@@ -488,10 +487,9 @@ void SPU_TickEnvelope(uint8_t ch) {
           channel->env0.raw = Bus_Load(envAddr);
           channel->env1.raw = Bus_Load(envAddr+1);
           channel->envLoopCtrl.raw = Bus_Load(envAddr+2);
-          envAddr += channel->envLoopCtrl.envAddrOffset;
           int16_t offset = channel->envLoopCtrl.envAddrOffset;
           if (offset & 0x100) offset |= 0xfe00;
-          envAddr += offset;
+          envAddr = (channel->envAddr | (channel->envAddrHigh.envAddrHi << 16)) + offset;
         }
       } else {
         channel->env0.raw = Bus_Load(envAddr);
@@ -625,7 +623,8 @@ void SPU_Write(uint16_t addr, uint16_t data) {
       case 0x00:   // Phase high
       case 0x04: { // Phase
         channel->regs2[reg] = data;
-        float phase = (float)(channel->phase | ((channel->phaseHigh & 3) << 16));
+        int32_t intPhase = channel->phase | ((channel->phaseHigh & 3) << 16);
+        float phase = (float)intPhase;
         channel->rate = (phase * 281250.0f) / 524288.0f;
         channel->accum = 0.0f;
         if (channel->isPlaying)
