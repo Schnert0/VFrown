@@ -1,6 +1,7 @@
 # Paths
 /roms
 /sysRom
+/tests
 
 # Files
 *.o

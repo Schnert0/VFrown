@@ -22,8 +22,8 @@
 #define DMA_START 0x003e00
 #define DMA_SIZE  0x000004
 
-#define SYSROM_SIZE  0x200000
-#define SYSROM_START 0x200000
+#define SYSROM_SIZE  0x100000
+#define SYSROM_START 0x300000
 
 
 /*

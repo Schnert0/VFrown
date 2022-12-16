@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
-    printf("usage: %s <path/to/rom> [-bios <path/to/BIOS>]\n", argv[0]);
+    printf("usage: %s <path/to/rom> [-sysrom <path/to/BIOS>]\n", argv[0]);
     return 0;
   }
 
