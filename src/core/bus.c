@@ -98,8 +98,8 @@ void Bus_Cleanup() {
   if (this.romBuffer)
     free(this.romBuffer);
 
-  if (this.biosBuffer)
-    free(this.biosBuffer);
+  if (this.sysRomBuffer)
+    free(this.sysRomBuffer);
 
   for (int32_t i = 0; i < 4; i++) {
     if (this.adcTimers[i])
@@ -148,29 +148,31 @@ void Bus_LoadROM(const char* filePath) {
 }
 
 
-void Bus_LoadBIOS(const char* filePath) {
+void Bus_LoadSysRom(const char* filePath) {
   FILE* file = fopen(filePath, "rb");
   if (!file) {
-    VSmile_Warning("unable to load BIOS - can't open \"%s\"", filePath);
+    VSmile_Warning("unable to load system rom - can't open \"%s\"", filePath);
     return;
   }
 
   // Get size of ROM
   fseek(file, 0, SEEK_END);
-  this.biosSize = ftell(file);
+  this.sysRomSize = ftell(file);
   fseek(file, 0, SEEK_SET);
 
-  // if (this.biosSize > BIOS_SIZE*sizeof(uint16_t)) {
+  // if (this.sysRomSize > SYSROM_SIZE*sizeof(uint16_t)) {
   //   VSmile_Error("file too large!");
-  //   this.biosSize = BIOS_SIZE*sizeof(uint16_t);
+  //   this.sysRomSize = SYSROM_SIZE*sizeof(uint16_t);
   // }
 
-  if (this.biosBuffer)
-    free(this.biosBuffer);
+  if (this.sysRomBuffer)
+    free(this.sysRomBuffer);
 
-  this.biosBuffer = malloc(this.biosSize);
-  int r = fread(this.biosBuffer, this.biosSize, sizeof(uint16_t), file);
-  if (!r) VSmile_Error("error reading sysrom");
+  this.sysRomBuffer = malloc(this.sysRomSize);
+  int32_t success = fread(this.sysRomBuffer, this.sysRomSize, sizeof(uint16_t), file);
+
+  if (!success)
+    VSmile_Error("error reading system rom");
 
   fclose(file);
 }
@@ -206,20 +208,20 @@ void Bus_Tick(int32_t cycles) {
 
 void Bus_TickTimers(int32_t index) {
   uint16_t timerIrq = 0x0040; // 4096 hz
-	this.timer2khz++;
-	if (this.timer2khz == 2) {
-		this.timer2khz = 0;
-		timerIrq |= 0x0020; // 2048 hz
-		this.timer1khz++;
-		if (this.timer1khz == 2) {
-			this.timer1khz = 0;
-			timerIrq |= 0x0010; // 1024 hz
-			this.timer4hz++;
-			if (this.timer4hz == 256) {
-				this.timer4hz = 0;
-				timerIrq |= 0x0008; // 4 hz
-			}
-		}
+  this.timer2khz++;
+  if (this.timer2khz == 2) {
+    this.timer2khz = 0;
+    timerIrq |= 0x0020; // 2048 hz
+    this.timer1khz++;
+    if (this.timer1khz == 2) {
+      this.timer1khz = 0;
+      timerIrq |= 0x0010; // 1024 hz
+      this.timer4hz++;
+      if (this.timer4hz == 256) {
+        this.timer4hz = 0;
+        timerIrq |= 0x0008; // 4 hz
+      }
+    }
   }
   Bus_SetIRQFlags(0x3d22, timerIrq);
 
@@ -294,8 +296,8 @@ uint16_t Bus_Load(uint32_t addr) {
     return this.io[addr - IO_START];
   }
 
-  if ((this.romDecodeMode == 2) && this.biosBuffer && (addr >= BIOS_START) && (addr < BIOS_START + BIOS_SIZE)) {
-    return this.biosBuffer[addr - BIOS_START];
+  if ((this.romDecodeMode & 2) && this.sysRomBuffer && (addr >= SYSROM_START) && (addr < (SYSROM_START + SYSROM_SIZE))) {
+    return this.sysRomBuffer[addr - SYSROM_START];
   }
 
   if (this.romBuffer && (addr < BUS_SIZE)) {
@@ -415,14 +417,15 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       this.io[addr - IO_START] = data;
       CPU_ActivatePendingIRQs();
       break;
+
     case 0x3d22: // IRQ ack
       this.io[addr - IO_START] &= ~data;
       break;
 
     case 0x3d23: // External memory ctrl
-      // printf("set rom decode mode to %d\n", (data >> 6) & 0x3);
+      printf("set rom decode mode to %d\n", (data >> 6) & 0x3);
       this.romDecodeMode = (data >> 6) & 0x3;
-      // printf("set ram decode mode to %d\n", (data >> 8) & 0xf);
+      printf("set ram decode mode to %d\n", (data >> 8) & 0xf);
       this.ramDecodeMode = (data >> 8) & 0xf;
 
       if ((data ^ this.io[addr - IO_START]) & 0x8000) {
@@ -446,6 +449,11 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     case 0x3d25: // ADC ctrl
       Bus_WriteADCCtrl(data);
       // printf("Write to ADC CTRL with %04x at %06x\n", data, CPU_GetCSPC());
+      break;
+
+    case 0x3d27: // ADC data
+      // printf("Write to ADC data with %04x at %06x\n", data, CPU_GetCSPC());
+      this.io[addr - IO_START] = data;
       break;
 
     case 0x3d2e:

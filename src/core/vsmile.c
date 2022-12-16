@@ -39,14 +39,16 @@ void VSmile_Run() {
       cyclesLeft += CYCLES_PER_LINE;
       while (cyclesLeft > 0) {
         int32_t cycles = CPU_Tick();
-        cyclesLeft -= cycles;
         SPU_Tick(cycles);
-        Bus_Tick(cycles);
-        Controller_Tick(cycles);
-        TMB_Tick(0, cycles);
-        TMB_Tick(1, cycles);
+        cyclesLeft -= cycles;
       }
 
+      // Tick these every scan line instead of every cycle.
+      // Even though it's slightly less accurate, it's waaaay more efficient this way.
+      Bus_Tick(CYCLES_PER_LINE-cyclesLeft);
+      Controller_Tick(CYCLES_PER_LINE-cyclesLeft);
+      TMB_Tick(0, CYCLES_PER_LINE-cyclesLeft);
+      TMB_Tick(1, CYCLES_PER_LINE-cyclesLeft);
       PPU_RenderLine();
 
       uint16_t currLine = PPU_GetCurrLine();
@@ -83,8 +85,8 @@ void VSmile_LoadROM(const char* path) {
 }
 
 
-void VSmile_LoadBIOS(const char* path) {
-  Bus_LoadBIOS(path);
+void VSmile_LoadSysRom(const char* path) {
+  Bus_LoadSysRom(path);
 }
 
 
