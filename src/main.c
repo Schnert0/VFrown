@@ -10,8 +10,14 @@ int main(int argc, char* argv[]) {
     return 0;
 
   VSmile_LoadROM(argv[1]);
-  if (argc > 3 && strcmp(argv[2], "-sysrom") == 0) {
-    VSmile_LoadSysRom(argv[3]);
+
+  if (argc == 1) {
+    if (strequ(argv[2], "-nosysrom"))
+      VSmile_Log("Starting emulation without system rom...");
+  }
+  else if (argc == 3) {
+    if (strequ(argv[2], "-sysrom"))
+      VSmile_LoadSysRom(argv[3]);
   } else {
     VSmile_LoadSysRom("sysRom/sysrom.bin");
   }

@@ -54,6 +54,10 @@ typedef struct Bus_t {
   uint8_t ramDecodeMode;
   uint8_t chipSelectMode;
 
+  struct Timer_t* timerABSource;
+  struct Timer_t* timerCSource;
+  uint16_t timerASetup, timerBSetup, timerBRate, timerBDiv;
+
   struct Timer_t* sysTimers;
   uint16_t timer2khz, timer1khz, timer4hz;
 
@@ -89,6 +93,12 @@ uint16_t Bus_GetIOB(uint16_t mask);
 void Bus_SetIOB(uint16_t data, uint16_t mask);
 uint16_t Bus_GetIOC(uint16_t mask);
 void Bus_SetIOC(uint16_t data, uint16_t mask);
+
+// Timer A and Timer B
+void Bus_UpdateTimerB();
+void Bus_TimerABTick();
+void Bus_TickTimerA();
+void Bus_TimerCTick();
 
 // Watchdog
 void Bus_WatchdogWakeup(int32_t index);

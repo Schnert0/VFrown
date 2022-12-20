@@ -57,4 +57,7 @@ enum {
   INPUT_BUTTONS    = (1 << INPUT_ENTER) | (1 << INPUT_HELP) | (1 << INPUT_EXIT) | (1 << INPUT_ABC)
 };
 
+
+bool strequ(const char* a, const char* b);
+
 #endif // COMMON_H

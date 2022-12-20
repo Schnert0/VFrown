@@ -80,10 +80,10 @@ void CPU_Reset() {
   this.fiqSource = FIQSRC_NONE;
 
   this.pc = Bus_Load(0xfff7);
-  this.sr.ds = 0x3f;
+  // this.sr.ds = 0x3f;
 }
 
- bool memDebug[BUS_SIZE];
+// bool memDebug[BUS_SIZE];
 
 // Run one instruction and return the number of cycles it took to complete
 int32_t CPU_Tick() {
@@ -512,6 +512,14 @@ void CPU_OpMISC() {
     this.firMov = false;
     break;
 
+  case 0x08: // IRQ OFF
+    this.irqEnabled = false;
+    break;
+
+  case 0x09: // IRQ ON
+    this.irqEnabled = true;
+    break;
+
   case 0x0c: // FIQ OFF
     this.fiqEnabled = false;
     break;
@@ -672,7 +680,9 @@ void CPU_OpJMP() {
 
 // Pop a specified number of words off a specified stack (includes RETF and RETI)
 void CPU_OpPOP() {
-  if (this.ins.opA == 5 && this.ins.opN == 3 && this.ins.opB == 0) { // RETI
+  // if (this.ins.opA == 5 && this.ins.opN == 3 && this.ins.opB == 0) { // RETI
+  if (this.ins.raw == 0x9a98) {
+    // printf("reti at %06x\n", CPU_GetCSPC());
     this.sr.raw = CPU_Pop(0);
     this.pc = CPU_Pop(0);
 
@@ -1060,6 +1070,8 @@ void CPU_DoIRQ(uint8_t irqNum) {
   this.sb = this.sbBanked[1];
   this.pc = Bus_Load(0xfff8+irqNum);
   this.sr.raw = 0;
+
+  // printf("IRQ %d fired\n", irqNum);
 }
 
 

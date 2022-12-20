@@ -76,6 +76,9 @@ bool Bus_Init() {
   // this.io[0x23] = 0x0028; // 3d23 - External Memory Ctrl
   // this.io[0x25] = 0x2000; // 3d25 - ADC Ctrl
 
+  this.timerABSource = Timer_Init(0, Bus_TimerABTick, 0);
+  this.timerCSource = Timer_Init(0, Bus_TimerCTick, 0);
+
   this.sysTimers = Timer_Init(SYSCLOCK / 4096, Bus_TickTimers, 0);
   Timer_Reset(this.sysTimers);
 
@@ -85,10 +88,10 @@ bool Bus_Init() {
     this.adcTimers[i] = Timer_Init(0, Bus_DoADCConversion, i);
   }
 
-  this.adcValues[0] = 0x0000;
-  this.adcValues[1] = 0x0fff;
-  this.adcValues[2] = 0x0000;
-  this.adcValues[3] = 0x0000;
+  this.adcValues[0] = 0x03ff;
+  this.adcValues[1] = 0x03ff;
+  this.adcValues[2] = 0x03ff;
+  this.adcValues[3] = 0x03ff;
 
   return true;
 }
@@ -179,6 +182,10 @@ void Bus_LoadSysRom(const char* filePath) {
 
 
 void Bus_Tick(int32_t cycles) {
+  // Timer A and Timer B
+  Timer_Tick(this.timerABSource, cycles);
+  Timer_Tick(this.timerCSource, cycles);
+
   // System Timers
   Timer_Tick(this.sysTimers, cycles);
 
@@ -223,6 +230,7 @@ void Bus_TickTimers(int32_t index) {
       }
     }
   }
+
   Bus_SetIRQFlags(0x3d22, timerIrq);
 
   Timer_Reset(this.sysTimers);
@@ -230,12 +238,15 @@ void Bus_TickTimers(int32_t index) {
 
 uint16_t Bus_Load(uint32_t addr) {
   if (addr < RAM_START+RAM_SIZE) {
-    // if (addr == 0x2298)
-      // printf("read from [2298] (%04x) at %06x\n", this.ram[0x2298], CPU_GetCSPC());
+    // if (addr == 0x2298 && CPU_GetCSPC() != 0x04060b) {
+    //   printf("read from [2298] (%04x) at %06x\n", this.ram[0x2298], CPU_GetCSPC());
       // return this.ram[addr - RAM_START] | 0x0020;
+    // }
     return this.ram[addr - RAM_START];
   }
   else if (addr < PPU_START+PPU_SIZE) {
+    // VSmile_Log("Read from PPU address %04x at %06x", addr, CPU_GetCSPC());
+
     if (addr == 0x2838)
       return PPU_GetCurrLine();
 
@@ -264,6 +275,10 @@ uint16_t Bus_Load(uint32_t addr) {
   	case 0x3d0c ... 0x3d0f:		// GPIO
       return this.io[addr - IO_START];
   		break;
+
+    case 0x3d1c:
+      return PPU_GetCurrLine();
+      break;
 
     case 0x3d25:
       // printf("read from ADC CTRL (%04x) at %06x\n", this.io[addr - IO_START], CPU_GetCSPC());
@@ -296,7 +311,7 @@ uint16_t Bus_Load(uint32_t addr) {
     return this.io[addr - IO_START];
   }
 
-  if ((this.romDecodeMode & 2) && this.sysRomBuffer && (addr >= SYSROM_START) && (addr < (SYSROM_START + SYSROM_SIZE))) {
+  if ((this.romDecodeMode & 2) && this.sysRomBuffer && (addr >= SYSROM_START)) {
     return this.sysRomBuffer[addr - SYSROM_START];
   }
 
@@ -320,6 +335,8 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     return;
   }
   else if (addr < PPU_START+PPU_SIZE) {
+    // VSmile_Log("Write to PPU address %04x with %04x at %06x", addr, data, CPU_GetCSPC());
+
     switch (addr) {
     case 0x2810: // Page 1 X scroll
     case 0x2816: // Page 2 X scroll
@@ -413,6 +430,96 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       this.io[addr - IO_START] = data;
       break;
 
+    case 0x3d11: // Timebase Clear
+      printf("timerbase clear\n");
+      this.timer2khz = 0;
+      this.timer1khz = 0;
+      this.timer4hz  = 0;
+      break;
+
+    case 0x3d12: // Timer A Data
+      printf("timer A Data set to %04x at %06x\n", data, CPU_GetCSPC());
+      this.io[addr - IO_START] = data;
+      this.timerASetup = data;
+      break;
+
+    case 0x3d13: { // Timer A CTRL
+      printf("timer A CTRL set to %04x at %06x\n", data, CPU_GetCSPC());
+      uint32_t timerARate = 0;
+      switch (data & 7) {
+      case 2:
+        Timer_Adjust(this.timerABSource, SYSCLOCK / 32768);
+        timerARate = 32768;
+        break;
+
+      case 3:
+        Timer_Adjust(this.timerABSource, SYSCLOCK / 8192);
+        timerARate = 8192;
+        break;
+
+      case 4:
+        Timer_Adjust(this.timerABSource, SYSCLOCK / 4096);
+        timerARate = 4096;
+        break;
+
+      default:
+        Timer_Adjust(this.timerABSource, 0);
+        break;
+      }
+
+      Timer_Reset(this.timerABSource);
+
+      switch ((data >> 3) & 7) {
+      case 0: this.timerBRate = timerARate / 2048; break;
+      case 1: this.timerBRate = timerARate / 1024; break;
+      case 2: this.timerBRate = timerARate /  256; break;
+      case 3: this.timerBRate = 0;                 break;
+      case 4: this.timerBRate = timerARate /    4; break;
+      case 5: this.timerBRate = timerARate /    2; break;
+      case 6: this.timerBRate = 1;                 break;
+      case 7: this.timerBRate = 0;                 break;
+      }
+    } break;
+
+    case 0x3d14: // Timer A Enable
+      printf("Timer A Enable set to %04x at %04x\n", data, CPU_GetCSPC());
+      this.io[addr - IO_START] = data;
+      break;
+
+    case 0x3d15: // Timer A IRQ Clear
+      // printf("timer A IRQ Cleared\n");
+      this.io[0x22] &= ~0x0800;
+      break;
+
+    case 0x3d16: // Timer B Data
+      printf("timer B data set to %04x at %06x\n", data, CPU_GetCSPC());
+      this.io[addr - IO_START] = data;
+      this.timerBSetup = data;
+      break;
+
+    case 0x3d17: // Timer B CTRL
+      printf("timer B CTRL set to %04x at %06x\n", data, CPU_GetCSPC());
+      this.io[addr - IO_START] = data;
+      if (data == 1)
+        Bus_UpdateTimerB();
+      break;
+
+    case 0x3d18: // Timer B Enable
+      printf("timer B enable set to %04x at %06x\n", data, CPU_GetCSPC());
+      this.io[addr - IO_START] = data & 1;
+      if (data & 1) {
+        Bus_UpdateTimerB();
+      } else {
+        Timer_Adjust(this.timerCSource, 0);
+        Timer_Reset(this.timerCSource);
+      }
+      break;
+
+    case 0x3d19: // Timer B IRQ Clear
+      printf("timer B cleared\n");
+      this.io[0x22] &= ~0x0400;
+      break;
+
     case 0x3d21:
       this.io[addr - IO_START] = data;
       CPU_ActivatePendingIRQs();
@@ -423,25 +530,26 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       break;
 
     case 0x3d23: // External memory ctrl
-      printf("set rom decode mode to %d\n", (data >> 6) & 0x3);
+      // printf("set rom decode mode to %d\n", (data >> 6) & 0x3);
       this.romDecodeMode = (data >> 6) & 0x3;
-      printf("set ram decode mode to %d\n", (data >> 8) & 0xf);
+      // printf("set ram decode mode to %d\n", (data >> 8) & 0xf);
       this.ramDecodeMode = (data >> 8) & 0xf;
 
-      if ((data ^ this.io[addr - IO_START]) & 0x8000) {
-        if (data & 0x8000)
-          Timer_Adjust(this.watchdogTimer, SYSCLOCK * (0.75f)); // 750 ms
-        else
-          Timer_Adjust(this.watchdogTimer, 0);
-
-        Timer_Reset(this.watchdogTimer);
-      }
+      // if ((data ^ this.io[addr - IO_START]) & 0x8000) {
+      //   if (data & 0x8000)
+      //     Timer_Adjust(this.watchdogTimer, (SYSCLOCK/4)*3); // 750 ms
+      //   else
+      //     Timer_Adjust(this.watchdogTimer, 0);
+      //
+      //   Timer_Reset(this.watchdogTimer);
+      // }
 
       this.io[addr - IO_START] = data;
       break;
 
     case 0x3d24: // Watchdog clear
       if (data == 0x55aa && (this.io[0x23] & 0x8000)) {
+        Timer_Adjust(this.watchdogTimer, (SYSCLOCK/4)*3);
         Timer_Reset(this.watchdogTimer);
       }
       break;
@@ -465,35 +573,35 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       CPU_SetDataSegment(data);
       break;
 
-      case 0x3d30: // UART Ctrl
-        Bus_SetUARTCtrl(data);
-        break;
+    case 0x3d30: // UART Ctrl
+      Bus_SetUARTCtrl(data);
+      break;
 
-      case 0x3d31: // UART Stat
-        Bus_SetUARTStat(data);
-        break;
+    case 0x3d31: // UART Stat
+      Bus_SetUARTStat(data);
+      break;
 
-      case 0x3d32: // UART Reset
+    case 0x3d32: // UART Reset
       Bus_ResetUART(data);
-        break;
+      break;
 
-      case 0x3d33: // UART BAUD1
-      case 0x3d34: // UART BAUD2
-        this.io[addr - IO_START] = data;
-        Bus_SetUARTBAUD((this.io[0x3d34 - IO_START] << 8) | this.io[0x3d33 - IO_START]);
-        break;
+    case 0x3d33: // UART BAUD1
+    case 0x3d34: // UART BAUD2
+      this.io[addr - IO_START] = data;
+      Bus_SetUARTBAUD((this.io[0x3d34 - IO_START] << 8) | this.io[0x3d33 - IO_START]);
+      break;
 
-      case 0x3d35:
-        Bus_SetTxBuffer(data);
-        break;
+    case 0x3d35:
+      Bus_SetTxBuffer(data);
+      break;
 
-      case 0x3d36: // UART RX Buffer
-        // printf("RX write\n");
-        break;
+    case 0x3d36: // UART RX Buffer
+      // printf("RX write\n");
+      break;
 
-      case 0x3d37:
-        // printf("write to UART RX FIFO control with %04x\n", data);
-        break;
+    case 0x3d37:
+      // printf("write to UART RX FIFO control with %04x\n", data);
+      break;
 
     case 0x3e00:
     case 0x3e01:
@@ -616,6 +724,55 @@ void Bus_SetIOC(uint16_t data, uint16_t mask) {
 }
 
 
+void Bus_UpdateTimerB() {
+  switch (this.io[0x17]) { // Timer B CTRL
+  case 2:  Timer_Adjust(this.timerCSource, SYSCLOCK / 32768); break;
+  case 3:  Timer_Adjust(this.timerCSource, SYSCLOCK /  8192); break;
+  case 4:  Timer_Adjust(this.timerCSource, SYSCLOCK /  4096); break;
+  default: Timer_Adjust(this.timerCSource, 0);                break;
+  }
+
+  Timer_Reset(this.timerCSource);
+  // printf("update timer B\n");
+}
+
+
+void Bus_TimerABTick() {
+  // printf("timer AB Tick\n");
+  if (this.timerBRate) {
+    this.timerBDiv++;
+    if (this.timerBDiv >= this.timerBRate) {
+      this.timerBDiv = 0;
+      Bus_TickTimerA();
+    }
+  }
+
+  Timer_Reset(this.timerABSource);
+}
+
+
+void Bus_TickTimerA() {
+  // printf("tick timer A\n");
+  this.io[0x12]++; // Timer A Data
+  if (!this.io[0x12]) {
+      this.io[0x12] = this.timerASetup;
+      Bus_SetIRQFlags(0x3d22, 0x0800);
+  }
+}
+
+
+void Bus_TimerCTick() {
+  // printf("timer C Tick\n");
+  this.io[0x16]++; // Timer B Data
+  if (!this.io[0x16]) {
+    this.io[0x16] = this.timerBSetup;
+    Bus_SetIRQFlags(0x3d22, 0x0400);
+  }
+
+  // Timer_Reset(this.timerCSource);
+}
+
+
 void Bus_WatchdogWakeup(int32_t index) {
   VSmile_Log("Watchdog timer expired. restarting...\n");
   VSmile_Reset();
@@ -623,7 +780,7 @@ void Bus_WatchdogWakeup(int32_t index) {
 
 
 void Bus_WriteADCCtrl(uint16_t data) {
-  // printf("write to ADC CTRL with %04x\n", data);
+  // printf("write to ADC CTRL with %04x at %06x\n", data, CPU_GetCSPC());
   // printf("interrupt status: %d\n", (data & (1 << 13)) != 0);
   // printf("request conversion: %d\n", (data & (1 << 12)) != 0);
   // printf("auto request: %d\n", (data & (1 << 10)) != 0);
@@ -642,26 +799,28 @@ void Bus_WriteADCCtrl(uint16_t data) {
 
   // Reset Interrupt status
   if (data & prevADC & 0x2000) {
-    this.io[0x22] &= ~0x2000;
+    this.io[0x25] &= ~0x2000;
+    Bus_Store(0x3d22, 0x2000); // Reset interrupt in IRQ
     // printf("resetting interrupt status...\n");
   }
 
   if (this.io[0x25] & 1) { // ADE
+    // printf("ADE\n");
     this.io[0x25] |= 0x2000;
     uint8_t channel = (data >> 4) & 3;
 
-    if ((data & 0x1000) && !(prevADC & 0x1000)) { // Conversion Request
+    if ((this.io[0x25] & 0x1000) && !(prevADC & 0x1000)) { // Conversion Request
       this.io[0x25] &= ~0x3000;
-      this.io[0x27] &= ~0x8000;
+      this.io[0x27] &= ~0x8000; // Clear ready bit
 
-      int32_t ticks = 16 << ((data >> 2) & 3);
-      Timer_Adjust(this.adcTimers[channel], SYSCLOCK / ticks);
+      uint32_t ticks = 16 << ((data >> 2) & 3);
+      Timer_Adjust(this.adcTimers[channel], ticks);
       Timer_Reset(this.adcTimers[channel]);
       // printf("conversion requested\n");
     }
 
     if (data & 0x0400) { // 8KHz Auto Request
-      this.io[0x27] &= ~0x8000;
+      this.io[0x27] &= ~0x8000; // Clear ready bit
       Timer_Adjust(this.adcTimers[channel], SYSCLOCK / 8000);
       Timer_Reset(this.adcTimers[channel]);
       // printf("auto request enabled\n");
