@@ -431,20 +431,20 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       break;
 
     case 0x3d11: // Timebase Clear
-      printf("timerbase clear\n");
+      // printf("timerbase clear\n");
       this.timer2khz = 0;
       this.timer1khz = 0;
       this.timer4hz  = 0;
       break;
 
     case 0x3d12: // Timer A Data
-      printf("timer A Data set to %04x at %06x\n", data, CPU_GetCSPC());
+      // printf("timer A Data set to %04x at %06x\n", data, CPU_GetCSPC());
       this.io[addr - IO_START] = data;
       this.timerASetup = data;
       break;
 
     case 0x3d13: { // Timer A CTRL
-      printf("timer A CTRL set to %04x at %06x\n", data, CPU_GetCSPC());
+      // printf("timer A CTRL set to %04x at %06x\n", data, CPU_GetCSPC());
       uint32_t timerARate = 0;
       switch (data & 7) {
       case 2:
@@ -482,7 +482,7 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     } break;
 
     case 0x3d14: // Timer A Enable
-      printf("Timer A Enable set to %04x at %04x\n", data, CPU_GetCSPC());
+      // printf("Timer A Enable set to %04x at %04x\n", data, CPU_GetCSPC());
       this.io[addr - IO_START] = data;
       break;
 
@@ -492,20 +492,20 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       break;
 
     case 0x3d16: // Timer B Data
-      printf("timer B data set to %04x at %06x\n", data, CPU_GetCSPC());
+      // printf("timer B data set to %04x at %06x\n", data, CPU_GetCSPC());
       this.io[addr - IO_START] = data;
       this.timerBSetup = data;
       break;
 
     case 0x3d17: // Timer B CTRL
-      printf("timer B CTRL set to %04x at %06x\n", data, CPU_GetCSPC());
+      // printf("timer B CTRL set to %04x at %06x\n", data, CPU_GetCSPC());
       this.io[addr - IO_START] = data;
       if (data == 1)
         Bus_UpdateTimerB();
       break;
 
     case 0x3d18: // Timer B Enable
-      printf("timer B enable set to %04x at %06x\n", data, CPU_GetCSPC());
+      // printf("timer B enable set to %04x at %06x\n", data, CPU_GetCSPC());
       this.io[addr - IO_START] = data & 1;
       if (data & 1) {
         Bus_UpdateTimerB();
@@ -516,7 +516,7 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       break;
 
     case 0x3d19: // Timer B IRQ Clear
-      printf("timer B cleared\n");
+      // printf("timer B cleared\n");
       this.io[0x22] &= ~0x0400;
       break;
 
