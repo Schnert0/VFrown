@@ -6,7 +6,30 @@ static uint32_t sysromIndex = 0;
 
 static const char* usageString = "usage: %s <path/to/rom> [-help][-nosysrom][-sysrom <path/to/BIOS>]\n";
 
-static void parseArguments(int argc, char* argv[]) {
+static bool parseArguments(int argc, char* argv[]);
+
+int main(int argc, char* argv[]) {
+  if (argc <= 1) {
+    printf(usageString, argv[0]);
+    return 0;
+  }
+
+  if (!parseArguments(argc, argv))
+    return 0;
+
+  VSmile_Init();
+  VSmile_LoadROM(argv[1]);
+
+  // Run the system
+  VSmile_Reset();
+  VSmile_Run();
+  VSmile_Cleanup();
+
+  return 0;
+}
+
+
+static bool parseArguments(int argc, char* argv[]) {
   bool sysromOptionUsed = false;
 
   // Parse command line arguments
@@ -39,29 +62,67 @@ static void parseArguments(int argc, char* argv[]) {
       argparse |= ARGPARSE_USAGE;
     }
   }
-}
 
-int main(int argc, char* argv[]) {
-  if (argc <= 1) {
-    printf(usageString, argv[0]);
-    return 0;
-  }
-
-  parseArguments(argc, argv);
-
-  VSmile_Init();
-  VSmile_LoadROM(argv[1]);
+  // ***  Handling of arguments *** //
 
   // If an invalid combination of parameters was used, print out usage and quit.
   if (argparse & ARGPARSE_USAGE) {
     printf(usageString, argv[0]);
-    return 0;
+    return false;
   }
 
-  // In case we want to do a more detailed help list...
   if (argparse & ARGPARSE_HELP) { // -help
-    printf("usage: %s <path/to/rom> [-help][-nosysrom][-sysrom <path/to/BIOS>]\n", argv[0]);
-    return 0;
+    printf(
+      "\n*** V.Frown - The Experimental V.Smile Emulator ***\n\n"
+
+      "V.Frown requires a path to a V.Smile ROM file to run. Some games also\n"
+      "require a system rom/bios file to boot games. If one is not provided\n"
+      "with the '-sysrom' flag, V.Frown will try to find one under the path\n"
+      "'sysrom/sysrom.bin'.\n"
+
+      "\n"
+
+      "flags:\n"
+
+      "\t-help\n"
+      "\t\tThis help screen.\n"
+
+      "\n"
+
+      "\t-nosysrom\n"
+      "\t\tBoot V.Smile without loading a system rom/bios.\n"
+
+      "\n"
+
+      "\t-sysrom <path>\n"
+      "\t\tBoot V.Smile with system rom/bios at specified path.\n"
+
+      "\n"
+
+      // "\t-region <region>\n"
+      // "\t\tSet V.Smile to a specified region. If no region\n"
+      // "\t\tis selected, the emulator defaults to US.\n"
+      // "\t\tvalid regions:\n"
+      // "\t\t\t'US'\n"
+      // "\t\t\t'UK'\n"
+      // "\t\t\t'Italian'\n"
+      // "\t\t\t'German'\n"
+      // "\t\t\t'Spanish'\n"
+      // "\t\t\t'Chinese'\n"
+      //
+      // "\n"
+      //
+      // "\t-noROM\n"
+      // "\t\tBoot V.Smile as if it had no cartridge inserted.\n"
+      //
+      // "\n"
+      //
+      // "\t-nointro\n"
+      // "\t\tDisable the V.Tech/V.Smile boot screen.\n"
+      //
+      // "\n"
+    );
+    return false;
   }
 
   // sysrom flags
@@ -75,10 +136,5 @@ int main(int argc, char* argv[]) {
     VSmile_LoadSysRom("sysrom/sysrom.bin");
   }
 
-  // Run the system
-  VSmile_Reset();
-  VSmile_Run();
-  VSmile_Cleanup();
-
-  return 0;
+  return true;
 }
