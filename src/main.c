@@ -14,10 +14,11 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
+  VSmile_Init();
+
   if (!parseArguments(argc, argv))
     return 0;
 
-  VSmile_Init();
   VSmile_LoadROM(argv[1]);
 
   // Run the system

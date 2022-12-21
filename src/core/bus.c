@@ -264,17 +264,7 @@ uint16_t Bus_Load(uint32_t addr) {
     //   VSmile_Log("Read from IO address %04x at %06x", addr, CPU_GetCSPC());
 
     switch (addr) {
-    case 0x3d01:
-  	case 0x3d06:
-  	case 0x3d0b: // GPIO
-  		Bus_DoGPIO(addr, false);
-  		return this.io[addr - IO_START];
-
-  	case 0x3d02 ... 0x3d05:
-  	case 0x3d07 ... 0x3d0a:
-  	case 0x3d0c ... 0x3d0f:		// GPIO
-      return this.io[addr - IO_START];
-  		break;
+    case GPIO_START ... (GPIO_START+GPIO_SIZE-1): return GPIO_Read(addr);
 
     case 0x3d1c:
       return PPU_GetCurrLine();
@@ -398,21 +388,7 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     //   VSmile_Log("Write to IO address %04x with %04x at %06x", addr, data, CPU_GetCSPC());
 
     switch (addr) {
-    case 0x3d01:
-    case 0x3d06:
-    case 0x3d0b:
-      addr++;
-
-    case 0x3d05:
-    case 0x3d0a:
-    case 0x3d0f:
-
-    case 0x3d02 ... 0x3d04:	// port A
-    case 0x3d07 ... 0x3d09:	// port B
-    case 0x3d0c ... 0x3d0e:	// port C
-      this.io[addr - IO_START] = data;
-      Bus_DoGPIO(addr, true);
-      break;
+    case GPIO_START ... (GPIO_START+GPIO_SIZE-1): GPIO_Write(addr, data); break;
 
     case 0x3d10:
       if ((this.io[addr - IO_START] & 0x3) != (data & 0x3)) {
@@ -647,80 +623,13 @@ void Bus_SetIRQFlags(uint32_t address, uint16_t data) {
   CPU_ActivatePendingIRQs(); // Notify CPU that there might be IRQ's to handle
 }
 
-
-void Bus_DoGPIO(uint16_t addr, bool write) {
-  uint32_t port    = (addr - 0x3d01) / 5;
-
-  uint16_t buffer  = this.io[0x02 + 5*port];
-  uint16_t dir     = this.io[0x03 + 5*port];
-  uint16_t attr    = this.io[0x04 + 5*port];
-  uint16_t special = this.io[0x05 + 5*port];
-
-  uint16_t push = dir;
-  uint16_t pull = (~dir) & (~attr);
-  uint16_t what = (buffer & (push | pull));
-  what ^= (dir & ~attr);
-  what &= ~special;
-
-  if (port == 1) { // Port B
-    if (write)
-      Bus_SetIOB(what, push &~ special);
-
-    what = (what & ~pull);
-
-    if (!write)
-      what |= Bus_GetIOB(push &~ special) & pull;
-  }
-  else if (port == 2) { // Port C
-    if (write)
-      Bus_SetIOC(what, push &~ special);
-
-    what = (what & ~pull);
-
-    if (!write)
-      what |= Bus_GetIOC(push &~ special) & pull;
-  }
-
-  this.io[0x01 + 5*port] = what;
-
+uint8_t Bus_GetChipSelectMode() {
+  return this.chipSelectMode;
 }
 
 
-uint16_t Bus_GetIOB(uint16_t mask) {
-  return 0x00c8 | this.chipSelectMode;
-}
-
-
-void Bus_SetIOB(uint16_t data, uint16_t mask) {
-  // printf("write to IOB (data: %04x, mask: %04x)\n", data, mask);
-  if (mask & 7) {
-    this.chipSelectMode = (data & 7);
-    // printf("chip select set to %d\n", this.chipSelectMode);
-  }
-}
-
-
-uint16_t Bus_GetIOC(uint16_t mask) {
-  uint16_t data = 0x003f;
-  // uint16_t data = 0x0020;
-  data |= Controller_GetRequests();
-
-  // printf("read from IOC (%04x) at %06x\n", data, CPU_GetCSPC());
-
-  return data;
-}
-
-
-void Bus_SetIOC(uint16_t data, uint16_t mask) {
-  // printf("write to IOC with %04x at %06x\n", data, CPU_GetCSPC());
-
-  if ((mask >> 8) & 1) {
-    Controller_SetSelect(0, (data >> 8) & 1);
-  }
-
-  if ((mask >> 9) & 1) {
-    Controller_SetSelect(1, (data >> 9) & 1);
-  }
+void Bus_SetChipSelectMode(uint8_t mode) {
+  this.chipSelectMode = mode;
 }
 
 

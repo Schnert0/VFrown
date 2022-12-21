@@ -1,6 +1,8 @@
-src=$(wildcard src/*.c)\
+src=\
+$(wildcard src/*.c)\
 $(wildcard src/core/*.c)\
-$(wildcard src/backend/*.c)
+$(wildcard src/core/hw/*.c)\
+$(wildcard src/backend/*.c)\
 
 obj=$(src:.cpp=.o)
 

@@ -4,6 +4,8 @@
 #include "../common.h"
 #include "vsmile.h"
 
+#include "hw/gpio.h"
+
 #define BUS_START 0x000000
 #define BUS_SIZE  0x400000
 
@@ -88,11 +90,9 @@ uint16_t Bus_Load(uint32_t addr);
 void Bus_Store(uint32_t addr, uint16_t data);
 
 void Bus_SetIRQFlags(uint32_t addr, uint16_t data);
-void Bus_DoGPIO(uint16_t addr, bool write);
-uint16_t Bus_GetIOB(uint16_t mask);
-void Bus_SetIOB(uint16_t data, uint16_t mask);
-uint16_t Bus_GetIOC(uint16_t mask);
-void Bus_SetIOC(uint16_t data, uint16_t mask);
+
+uint8_t Bus_GetChipSelectMode();
+void Bus_SetChipSelectMode(uint8_t data);
 
 // Timer A and Timer B
 void Bus_UpdateTimerB();
