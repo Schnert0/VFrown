@@ -5,6 +5,7 @@
 #include "vsmile.h"
 
 #include "hw/gpio.h"
+#include "hw/timers.h"
 
 #define BUS_START 0x000000
 #define BUS_SIZE  0x400000
@@ -55,13 +56,6 @@ typedef struct Bus_t {
   uint8_t romDecodeMode;
   uint8_t ramDecodeMode;
   uint8_t chipSelectMode;
-
-  struct Timer_t* timerABSource;
-  struct Timer_t* timerCSource;
-  uint16_t timerASetup, timerBSetup, timerBRate, timerBDiv;
-
-  struct Timer_t* sysTimers;
-  uint16_t timer2khz, timer1khz, timer4hz;
 
   struct Timer_t* watchdogTimer;
 

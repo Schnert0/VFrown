@@ -8,7 +8,8 @@
 #include "spu.h"
 #include "ppu.h"
 #include "controller.h"
-#include "tmb.h"
+
+#include "hw/tmb.h"
 
 
 /*

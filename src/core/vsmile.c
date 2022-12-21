@@ -11,17 +11,11 @@ bool VSmile_Init() {
   if (!SPU_Init()) return false;
   if (!Controller_Init()) return false;
 
-  if (!TMB_Init(0, SYSCLOCK / 128)) return false;
-  if (!TMB_Init(1, SYSCLOCK / 8))   return false;
-
   return true;
 }
 
 
 void VSmile_Cleanup() {
-  TMB_Cleanup(1);
-  TMB_Cleanup(0);
-
   Controller_Cleanup();
   PPU_Cleanup();
   SPU_Cleanup();
@@ -47,8 +41,6 @@ void VSmile_Run() {
       // Even though it's slightly less accurate, it's waaaay more efficient this way.
       Bus_Tick(CYCLES_PER_LINE-cyclesLeft);
       Controller_Tick(CYCLES_PER_LINE-cyclesLeft);
-      TMB_Tick(0, CYCLES_PER_LINE-cyclesLeft);
-      TMB_Tick(1, CYCLES_PER_LINE-cyclesLeft);
       PPU_RenderLine();
 
       uint16_t currLine = PPU_GetCurrLine();
