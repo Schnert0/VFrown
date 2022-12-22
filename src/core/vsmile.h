@@ -9,9 +9,6 @@
 #include "ppu.h"
 #include "controller.h"
 
-#include "hw/tmb.h"
-
-
 /*
  * Connects all components of the VSmile together and is in charge of the
  * initialization, cleanup, and the main emulation loop

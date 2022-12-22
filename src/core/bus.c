@@ -233,8 +233,11 @@ uint16_t Bus_Load(uint32_t addr) {
     //   VSmile_Log("Read from IO address %04x at %06x", addr, CPU_GetCSPC());
 
     switch (addr) {
-    case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):     return GPIO_Read(addr);
-    case TIMERS_START ... (TIMERS_START+TIMERS_SIZE-1): return Timers_Read(addr);
+    case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):
+      return GPIO_Read(addr);
+
+    case TIMERS_START ... (TIMERS_START+TIMERS_SIZE-1):
+      return Timers_Read(addr);
 
     case 0x3d25:
       // printf("read from ADC CTRL (%04x) at %06x\n", this.io[addr - IO_START], CPU_GetCSPC());
@@ -354,10 +357,13 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     //   VSmile_Log("Write to IO address %04x with %04x at %06x", addr, data, CPU_GetCSPC());
 
     switch (addr) {
-    case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):     GPIO_Write(addr, data);   break;
-    case TIMERS_START ... (TIMERS_START+TIMERS_SIZE-1): Timers_Write(addr, data); break;
+    case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):
+      GPIO_Write(addr, data);
+      break;
 
-
+    case TIMERS_START ... (TIMERS_START+TIMERS_SIZE-1):
+      Timers_Write(addr, data);
+      break;
 
     case 0x3d21:
       this.io[addr - IO_START] = data;

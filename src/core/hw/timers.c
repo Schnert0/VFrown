@@ -99,7 +99,7 @@ void Timers_Write(uint16_t addr, uint16_t data) {
     return;
 
   case 0x3d11:
-    // printf("timerbase clear\n");
+    // printf("timebase clear\n");
     this.timer2khz = 0;
     this.timer1khz = 0;
     this.timer4hz  = 0;
@@ -159,17 +159,23 @@ void Timers_Write(uint16_t addr, uint16_t data) {
 
 
 void Timers_SetTimebase(uint16_t data) {
+  // printf("timebase set to %04x\n", data);
+
   if ((this.timebaseSetup & 0x3) != (data & 0x3)) {
     uint16_t hz = 8 << (data & 0x3);
     Timer_Adjust(this.tmb[0], SYSCLOCK / hz);
-    //printf("[BUS] TMB1 frequency set to %d Hzn", hz);
+    Timer_Reset(this.tmb[0]);
+    // printf("[BUS] TMB1 frequency set to %d Hzn", hz);
   }
 
   if ((this.timebaseSetup & 0xc) != (data & 0xc)) {
     uint16_t hz = 128 << ((data & 0xc) >> 2);
     Timer_Adjust(this.tmb[1], SYSCLOCK / hz);
-    //printf("[BUS] TMB2 freqency set to %d Hz", hz);
+    Timer_Reset(this.tmb[1]);
+    // printf("[BUS] TMB2 freqency set to %d Hz", hz);
   }
+
+  this.timebaseSetup = data;
 }
 
 
@@ -225,6 +231,8 @@ void Timers_UpdateTimerB() {
 
 
 void Timers_TickSysTimers() {
+  // printf("System Timers Tick\n");
+
   uint16_t timerIrq = 0x0040; // 4096 hz
   this.timer2khz++;
   if (this.timer2khz == 2) {
@@ -242,14 +250,18 @@ void Timers_TickSysTimers() {
     }
   }
 
+  // printf("%04x\n", timerIrq);
+
   Bus_SetIRQFlags(0x3d22, timerIrq);
 
   Timer_Reset(this.sysTimers);
 }
 
 
-void Timers_TickTMB(uint32_t index, int32_t cycles) {
+void Timers_TickTMB(uint32_t index) {
+  // printf("TMB%d Tick\n", index+1);
   Bus_SetIRQFlags(0x3d22, 1 << index);
+
   Timer_Reset(this.tmb[index]);
 }
 
@@ -269,7 +281,7 @@ void Timers_TickAB() {
 
 
 void Timers_TickA() {
-  // printf("tick timer A\n");
+  // printf("timer A Tick\n");
   this.timers[TIMERS_A].data++; // Timer A Data
   if (!this.timers[TIMERS_A].data) {
       this.timers[TIMERS_A].data = this.timerASetup;
