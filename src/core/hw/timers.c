@@ -252,7 +252,7 @@ void Timers_TickSysTimers() {
 
   // printf("%04x\n", timerIrq);
 
-  Bus_SetIRQFlags(0x3d22, timerIrq);
+  Misc_SetIRQFlags(0x3d22, timerIrq);
 
   Timer_Reset(this.sysTimers);
 }
@@ -260,7 +260,7 @@ void Timers_TickSysTimers() {
 
 void Timers_TickTMB(uint32_t index) {
   // printf("TMB%d Tick\n", index+1);
-  Bus_SetIRQFlags(0x3d22, 1 << index);
+  Misc_SetIRQFlags(0x3d22, 1 << index);
 
   Timer_Reset(this.tmb[index]);
 }
@@ -285,7 +285,7 @@ void Timers_TickA() {
   this.timers[TIMERS_A].data++; // Timer A Data
   if (!this.timers[TIMERS_A].data) {
       this.timers[TIMERS_A].data = this.timerASetup;
-      Bus_SetIRQFlags(0x3d22, 0x0800);
+      Misc_SetIRQFlags(0x3d22, 0x0800);
   }
 }
 
@@ -295,7 +295,7 @@ void Timers_TickC() {
   this.timers[TIMERS_B].data++; // Timer B Data
   if (!this.timers[TIMERS_B].data) {
     this.timers[TIMERS_B].data = this.timerBSetup;
-    Bus_SetIRQFlags(0x3d22, 0x0400);
+    Misc_SetIRQFlags(0x3d22, 0x0400);
   }
 
   Timer_Reset(this.timerCSource);

@@ -14,6 +14,7 @@ bool Bus_Init() {
 
   GPIO_Init();
   Timers_Init();
+  Misc_Init();
 
   this.rxEmpty = true;
 
@@ -53,22 +54,22 @@ bool Bus_Init() {
   // this.io[0x1e] = 0x0;
   // this.io[0x1f] = 0x0;
 
-  this.io[0x20] = 0x4006; // 3d20 - System control
-  this.io[0x21] = 0x3ffb; // 3d21 - IRQ control
-  this.io[0x22] = 0x7fff; // 3d22 - IRQ Status
-  this.io[0x23] = 0x003e; // 3d23 - Memory control
-  this.io[0x24] = 0xffff; // 3d24 - Watchdog
-  this.io[0x25] = 0x2002; // 3d25 - ADC Ctrl
-  this.io[0x26] = 0x0;
-  this.io[0x27] = 0x0;
-  this.io[0x28] = 0xffff; // 3d28 - Sleep
-  this.io[0x29] = 0x0080; // 3d29 - Wakeup source
-  this.io[0x2a] = 0x00ff; // 3d2a - Wakeup delay
-  this.io[0x2b] = 0x0001; // 3d2b - PAL/NTSC
-  this.io[0x2c] = 0x1418; // 3d2c - PRNG1
-  this.io[0x2d] = 0x1658; // 3d2d - PRNG2
-  this.io[0x2e] = 0x0007; // 3d2e - FIQ source
-  this.io[0x2f] = 0x003f; // 3d2f - DS
+  // this.io[0x20] = 0x4006; // 3d20 - System control
+  // this.io[0x21] = 0x3ffb; // 3d21 - IRQ control
+  // this.io[0x22] = 0x7fff; // 3d22 - IRQ Status
+  // this.io[0x23] = 0x003e; // 3d23 - Memory control
+  // this.io[0x24] = 0xffff; // 3d24 - Watchdog
+  // this.io[0x25] = 0x2002; // 3d25 - ADC Ctrl
+  // this.io[0x26] = 0x0;
+  // this.io[0x27] = 0x0;
+  // this.io[0x28] = 0xffff; // 3d28 - Sleep
+  // this.io[0x29] = 0x0080; // 3d29 - Wakeup source
+  // this.io[0x2a] = 0x00ff; // 3d2a - Wakeup delay
+  // this.io[0x2b] = 0x0001; // 3d2b - PAL/NTSC
+  // this.io[0x2c] = 0x1418; // 3d2c - PRNG1
+  // this.io[0x2d] = 0x1658; // 3d2d - PRNG2
+  // this.io[0x2e] = 0x0007; // 3d2e - FIQ source
+  // this.io[0x2f] = 0x003f; // 3d2f - DS
   this.io[0x30] = 0x00ef; // 3d30 - UART Control ?maybe wrong since init captured using uart
   this.io[0x31] = 0x0003; // 3d31 - UART Status ?same
   this.io[0x32] = 0x0;
@@ -79,16 +80,16 @@ bool Bus_Init() {
   // this.io[0x23] = 0x0028; // 3d23 - External Memory Ctrl
   // this.io[0x25] = 0x2000; // 3d25 - ADC Ctrl
 
-  this.watchdogTimer = Timer_Init(0, Bus_WatchdogWakeup, 0);
-
-  for (int32_t i = 0; i < 4; i++) {
-    this.adcTimers[i] = Timer_Init(0, Bus_DoADCConversion, i);
-  }
-
-  this.adcValues[0] = 0x03ff;
-  this.adcValues[1] = 0x03ff;
-  this.adcValues[2] = 0x03ff;
-  this.adcValues[3] = 0x03ff;
+  // this.watchdogTimer = Timer_Init(0, Bus_WatchdogWakeup, 0);
+  //
+  // for (int32_t i = 0; i < 4; i++) {
+  //   this.adcTimers[i] = Timer_Init(0, Bus_DoADCConversion, i);
+  // }
+  //
+  // this.adcValues[0] = 0x03ff;
+  // this.adcValues[1] = 0x03ff;
+  // this.adcValues[2] = 0x03ff;
+  // this.adcValues[3] = 0x03ff;
 
   return true;
 }
@@ -101,20 +102,25 @@ void Bus_Cleanup() {
   if (this.sysRomBuffer)
     free(this.sysRomBuffer);
 
+  Misc_Cleanup();
   Timers_Cleanup();
   GPIO_Cleanup();
 
-  for (int32_t i = 0; i < 4; i++) {
-    if (this.adcTimers[i])
-      Timer_Cleanup(this.adcTimers[i]);
-  }
-
-  if (this.watchdogTimer)
-    Timer_Cleanup(this.watchdogTimer);
+//   for (int32_t i = 0; i < 4; i++) {
+//     if (this.adcTimers[i])
+//       Timer_Cleanup(this.adcTimers[i]);
+//   }
+//
+//   if (this.watchdogTimer)
+//     Timer_Cleanup(this.watchdogTimer);
 }
 
 
 void Bus_Reset() {
+  // GPIO_Reset();
+  Timers_Reset();
+  Misc_Reset();
+
   this.rxHead = 0;
   this.rxTail = 0;
   this.rxEmpty = true;
@@ -180,15 +186,7 @@ void Bus_LoadSysRom(const char* filePath) {
 
 void Bus_Tick(int32_t cycles) {
   Timers_Update(cycles);
-
-  // Watchdog
-  Timer_Tick(this.watchdogTimer, cycles);
-
-  // ADC Conversion
-  Timer_Tick(this.adcTimers[0], cycles);
-  Timer_Tick(this.adcTimers[1], cycles);
-  Timer_Tick(this.adcTimers[2], cycles);
-  Timer_Tick(this.adcTimers[3], cycles);
+  Misc_Update(cycles);
 
   // UART Transmit and Recieve
   // TODO: Use Timer objects for these instead
@@ -239,29 +237,8 @@ uint16_t Bus_Load(uint32_t addr) {
     case TIMERS_START ... (TIMERS_START+TIMERS_SIZE-1):
       return Timers_Read(addr);
 
-    case 0x3d25:
-      // printf("read from ADC CTRL (%04x) at %06x\n", this.io[addr - IO_START], CPU_GetCSPC());
-      return this.io[addr - IO_START];
-      break;
-
-    case 0x3d27:
-      // printf("read from ADC data (%04x) at %06x\n", this.io[addr - IO_START], CPU_GetCSPC());
-      return this.io[addr - IO_START];
-      break;
-
-
-    case 0x3d2c:
-    case 0x3d2d: {
-      uint16_t val = this.io[addr - IO_START];
-      uint16_t a = (val >> 14) & 1;
-      uint16_t b = (val >> 13) & 1;
-	    this.io[addr - IO_START] = ((val << 1) | (a ^ b)) & 0x7fff;
-      return val;
-    }
-
-
-    case 0x3d2f: // Get DS
-      return CPU_GetDataSegment();
+    case MISC_START ... (MISC_START+MISC_SIZE-1):
+      return Misc_Read(addr);
 
     case 0x3d36: // UART RX Buffer
       return Bus_GetRxBuffer();
@@ -335,7 +312,7 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       for (uint32_t i = 0; i < data; i++)
         Bus_Store(dst+i, Bus_Load(src+i));
       this.ppu[0x2872 - PPU_START] = 0;
-      Bus_SetIRQFlags(0x2863, 0x0004);
+      Misc_SetIRQFlags(0x2863, 0x0004);
     } break;
 
     default:
@@ -365,57 +342,8 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       Timers_Write(addr, data);
       break;
 
-    case 0x3d21:
-      this.io[addr - IO_START] = data;
-      CPU_ActivatePendingIRQs();
-      break;
-
-    case 0x3d22: // IRQ ack
-      this.io[addr - IO_START] &= ~data;
-      break;
-
-    case 0x3d23: // External memory ctrl
-      // printf("set rom decode mode to %d\n", (data >> 6) & 0x3);
-      this.romDecodeMode = (data >> 6) & 0x3;
-      // printf("set ram decode mode to %d\n", (data >> 8) & 0xf);
-      this.ramDecodeMode = (data >> 8) & 0xf;
-
-      // if ((data ^ this.io[addr - IO_START]) & 0x8000) {
-      //   if (data & 0x8000)
-      //     Timer_Adjust(this.watchdogTimer, (SYSCLOCK/4)*3); // 750 ms
-      //   else
-      //     Timer_Adjust(this.watchdogTimer, 0);
-      //
-      //   Timer_Reset(this.watchdogTimer);
-      // }
-
-      this.io[addr - IO_START] = data;
-      break;
-
-    case 0x3d24: // Watchdog clear
-      if (data == 0x55aa && (this.io[0x23] & 0x8000)) {
-        Timer_Adjust(this.watchdogTimer, (SYSCLOCK/4)*3);
-        Timer_Reset(this.watchdogTimer);
-      }
-      break;
-
-    case 0x3d25: // ADC ctrl
-      Bus_WriteADCCtrl(data);
-      // printf("Write to ADC CTRL with %04x at %06x\n", data, CPU_GetCSPC());
-      break;
-
-    case 0x3d27: // ADC data
-      // printf("Write to ADC data with %04x at %06x\n", data, CPU_GetCSPC());
-      this.io[addr - IO_START] = data;
-      break;
-
-    case 0x3d2e:
-      CPU_SetFIQSource(data);
-      this.io[addr - IO_START] = data;
-      break;
-
-    case 0x3d2f: // Set DS
-      CPU_SetDataSegment(data);
+    case MISC_START ... (MISC_START+MISC_SIZE-1):
+      Misc_Write(addr, data);
       break;
 
     case 0x3d30: // UART Ctrl
@@ -493,92 +421,106 @@ void Bus_SetIRQFlags(uint32_t address, uint16_t data) {
 }
 
 
-uint8_t Bus_GetChipSelectMode() {
+uint16_t Bus_GetChipSelectMode() {
   return this.chipSelectMode;
 }
 
 
-void Bus_SetChipSelectMode(uint8_t mode) {
+void Bus_SetChipSelectMode(uint16_t mode) {
   this.chipSelectMode = mode;
 }
 
 
-void Bus_WatchdogWakeup(int32_t index) {
-  VSmile_Log("Watchdog timer expired. restarting...\n");
-  VSmile_Reset();
+uint16_t Bus_GetRamDecode() {
+  return this.ramDecodeMode;
 }
 
 
-void Bus_WriteADCCtrl(uint16_t data) {
-  // printf("write to ADC CTRL with %04x at %06x\n", data, CPU_GetCSPC());
-  // printf("interrupt status: %d\n", (data & (1 << 13)) != 0);
-  // printf("request conversion: %d\n", (data & (1 << 12)) != 0);
-  // printf("auto request: %d\n", (data & (1 << 10)) != 0);
-  // printf("interrupt enable: %d\n", (data & (1 << 9)) != 0);
-  // printf("VRT enable: %d\n", (data & (1 << 8)) != 0);
-  // printf("channel: %d\n", (data >> 4) & 3);
-  // printf("clock select: %d\n", 16 << ((data >> 2) & 3));
-  // printf("CSB: %d\n", (data & (1 << 1)) != 0);
-  // printf("ADE: %d\n\n", (data & (1 << 0)) != 0);
-
-  // this.io[0x25] = data;
-  // return;
-
-  uint16_t prevADC = this.io[0x25];
-  this.io[0x25] = data & ~0x2000;
-
-  // Reset Interrupt status
-  if (data & prevADC & 0x2000) {
-    this.io[0x25] &= ~0x2000;
-    Bus_Store(0x3d22, 0x2000); // Reset interrupt in IRQ
-    // printf("resetting interrupt status...\n");
-  }
-
-  if (this.io[0x25] & 1) { // ADE
-    // printf("ADE\n");
-    this.io[0x25] |= 0x2000;
-    uint8_t channel = (data >> 4) & 3;
-
-    if ((this.io[0x25] & 0x1000) && !(prevADC & 0x1000)) { // Conversion Request
-      this.io[0x25] &= ~0x3000;
-      this.io[0x27] &= ~0x8000; // Clear ready bit
-
-      uint32_t ticks = 16 << ((data >> 2) & 3);
-      Timer_Adjust(this.adcTimers[channel], ticks);
-      Timer_Reset(this.adcTimers[channel]);
-      // printf("conversion requested\n");
-    }
-
-    if (data & 0x0400) { // 8KHz Auto Request
-      this.io[0x27] &= ~0x8000; // Clear ready bit
-      Timer_Adjust(this.adcTimers[channel], SYSCLOCK / 8000);
-      Timer_Reset(this.adcTimers[channel]);
-      // printf("auto request enabled\n");
-    }
-  } else {
-    for (int32_t i = 0; i < 4; i++) {
-      Timer_Adjust(this.adcTimers[i], 0);
-      Timer_Reset(this.adcTimers[i]);
-    }
-    // printf("conversion timers disabled\n");
-  }
+void Bus_SetRamDecode(uint16_t data) {
+  this.ramDecodeMode = data;
 }
 
 
-void Bus_DoADCConversion(int32_t index) {
-  this.io[0x27] = (this.adcValues[index] & 0x0fff) | 0x8000;
-
-  this.io[0x25] |= 0x2000;
-  if (this.io[0x25] & 0x0200) {
-    Bus_SetIRQFlags(0x3d22, 0x2000);
-    // printf("ADC interrupt set\n");
-  }
-
-  // printf("ADC conversion request complete. Output: %04x\n", this.io[0x27]);
-
-  if (this.io[0x25] & 0x0400) // Auto Conversion
-    Timer_Reset(this.adcTimers[index]);
+uint16_t Bus_GetRomDecode() {
+  return this.romDecodeMode;
 }
+
+
+void Bus_SetRomDecode(uint16_t data) {
+  this.romDecodeMode = data;
+}
+
+
+// void Bus_WriteADCCtrl(uint16_t data) {
+//   // printf("write to ADC CTRL with %04x at %06x\n", data, CPU_GetCSPC());
+//   // printf("interrupt status: %d\n", (data & (1 << 13)) != 0);
+//   // printf("request conversion: %d\n", (data & (1 << 12)) != 0);
+//   // printf("auto request: %d\n", (data & (1 << 10)) != 0);
+//   // printf("interrupt enable: %d\n", (data & (1 << 9)) != 0);
+//   // printf("VRT enable: %d\n", (data & (1 << 8)) != 0);
+//   // printf("channel: %d\n", (data >> 4) & 3);
+//   // printf("clock select: %d\n", 16 << ((data >> 2) & 3));
+//   // printf("CSB: %d\n", (data & (1 << 1)) != 0);
+//   // printf("ADE: %d\n\n", (data & (1 << 0)) != 0);
+//
+//   // this.io[0x25] = data;
+//   // return;
+//
+//   uint16_t prevADC = this.io[0x25];
+//   this.io[0x25] = data & ~0x2000;
+//
+//   // Reset Interrupt status
+//   if (data & prevADC & 0x2000) {
+//     this.io[0x25] &= ~0x2000;
+//     Bus_Store(0x3d22, 0x2000); // Reset interrupt in IRQ
+//     // printf("resetting interrupt status...\n");
+//   }
+//
+//   if (this.io[0x25] & 1) { // ADE
+//     // printf("ADE\n");
+//     this.io[0x25] |= 0x2000;
+//     uint8_t channel = (data >> 4) & 3;
+//
+//     if ((this.io[0x25] & 0x1000) && !(prevADC & 0x1000)) { // Conversion Request
+//       this.io[0x25] &= ~0x3000;
+//       this.io[0x27] &= ~0x8000; // Clear ready bit
+//
+//       uint32_t ticks = 16 << ((data >> 2) & 3);
+//       Timer_Adjust(this.adcTimers[channel], ticks);
+//       Timer_Reset(this.adcTimers[channel]);
+//       // printf("conversion requested\n");
+//     }
+//
+//     if (data & 0x0400) { // 8KHz Auto Request
+//       this.io[0x27] &= ~0x8000; // Clear ready bit
+//       Timer_Adjust(this.adcTimers[channel], SYSCLOCK / 8000);
+//       Timer_Reset(this.adcTimers[channel]);
+//       // printf("auto request enabled\n");
+//     }
+//   } else {
+//     for (int32_t i = 0; i < 4; i++) {
+//       Timer_Adjust(this.adcTimers[i], 0);
+//       Timer_Reset(this.adcTimers[i]);
+//     }
+//     // printf("conversion timers disabled\n");
+//   }
+// }
+//
+//
+// void Bus_DoADCConversion(int32_t index) {
+//   this.io[0x27] = (this.adcValues[index] & 0x0fff) | 0x8000;
+//
+//   this.io[0x25] |= 0x2000;
+//   if (this.io[0x25] & 0x0200) {
+//     Misc_SetIRQFlags(0x3d22, 0x2000);
+//     // printf("ADC interrupt set\n");
+//   }
+//
+//   // printf("ADC conversion request complete. Output: %04x\n", this.io[0x27]);
+//
+//   if (this.io[0x25] & 0x0400) // Auto Conversion
+//     Timer_Reset(this.adcTimers[index]);
+// }
 
 
 // TODO: CPU-Side UART should probably be delegated to its own file
@@ -673,7 +615,7 @@ void Bus_TransmitTick() {
   this.io[UART_STAT] |=  0x02;
   this.io[UART_STAT] &= ~0x40;
   if (this.io[UART_CTRL] & 0x02) {
-    Bus_SetIRQFlags(0x3d22, 0x0100);
+    Misc_SetIRQFlags(0x3d22, 0x0100);
   }
 }
 
@@ -684,7 +626,7 @@ void Bus_RecieveTick() {
 
   this.io[UART_STAT] |= 0x81;
   if (this.io[UART_CTRL] & 0x01) {
-    Bus_SetIRQFlags(0x3d22, 0x0100);
+    Misc_SetIRQFlags(0x3d22, 0x0100);
   }
 }
 

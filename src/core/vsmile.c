@@ -46,11 +46,11 @@ void VSmile_Run() {
       uint16_t currLine = PPU_GetCurrLine();
 
       if (currLine == 240) {
-        Bus_SetIRQFlags(0x2863, 0x0001);
+        Misc_SetIRQFlags(0x2863, 0x0001);
       }
 
       if (currLine == Bus_Load(0x2836)) {
-        Bus_SetIRQFlags(0x2863, 0x0002);
+        Misc_SetIRQFlags(0x2863, 0x0002);
       }
 
       if (currLine >= LINES_PER_FIELD) {

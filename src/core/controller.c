@@ -135,7 +135,7 @@ void Controller_SetRequest(uint8_t ctrlNum, bool request) {
   if (this->request == request)
     return;
 
-  Bus_SetIRQFlags(0x3d22, ctrlNum == 0 ? 0x0200 : 0x1000);
+  Misc_SetIRQFlags(0x3d22, ctrlNum == 0 ? 0x0200 : 0x1000);
   this->request = request;
 }
 

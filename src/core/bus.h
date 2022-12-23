@@ -6,6 +6,7 @@
 
 #include "hw/gpio.h"
 #include "hw/timers.h"
+#include "hw/misc.h"
 
 #define BUS_START 0x000000
 #define BUS_SIZE  0x400000
@@ -57,11 +58,6 @@ typedef struct Bus_t {
   uint8_t ramDecodeMode;
   uint8_t chipSelectMode;
 
-  struct Timer_t* watchdogTimer;
-
-  struct Timer_t* adcTimers[4];
-  uint16_t adcValues[4];
-
   uint32_t romSize;
   uint16_t* romBuffer;
 
@@ -85,8 +81,12 @@ void Bus_Store(uint32_t addr, uint16_t data);
 
 void Bus_SetIRQFlags(uint32_t addr, uint16_t data);
 
-uint8_t Bus_GetChipSelectMode();
-void Bus_SetChipSelectMode(uint8_t data);
+uint16_t Bus_GetChipSelectMode();
+void Bus_SetChipSelectMode(uint16_t data);
+uint16_t Bus_GetRamDecode();
+void Bus_SetRamDecode(uint16_t data);
+uint16_t Bus_GetRomDecode();
+void Bus_SetRomDecode(uint16_t data);
 
 // Timer A and Timer B
 void Bus_UpdateTimerB();
