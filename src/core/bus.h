@@ -8,6 +8,7 @@
 #include "hw/timers.h"
 #include "hw/misc.h"
 #include "hw/uart.h"
+#include "hw/dma.h"
 
 #define BUS_START 0x000000
 #define BUS_SIZE  0x400000
@@ -24,9 +25,6 @@
 #define IO_START  0x003d00
 #define IO_SIZE   0x000100
 
-#define DMA_START 0x003e00
-#define DMA_SIZE  0x000004
-
 #define SYSROM_SIZE  0x100000
 #define SYSROM_START 0x300000
 
@@ -40,8 +38,6 @@ typedef struct Bus_t {
 
   uint16_t ram[RAM_SIZE];
   uint16_t ppu[PPU_SIZE];
-  // uint16_t spu[SPU_SIZE];
-  uint16_t io[IO_SIZE+DMA_SIZE];
   uint16_t nvram[0x200000];
 
   uint8_t romDecodeMode;

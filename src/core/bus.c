@@ -16,6 +16,7 @@ bool Bus_Init() {
   if (!Timers_Init()) return false;
   if (!Misc_Init())   return false;
   if (!UART_Init())   return false;
+  if (!DMA_Init())    return false;
 
   // this.rxEmpty = true;
 
@@ -103,6 +104,7 @@ void Bus_Cleanup() {
   if (this.sysRomBuffer)
     free(this.sysRomBuffer);
 
+  DMA_Cleanup();
   UART_Cleanup();
   Misc_Cleanup();
   Timers_Cleanup();
@@ -123,6 +125,7 @@ void Bus_Reset() {
   Timers_Reset();
   Misc_Reset();
   UART_Reset();
+  DMA_Reset();
 
   // this.rxHead = 0;
   // this.rxTail = 0;
@@ -223,10 +226,13 @@ uint16_t Bus_Load(uint32_t addr) {
 
     case UART_START ... (UART_START+UART_SIZE-1):
       return UART_Read(addr);
+
+    case DMA_START ... (DMA_START+DMA_SIZE-1):
+      return DMA_Read(addr);
     }
-    
+
     printf("unknown read from IO port %04x at %06x\n", addr, CPU_GetCSPC());
-    return this.io[addr - IO_START];
+    return 0x0000;
   }
 
   if ((this.romDecodeMode & 2) && this.sysRomBuffer && (addr >= SYSROM_START)) {
@@ -318,39 +324,27 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     switch (addr) {
     case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):
       GPIO_Write(addr, data);
-      break;
+      return;
 
     case TIMERS_START ... (TIMERS_START+TIMERS_SIZE-1):
       Timers_Write(addr, data);
-      break;
+      return;
 
     case MISC_START ... (MISC_START+MISC_SIZE-1):
       Misc_Write(addr, data);
-      break;
+      return;
 
     case UART_START ... (UART_START+UART_SIZE-1):
       UART_Write(addr, data);
-      break;
+      return;
 
-    case 0x3e00:
-    case 0x3e01:
-    case 0x3e03: this.io[addr - IO_START] = data; break;
-
-    case 0x3e02: { // Do DMA
-      uint32_t src = ((this.io[0x3e01 - IO_START] & 0x3f) << 16) | this.io[0x3e00 - IO_START];
-      uint32_t dst = this.io[0x3e03 - IO_START] & 0x3fff;
-      for(uint32_t i = 0; i < data; i++) {
-          uint16_t transfer = Bus_Load(src+i);
-          Bus_Store(dst+i, transfer);
-      }
-      this.io[0x3e02 - IO_START] = 0;
-      } break;
+    case DMA_START ... (DMA_START+DMA_SIZE-1):
+      DMA_Write(addr, data);
+      return;
 
     default:
-      // printf("write to unknown IO port %04x with %04x at %06x\n", addr, data, CPU_GetCSPC());
-      this.io[addr - IO_START] = data;
+      printf("write to unknown IO port %04x with %04x at %06x\n", addr, data, CPU_GetCSPC());
     }
-    return;
   }
   else if (IN_RANGE(addr, 0x3e04, 0x4000 - 0x3e04)) {
     VSmile_Warning("write to internal memory location %04x with %04x", addr, data);
@@ -366,11 +360,8 @@ void Bus_SetIRQFlags(uint32_t address, uint16_t data) {
   case 0x2863:
     this.ppu[0x63] |= data;
     break;
-  case 0x3d22:
-    this.io[0x22] |= data;
-    break;
-  default:
-    VSmile_Warning("unknown IRQ Acknowledge for %04x with data %04x", address, data);
+  // default:
+  //   VSmile_Warning("unknown IRQ Acknowledge for %04x with data %04x", address, data);
   }
 
   CPU_ActivatePendingIRQs(); // Notify CPU that there might be IRQ's to handle

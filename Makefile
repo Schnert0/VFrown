@@ -12,3 +12,5 @@ VFrown: $(obj)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 .PHONY: clean
+clean:
+	rm -f $(obj)
