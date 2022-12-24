@@ -7,6 +7,7 @@
 #include "hw/gpio.h"
 #include "hw/timers.h"
 #include "hw/misc.h"
+#include "hw/uart.h"
 
 #define BUS_START 0x000000
 #define BUS_SIZE  0x400000
@@ -43,17 +44,6 @@ typedef struct Bus_t {
   uint16_t io[IO_SIZE+DMA_SIZE];
   uint16_t nvram[0x200000];
 
-  // UART
-  uint32_t baudRate;
-  int32_t  rxTimer, txTimer;
-  uint8_t  rxBuffer, txBuffer;
-  bool     rxAvailable;
-
-  // UART Rx Fifo
-  uint8_t rxFifo[16];
-  uint8_t rxHead, rxTail;
-  bool    rxEmpty;
-
   uint8_t romDecodeMode;
   uint8_t ramDecodeMode;
   uint8_t chipSelectMode;
@@ -73,8 +63,8 @@ void Bus_Reset();
 void Bus_LoadROM(const char* filePath);
 void Bus_LoadSysRom(const char* filePath);
 
-void Bus_Tick(int32_t cycles);
-void Bus_TickTimers(int32_t index);
+void Bus_Update(int32_t cycles);
+// void Bus_TickTimers(int32_t index);
 
 uint16_t Bus_Load(uint32_t addr);
 void Bus_Store(uint32_t addr, uint16_t data);
@@ -89,31 +79,31 @@ uint16_t Bus_GetRomDecode();
 void Bus_SetRomDecode(uint16_t data);
 
 // Timer A and Timer B
-void Bus_UpdateTimerB();
-void Bus_TimerABTick();
-void Bus_TickTimerA();
-void Bus_TimerCTick();
+// void Bus_UpdateTimerB();
+// void Bus_TimerABTick();
+// void Bus_TickTimerA();
+// void Bus_TimerCTick();
 
 // Watchdog
-void Bus_WatchdogWakeup(int32_t index);
+// void Bus_WatchdogWakeup(int32_t index);
 
 // ADC
-void Bus_WriteADCCtrl(uint16_t data);
-void Bus_DoADCConversion(int32_t index);
+// void Bus_WriteADCCtrl(uint16_t data);
+// void Bus_DoADCConversion(int32_t index);
 
 // Controller handlers
-void Bus_SetUARTCtrl(uint16_t data);
-void Bus_SetUARTStat(uint16_t data);
-void Bus_ResetUART(uint16_t data);
-void Bus_SetUARTBAUD(uint16_t data);
-uint16_t Bus_GetRxBuffer();
-void Bus_SetTxBuffer(uint16_t data);
-
-void Bus_RxTimerReset();
-void Bus_TransmitTick();
-void Bus_RecieveTick();
-
-bool Bus_PushRx(uint8_t data);
-uint8_t Bus_PopRx();
+// void Bus_SetUARTCtrl(uint16_t data);
+// void Bus_SetUARTStat(uint16_t data);
+// void Bus_ResetUART(uint16_t data);
+// void Bus_SetUARTBAUD(uint16_t data);
+// uint16_t Bus_GetRxBuffer();
+// void Bus_SetTxBuffer(uint16_t data);
+//
+// void Bus_RxTimerReset();
+// void Bus_TransmitTick();
+// void Bus_RecieveTick();
+//
+// bool Bus_PushRx(uint8_t data);
+// uint8_t Bus_PopRx();
 
 #endif // BUS_H

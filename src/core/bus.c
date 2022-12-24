@@ -12,11 +12,12 @@ static Bus_t this;
 bool Bus_Init() {
   memset(&this, 0, sizeof(Bus_t));
 
-  GPIO_Init();
-  Timers_Init();
-  Misc_Init();
+  if (!GPIO_Init())   return false;
+  if (!Timers_Init()) return false;
+  if (!Misc_Init())   return false;
+  if (!UART_Init())   return false;
 
-  this.rxEmpty = true;
+  // this.rxEmpty = true;
 
   // this.io[0x00] = 0x001f; // 3d00 - GPIO Control
   // this.io[0x01] = 0xffff; // 3d01-3d05 - IOA
@@ -70,12 +71,12 @@ bool Bus_Init() {
   // this.io[0x2d] = 0x1658; // 3d2d - PRNG2
   // this.io[0x2e] = 0x0007; // 3d2e - FIQ source
   // this.io[0x2f] = 0x003f; // 3d2f - DS
-  this.io[0x30] = 0x00ef; // 3d30 - UART Control ?maybe wrong since init captured using uart
-  this.io[0x31] = 0x0003; // 3d31 - UART Status ?same
-  this.io[0x32] = 0x0;
-  this.io[0x33] = 0x00ff; // 3d33 - UART Baud rate ?same
-  this.io[0x34] = 0x00ff; // 3d34 - UART Baud rate ?same
-  this.io[0x35] = 0x00ff; // 3d35 - UART TX
+  // this.io[0x30] = 0x00ef; // 3d30 - UART Control ?maybe wrong since init captured using uart
+  // this.io[0x31] = 0x0003; // 3d31 - UART Status ?same
+  // this.io[0x32] = 0x0;
+  // this.io[0x33] = 0x00ff; // 3d33 - UART Baud rate ?same
+  // this.io[0x34] = 0x00ff; // 3d34 - UART Baud rate ?same
+  // this.io[0x35] = 0x00ff; // 3d35 - UART TX
 
   // this.io[0x23] = 0x0028; // 3d23 - External Memory Ctrl
   // this.io[0x25] = 0x2000; // 3d25 - ADC Ctrl
@@ -102,6 +103,7 @@ void Bus_Cleanup() {
   if (this.sysRomBuffer)
     free(this.sysRomBuffer);
 
+  UART_Cleanup();
   Misc_Cleanup();
   Timers_Cleanup();
   GPIO_Cleanup();
@@ -120,10 +122,11 @@ void Bus_Reset() {
   // GPIO_Reset();
   Timers_Reset();
   Misc_Reset();
+  UART_Reset();
 
-  this.rxHead = 0;
-  this.rxTail = 0;
-  this.rxEmpty = true;
+  // this.rxHead = 0;
+  // this.rxTail = 0;
+  // this.rxEmpty = true;
 }
 
 
@@ -166,11 +169,6 @@ void Bus_LoadSysRom(const char* filePath) {
   this.sysRomSize = ftell(file);
   fseek(file, 0, SEEK_SET);
 
-  // if (this.sysRomSize > SYSROM_SIZE*sizeof(uint16_t)) {
-  //   VSmile_Error("file too large!");
-  //   this.sysRomSize = SYSROM_SIZE*sizeof(uint16_t);
-  // }
-
   if (this.sysRomBuffer)
     free(this.sysRomBuffer);
 
@@ -184,31 +182,14 @@ void Bus_LoadSysRom(const char* filePath) {
 }
 
 
-void Bus_Tick(int32_t cycles) {
+void Bus_Update(int32_t cycles) {
   Timers_Update(cycles);
   Misc_Update(cycles);
-
-  // UART Transmit and Recieve
-  // TODO: Use Timer objects for these instead
-  if (this.txTimer > 0) {
-    this.txTimer -= cycles;
-    if (this.txTimer <= 0)
-      Bus_TransmitTick();
-  }
-
-  if (this.rxTimer > 0) {
-    this.rxTimer -= cycles;
-    if (this.rxTimer <= 0)
-      Bus_RecieveTick();
-  }
+  UART_Update(cycles);
 }
 
 uint16_t Bus_Load(uint32_t addr) {
   if (addr < RAM_START+RAM_SIZE) {
-    // if (addr == 0x2298 && CPU_GetCSPC() != 0x04060b) {
-    //   printf("read from [2298] (%04x) at %06x\n", this.ram[0x2298], CPU_GetCSPC());
-      // return this.ram[addr - RAM_START] | 0x0020;
-    // }
     return this.ram[addr - RAM_START];
   }
   else if (addr < PPU_START+PPU_SIZE) {
@@ -240,10 +221,11 @@ uint16_t Bus_Load(uint32_t addr) {
     case MISC_START ... (MISC_START+MISC_SIZE-1):
       return Misc_Read(addr);
 
-    case 0x3d36: // UART RX Buffer
-      return Bus_GetRxBuffer();
+    case UART_START ... (UART_START+UART_SIZE-1):
+      return UART_Read(addr);
     }
-    // printf("unknown read from IO port %04x at %06x\n", addr, CPU_GetCSPC());
+    
+    printf("unknown read from IO port %04x at %06x\n", addr, CPU_GetCSPC());
     return this.io[addr - IO_START];
   }
 
@@ -346,34 +328,8 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       Misc_Write(addr, data);
       break;
 
-    case 0x3d30: // UART Ctrl
-      Bus_SetUARTCtrl(data);
-      break;
-
-    case 0x3d31: // UART Stat
-      Bus_SetUARTStat(data);
-      break;
-
-    case 0x3d32: // UART Reset
-      Bus_ResetUART(data);
-      break;
-
-    case 0x3d33: // UART BAUD1
-    case 0x3d34: // UART BAUD2
-      this.io[addr - IO_START] = data;
-      Bus_SetUARTBAUD((this.io[0x3d34 - IO_START] << 8) | this.io[0x3d33 - IO_START]);
-      break;
-
-    case 0x3d35:
-      Bus_SetTxBuffer(data);
-      break;
-
-    case 0x3d36: // UART RX Buffer
-      // printf("RX write\n");
-      break;
-
-    case 0x3d37:
-      // printf("write to UART RX FIFO control with %04x\n", data);
+    case UART_START ... (UART_START+UART_SIZE-1):
+      UART_Write(addr, data);
       break;
 
     case 0x3e00:
@@ -448,217 +404,4 @@ uint16_t Bus_GetRomDecode() {
 
 void Bus_SetRomDecode(uint16_t data) {
   this.romDecodeMode = data;
-}
-
-
-// void Bus_WriteADCCtrl(uint16_t data) {
-//   // printf("write to ADC CTRL with %04x at %06x\n", data, CPU_GetCSPC());
-//   // printf("interrupt status: %d\n", (data & (1 << 13)) != 0);
-//   // printf("request conversion: %d\n", (data & (1 << 12)) != 0);
-//   // printf("auto request: %d\n", (data & (1 << 10)) != 0);
-//   // printf("interrupt enable: %d\n", (data & (1 << 9)) != 0);
-//   // printf("VRT enable: %d\n", (data & (1 << 8)) != 0);
-//   // printf("channel: %d\n", (data >> 4) & 3);
-//   // printf("clock select: %d\n", 16 << ((data >> 2) & 3));
-//   // printf("CSB: %d\n", (data & (1 << 1)) != 0);
-//   // printf("ADE: %d\n\n", (data & (1 << 0)) != 0);
-//
-//   // this.io[0x25] = data;
-//   // return;
-//
-//   uint16_t prevADC = this.io[0x25];
-//   this.io[0x25] = data & ~0x2000;
-//
-//   // Reset Interrupt status
-//   if (data & prevADC & 0x2000) {
-//     this.io[0x25] &= ~0x2000;
-//     Bus_Store(0x3d22, 0x2000); // Reset interrupt in IRQ
-//     // printf("resetting interrupt status...\n");
-//   }
-//
-//   if (this.io[0x25] & 1) { // ADE
-//     // printf("ADE\n");
-//     this.io[0x25] |= 0x2000;
-//     uint8_t channel = (data >> 4) & 3;
-//
-//     if ((this.io[0x25] & 0x1000) && !(prevADC & 0x1000)) { // Conversion Request
-//       this.io[0x25] &= ~0x3000;
-//       this.io[0x27] &= ~0x8000; // Clear ready bit
-//
-//       uint32_t ticks = 16 << ((data >> 2) & 3);
-//       Timer_Adjust(this.adcTimers[channel], ticks);
-//       Timer_Reset(this.adcTimers[channel]);
-//       // printf("conversion requested\n");
-//     }
-//
-//     if (data & 0x0400) { // 8KHz Auto Request
-//       this.io[0x27] &= ~0x8000; // Clear ready bit
-//       Timer_Adjust(this.adcTimers[channel], SYSCLOCK / 8000);
-//       Timer_Reset(this.adcTimers[channel]);
-//       // printf("auto request enabled\n");
-//     }
-//   } else {
-//     for (int32_t i = 0; i < 4; i++) {
-//       Timer_Adjust(this.adcTimers[i], 0);
-//       Timer_Reset(this.adcTimers[i]);
-//     }
-//     // printf("conversion timers disabled\n");
-//   }
-// }
-//
-//
-// void Bus_DoADCConversion(int32_t index) {
-//   this.io[0x27] = (this.adcValues[index] & 0x0fff) | 0x8000;
-//
-//   this.io[0x25] |= 0x2000;
-//   if (this.io[0x25] & 0x0200) {
-//     Misc_SetIRQFlags(0x3d22, 0x2000);
-//     // printf("ADC interrupt set\n");
-//   }
-//
-//   // printf("ADC conversion request complete. Output: %04x\n", this.io[0x27]);
-//
-//   if (this.io[0x25] & 0x0400) // Auto Conversion
-//     Timer_Reset(this.adcTimers[index]);
-// }
-
-
-// TODO: CPU-Side UART should probably be delegated to its own file
-void Bus_SetUARTCtrl(uint16_t data) {
-  // printf("UART CTRL set to %04x at %06x\n", data, CPU_GetCSPC());
-  if (!(data & 0x40)) {
-    this.rxAvailable = false;
-    this.rxBuffer = 0;
-  }
-
-  if ((data ^ this.io[UART_CTRL]) & 0x80) {
-    if (data & 0x80) {
-      this.io[UART_STAT] |= 0x02;
-    } else {
-      this.io[UART_STAT] &= ~0x42;
-      this.txTimer = 0;
-    }
-  }
-
-  this.io[UART_CTRL] = data;
-}
-
-
-void Bus_SetUARTStat(uint16_t data) {
-  // printf("write to UART STAT with %04x at %06x\n", data, CPU_GetCSPC());
-  // Unset Rx Ready and Tx Ready
-  if (data & 0x01) this.io[UART_STAT] &= ~0x01;
-  if (data & 0x02) this.io[UART_STAT] &= ~0x02;
-  if (!(this.io[UART_STAT] & 0x03)) // If both Rx Ready and Tx Ready are unset
-    Bus_Store(0x3d22, 0x0100);      // Clear the UART IRQ flag
-}
-
-
-void Bus_ResetUART(uint16_t data){
-  // if (data & 1) {
-  VSmile_Log("UART: reset signal sent at %06x\n", CPU_GetCSPC());
-  // }
-}
-
-
-void Bus_SetUARTBAUD(uint16_t data) {
-  uint32_t baudRate = SYSCLOCK / (16 * (0x10000 - data));
-
-  if (baudRate != this.baudRate) {
-    this.baudRate = baudRate;
-    // VSmile_Log("UART: BAUD set to %d at %06x", baudRate, CPU_GetCSPC());
-  }
-}
-
-
-void Bus_SetTxBuffer(uint16_t data) {
-  // VSmile_Log("UART: Writing 0x%02x at %06x", data & 0xff, CPU_GetCSPC());
-  this.txBuffer = data;
-  if (this.io[UART_CTRL] & 0x80) { // If Tx is enabled
-    this.io[UART_STAT] &= ~0x02;   // Unset Tx Ready
-    this.io[UART_STAT] |=  0x40;   // Set Tx Busy
-    this.txTimer = this.baudRate;  // Enable Transmit timer
-  }
-}
-
-
-uint16_t Bus_GetRxBuffer() {
-  if (this.rxAvailable) {        // If there is data available in the Rx buffer
-    this.io[UART_STAT] &= ~0x81; // Unset the Rx Buffer full flag and Rx Ready flags
-    if (!this.rxEmpty) {
-      this.rxBuffer = Bus_PopRx();
-      if (!this.rxEmpty) {
-        if (this.rxTimer <= 0) {
-          this.rxTimer = this.baudRate;
-        }
-      } else {
-        this.rxAvailable = false;
-      }
-    }
-  }
-
-  // VSmile_Log("UART: Reading 0x%02x from Rx Buffer at %06x", this.rxBuffer, CPU_GetCSPC());
-
-  return this.rxBuffer;
-}
-
-
-void Bus_RxTimerReset() {
-  this.rxTimer = SYSCLOCK / 960;
-}
-
-
-void Bus_TransmitTick() {
-  // VSmile_Warning("UART: transmitting %02x to the controller\n", this.txBuffer);
-  Controller_RecieveByte(this.txBuffer);
-
-  this.io[UART_STAT] |=  0x02;
-  this.io[UART_STAT] &= ~0x40;
-  if (this.io[UART_CTRL] & 0x02) {
-    Misc_SetIRQFlags(0x3d22, 0x0100);
-  }
-}
-
-
-void Bus_RecieveTick() {
-  this.rxAvailable = true;
-  // printf("UART: recieving data from controller\n");
-
-  this.io[UART_STAT] |= 0x81;
-  if (this.io[UART_CTRL] & 0x01) {
-    Misc_SetIRQFlags(0x3d22, 0x0100);
-  }
-}
-
-
-bool Bus_PushRx(uint8_t data) {
-  // printf("push Rx %02x\n", data);
-
-  if (!this.rxEmpty && (this.rxHead == this.rxTail)) {
-    VSmile_Warning("Rx byte %02x discarded because FIFO is full", data);
-    return false;
-  }
-
-  this.rxFifo[this.rxHead] = data;
-  this.rxHead = (this.rxHead + 1) & 0xf;
-  this.rxEmpty = false;
-  this.rxTimer = this.baudRate;
-
-  return true;
-}
-
-
-uint8_t Bus_PopRx() {
-  if (this.rxEmpty) {
-    VSmile_Warning("returning 0x00 because Rx FIFO is empty");
-    return 0x00;
-  }
-
-  uint8_t data = this.rxFifo[this.rxTail];
-  this.rxTail = (this.rxTail + 1) & 0xf;
-  this.rxEmpty = (this.rxHead == this.rxTail);
-
-  // printf("pop Rx (%02x)\n", data);
-
-  return data;
 }

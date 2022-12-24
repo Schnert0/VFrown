@@ -1,9 +1,9 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include "../common.h"
-#include "vsmile.h"
-#include "timer.h"
+#include "../../common.h"
+#include "../vsmile.h"
+#include "../timer.h"
 
 typedef void (*Func_t)();
 struct Timer_t;

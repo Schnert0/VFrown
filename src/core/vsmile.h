@@ -7,7 +7,7 @@
 #include "cpu.h"
 #include "spu.h"
 #include "ppu.h"
-#include "controller.h"
+#include "hw/controller.h"
 
 /*
  * Connects all components of the VSmile together and is in charge of the

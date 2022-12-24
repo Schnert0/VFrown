@@ -39,7 +39,7 @@ void VSmile_Run() {
 
       // Tick these every scan line instead of every cycle.
       // Even though it's slightly less accurate, it's waaaay more efficient this way.
-      Bus_Tick(CYCLES_PER_LINE-cyclesLeft);
+      Bus_Update(CYCLES_PER_LINE-cyclesLeft);
       Controller_Tick(CYCLES_PER_LINE-cyclesLeft);
       PPU_RenderLine();
 

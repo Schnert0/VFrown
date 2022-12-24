@@ -279,8 +279,8 @@ void Controller_TxExpired(uint8_t ctrlNum) {
 
   // Transmit one byte to the Console's UART
   uint8_t data = Controller_PopTx(ctrlNum);
-  Bus_PushRx(data);
-  Bus_RxTimerReset();
+  UART_PushRx(data);
+  UART_RxTimerReset();
 
   if (this->txEmpty)
     Controller_TxComplete(ctrlNum);
