@@ -35,21 +35,18 @@
  */
 typedef struct Bus_t {
   uint16_t mem[BUS_SIZE];
-
   uint16_t ram[RAM_SIZE];
-  uint16_t ppu[PPU_SIZE];
   uint16_t nvram[0x200000];
+
+  uint16_t* romBuffer;
+  uint16_t* sysRomBuffer;
+
+  uint32_t romSize;
+  uint32_t sysRomSize;
 
   uint8_t romDecodeMode;
   uint8_t ramDecodeMode;
   uint8_t chipSelectMode;
-
-  uint32_t romSize;
-  uint16_t* romBuffer;
-
-  uint32_t sysRomSize;
-  uint16_t* sysRomBuffer;
-
 } Bus_t;
 
 bool Bus_Init();
@@ -65,41 +62,11 @@ void Bus_Update(int32_t cycles);
 uint16_t Bus_Load(uint32_t addr);
 void Bus_Store(uint32_t addr, uint16_t data);
 
-void Bus_SetIRQFlags(uint32_t addr, uint16_t data);
-
 uint16_t Bus_GetChipSelectMode();
 void Bus_SetChipSelectMode(uint16_t data);
 uint16_t Bus_GetRamDecode();
 void Bus_SetRamDecode(uint16_t data);
 uint16_t Bus_GetRomDecode();
 void Bus_SetRomDecode(uint16_t data);
-
-// Timer A and Timer B
-// void Bus_UpdateTimerB();
-// void Bus_TimerABTick();
-// void Bus_TickTimerA();
-// void Bus_TimerCTick();
-
-// Watchdog
-// void Bus_WatchdogWakeup(int32_t index);
-
-// ADC
-// void Bus_WriteADCCtrl(uint16_t data);
-// void Bus_DoADCConversion(int32_t index);
-
-// Controller handlers
-// void Bus_SetUARTCtrl(uint16_t data);
-// void Bus_SetUARTStat(uint16_t data);
-// void Bus_ResetUART(uint16_t data);
-// void Bus_SetUARTBAUD(uint16_t data);
-// uint16_t Bus_GetRxBuffer();
-// void Bus_SetTxBuffer(uint16_t data);
-//
-// void Bus_RxTimerReset();
-// void Bus_TransmitTick();
-// void Bus_RecieveTick();
-//
-// bool Bus_PushRx(uint8_t data);
-// uint8_t Bus_PopRx();
 
 #endif // BUS_H

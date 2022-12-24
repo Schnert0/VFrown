@@ -41,23 +41,7 @@ void VSmile_Run() {
       // Even though it's slightly less accurate, it's waaaay more efficient this way.
       Bus_Update(CYCLES_PER_LINE-cyclesLeft);
       Controller_Tick(CYCLES_PER_LINE-cyclesLeft);
-      PPU_RenderLine();
-
-      uint16_t currLine = PPU_GetCurrLine();
-
-      if (currLine == 240) {
-        Misc_SetIRQFlags(0x2863, 0x0001);
-      }
-
-      if (currLine == Bus_Load(0x2836)) {
-        Misc_SetIRQFlags(0x2863, 0x0002);
-      }
-
-      if (currLine >= LINES_PER_FIELD) {
-        PPU_UpdateScreen();
-        this.step = false;
-      }
-
+      this.step = !PPU_RenderLine();
     } else {
       PPU_UpdateScreen();
     }

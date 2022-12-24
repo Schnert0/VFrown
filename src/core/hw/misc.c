@@ -110,10 +110,15 @@ void Misc_Write(uint16_t addr, uint16_t data) {
 }
 
 void Misc_SetIRQFlags(uint16_t addr, uint16_t data) {
-  if (addr == 0x3d22)
+  if (addr == 0x3d22) {
     this.irqStat |= data;
+    CPU_ActivatePendingIRQs();
+  } else if (addr == 0x2863) {
+    PPU_SetIRQFlags(data);
+  } else {
+    VSmile_Warning("unknown IRQ Acknowledge for %04x with data %04x", addr, data);
+  }
 
-  Bus_SetIRQFlags(addr, data);
   // switch (address) {
   // case 0x2863:
   //   this.ppu[0x63] |= data;

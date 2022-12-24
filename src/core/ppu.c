@@ -5,9 +5,6 @@ static PPU_t this;
 bool PPU_Init() {
   memset(&this, 0, sizeof(PPU_t));
 
-  Bus_Store(0x2836, 0xffff);
-  Bus_Store(0x2837, 0xffff);
-
   this.layerEnabled[0] = true; // Layer 0
   this.layerEnabled[1] = true; // Layer 1
   this.layerEnabled[2] = true; // Sprites
@@ -21,6 +18,9 @@ void PPU_Cleanup() {
 
 
 bool PPU_Reset() {
+  this.irqCtrl = 0xffff;
+  this.irqStat = 0xffff;
+
   return true;
 }
 
@@ -30,29 +30,161 @@ void PPU_UpdateScreen() {
 }
 
 
-void PPU_RenderLine() {
+bool PPU_RenderLine() {
+  if (this.currLine < 240) { // If out of frame, don't render line
+    if (Backend_RenderScanline()) {
+      this.scanlineBuffer = Backend_GetScanlinePointer(this.currLine);
 
-  if (this.currLine >= 240) { // Out of frame, don't render line
-    this.currLine++;
-    if (this.currLine > LINES_PER_FIELD)
-      this.currLine = 0;
-    return;
-  }
-
-  if (Backend_RenderScanline()) {
-    this.scanlineBuffer = Backend_GetScanlinePointer(this.currLine);
-
-    this.isFirstLayer = true;
-    for (int32_t i = 0; i < 4; i++) {
-      PPU_RenderLayerStrip(0, i, this.currLine);
-      PPU_RenderLayerStrip(1, i, this.currLine);
-      PPU_RenderSpriteStrips(i, this.currLine);
+      this.isFirstLayer = true;
+      for (int32_t i = 0; i < 4; i++) {
+        PPU_RenderLayerStrip(0, i, this.currLine);
+        PPU_RenderLayerStrip(1, i, this.currLine);
+        PPU_RenderSpriteStrips( i, this.currLine);
+      }
     }
   }
 
+  if (this.currLine == this.vCompare) {
+    PPU_SetIRQFlags(0x0002);
+  }
+
+  if (this.currLine == 240) {
+    PPU_SetIRQFlags(0x0001);
+  }
+
   this.currLine++;
-  if (this.currLine > LINES_PER_FIELD)
+  if (this.currLine >= LINES_PER_FIELD) {
+    PPU_UpdateScreen();
     this.currLine = 0;
+    return true;
+  }
+
+  return false;
+}
+
+
+uint16_t PPU_Read(uint16_t addr) {
+  // printf("PPU read %04x\n", addr);
+  if (addr < 0x2900) {
+    switch (addr) {
+    case 0x2810: return this.layers[0].xPos;
+    case 0x2811: return this.layers[0].yPos;
+    case 0x2812: return this.layers[0].attr.raw;
+    case 0x2813: return this.layers[0].ctrl.raw;
+    case 0x2814: return this.layers[0].tilemapAddr;
+    case 0x2815: return this.layers[0].attribAddr;
+    case 0x2816: return this.layers[1].xPos;
+    case 0x2817: return this.layers[1].yPos;
+    case 0x2818: return this.layers[1].attr.raw;
+    case 0x2819: return this.layers[1].ctrl.raw;
+    case 0x281a: return this.layers[1].tilemapAddr;
+    case 0x281b: return this.layers[1].attribAddr;
+    case 0x281c: return this.vertScale;
+    case 0x281d: return this.vertMovement;
+    case 0x2820: return this.segmentPtr[0];
+    case 0x2821: return this.segmentPtr[1];
+    case 0x2822: return this.spriteSegment;
+    case 0x282a: return this.blendLevel;
+    case 0x2830: return this.fadeLevel;
+    case 0x2836: return this.vCompare;
+    case 0x2837: return this.hCompare;
+    case 0x2838: return this.currLine;
+    case 0x283c: return this.hueSatAdjust;
+    case 0x283d: return this.LFPInterlace;
+    case 0x283e: return this.lightpenX;
+    case 0x283f: return this.lightpenY;
+    case 0x2842: return this.spriteEnable;
+    case 0x2854: return this.lcdCtrl;
+    case 0x2862: return this.irqCtrl;
+    case 0x2863: return this.irqStat;
+    case 0x2870: return this.dmaSrc;
+    case 0x2871: return this.dmaDst;
+    case 0x2872: return this.dmaSize;
+    }
+
+    VSmile_Warning("unknown read from PPU register %04x at %06x", addr, CPU_GetCSPC());
+    return 0x0000;
+  }
+  else if (addr < 0x2a00) { // 0x2900 - 0x29ff
+    return this.scroll[addr - 0x2900];
+  }
+  else if (addr < 0x2b00) { // 0x2a00 - 0x2aff
+    return this.hScale[addr - 0x2a00];
+  }
+  else if (addr < 0x2c00) { // 0x2b00 - 0x2bff
+    return this.palette[addr - 0x2b00];
+  }
+  else if (addr < 0x3000) { // 0x2c00 - 0x2fff
+    return this.sprData[addr - 0x2c00];
+  }
+  else {
+    VSmile_Warning("unknown read from PPU register %04x at %06x", addr, CPU_GetCSPC());
+  }
+
+  return 0x0000;
+}
+
+
+void PPU_Write(uint16_t addr, uint16_t data) {
+  // printf("PPU write %04x with %04x\n", addr, data);
+  if (addr < 0x2900) {
+    switch (addr) {
+    case 0x2810: this.layers[0].xPos = data & 0x1ff; return;
+    case 0x2811: this.layers[0].yPos = data & 0xff;  return;
+    case 0x2812: this.layers[0].attr.raw = data;     return;
+    case 0x2813: this.layers[0].ctrl.raw = data;     return;
+    case 0x2814: this.layers[0].tilemapAddr = data;  return;
+    case 0x2815: this.layers[0].attribAddr = data;   return;
+    case 0x2816: this.layers[1].xPos = data & 0x1ff; return;
+    case 0x2817: this.layers[1].yPos = data & 0xff;  return;
+    case 0x2818: this.layers[1].attr.raw = data;     return;
+    case 0x2819: this.layers[1].ctrl.raw = data;     return;
+    case 0x281a: this.layers[1].tilemapAddr = data;  return;
+    case 0x281b: this.layers[1].attribAddr = data;   return;
+    case 0x281c: this.vertScale = data & 0xff;       return;
+    case 0x281d: this.vertMovement = data & 0x1ff;   return;
+    case 0x2820: this.segmentPtr[0] = data;          return;
+    case 0x2821: this.segmentPtr[1] = data;          return;
+    case 0x2822: this.spriteSegment = data;          return;
+    case 0x282a: this.blendLevel = data & 3;         return;
+    case 0x2830: this.fadeLevel = data & 0xff;       return;
+    case 0x2836: this.vCompare = data & 0x1ff;       return;
+    case 0x2837: this.hCompare = data & 0x1ff;       return;
+    case 0x283c: this.hueSatAdjust = data & 0xff;    return;
+    case 0x283d: this.LFPInterlace = data & 0x5;     return;
+    case 0x283e: this.lightpenX = data & 0x1ff;      return;
+    case 0x283f: this.lightpenY = data & 0x1ff;      return;
+    case 0x2842: this.spriteEnable = data & 1;       return;
+    case 0x2854: this.lcdCtrl = data & 0x3f;         return;
+    case 0x2862: this.irqCtrl = data;                return;
+    case 0x2863: this.irqStat &= ~data;              return;
+    case 0x2870: this.dmaSrc  = data & 0x3fff;       return;
+    case 0x2871: this.dmaDst  = data & 0x3ff;        return;
+    case 0x2872: PPU_DoDMA(data);                    return;
+    }
+    VSmile_Warning("unknown write to PPU register %04x with %04x at %06x", addr, data, CPU_GetCSPC());
+    return;
+  }
+  else if (addr < 0x2a00) { // 0x2900 - 0x29ff
+    this.scroll[addr - 0x2900] = data;
+    return;
+  }
+  else if (addr < 0x2b00) { // 0x2a00 - 0x2aff
+    this.hScale[addr - 0x2a00] = data;
+    return;
+  }
+  else if (addr < 0x2c00) { // 0x2b00 - 0x2bff
+    // printf("%04x = %04x\n", addr, data);
+    this.palette[addr - 0x2b00] = data;
+    return;
+  }
+  else if (addr < 0x3000) { // 0x2c00 - 0x2fff
+    this.sprData[addr - 0x2c00] = data;
+    return;
+  }
+  else {
+    VSmile_Warning("unknown write to PPU register %04x with %04x at %06x", addr, data, CPU_GetCSPC());
+  }
 }
 
 
@@ -122,12 +254,7 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
   palOffset <<= nc;
 
   if (this.isFirstLayer) {
-    // uint16_t bkgndColor = Bus_Load(0x2b00 + palOffset);
-    // for (int32_t i = 0; i < 320; i++)
-    //   this.scanlineBuffer[i] = bkgndColor;
-
     memset(this.scanlineBuffer, 0, 320 * sizeof(uint16_t));
-
     this.isFirstLayer = false;
   }
 
@@ -270,6 +397,33 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
 
 uint16_t PPU_GetCurrLine() {
   return this.currLine;
+}
+
+
+void PPU_DoDMA(uint16_t data) {
+  // printf("PPU DMA\n");
+  data &= 0x03ff;
+  if (data == 0)
+    data = 0x0400;
+
+  uint32_t src = this.dmaSrc;
+  uint32_t dst = this.dmaDst;
+
+  for (uint32_t i = 0; i < data; i++) {
+    uint16_t transfer = Bus_Load(src+i);
+    this.sprData[(dst+i) & 0x3ff] = transfer;
+  }
+
+  this.dmaSize = 0;
+  PPU_SetIRQFlags(0x0004);
+  // printf("PPU DMA\n");
+}
+
+
+void PPU_SetIRQFlags(uint16_t data) {
+  this.irqStat |= data;
+  CPU_ActivatePendingIRQs();
+  // printf("PPU IRQs set (%04x)\n", data);
 }
 
 
