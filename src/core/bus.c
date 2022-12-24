@@ -32,7 +32,7 @@ void Bus_Cleanup() {
 
 
 void Bus_Reset() {
-  // GPIO_Reset();
+  GPIO_Reset();
   Timers_Reset();
   Misc_Reset();
   UART_Reset();
