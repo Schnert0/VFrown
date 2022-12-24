@@ -57,7 +57,6 @@ void Bus_LoadROM(const char* filePath);
 void Bus_LoadSysRom(const char* filePath);
 
 void Bus_Update(int32_t cycles);
-// void Bus_TickTimers(int32_t index);
 
 uint16_t Bus_Load(uint32_t addr);
 void Bus_Store(uint32_t addr, uint16_t data);

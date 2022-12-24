@@ -213,7 +213,7 @@ void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t 
       nbits += 16;
     }
     nbits -= nc;
-    uint16_t color = Bus_Load(0x2b00 + palOffset + (bits >> 16));
+    uint16_t color = this.palette[palOffset + (bits >> 16)];
     if (x >= 0 && x < 320) {
       if (!(color & 0x8000))
         this.scanlineBuffer[x] = color & 0x7fff;
@@ -237,12 +237,12 @@ void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t 
 void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
   TileAttr_t attr;
   TileCtrl_t ctrl;
-  uint16_t xOffset = Bus_Load(0x2810+layer*6);
-  uint16_t yOffset = Bus_Load(0x2811+layer*6);
+  uint16_t xOffset = this.layers[layer].xPos;
+  uint16_t yOffset = this.layers[layer].yPos;
 
-  ctrl.raw = Bus_Load(0x2813+layer*6);
+  ctrl = this.layers[layer].ctrl;
 
-  attr.raw = Bus_Load(0x2812+layer*6);
+  attr = this.layers[layer].attr;
 
   int16_t y = (line + yOffset) & 0xff;
 
@@ -267,13 +267,13 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
   if (attr.depth != depth)
     return;
 
-  uint16_t hOffset = Bus_Load(0x2900 + ((line+yOffset) & 0xff)) * ctrl.rowScroll;
+  uint16_t hOffset = this.scroll[((line+yOffset) & 0xff)] * ctrl.rowScroll;
 
   int32_t screenTilesW = (320 / tileWidth) + 1;
   int32_t numTilesW = 512 / tileWidth;
 
-  uint16_t tileRow = Bus_Load(0x2814+layer*6);
-  uint16_t attributeRow = Bus_Load(0x2815+layer*6);
+  uint16_t tileRow = this.layers[layer].tilemapAddr;
+  uint16_t attributeRow = this.layers[layer].attribAddr;
   uint16_t t = 0;
   if (!ctrl.wallPaper) {
     tileRow += (numTilesW * (y / tileHeight));
@@ -318,7 +318,7 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
     int32_t tileSize = tileWidth*tileHeight*nc/16*tile;
 
     if (tile) {
-      uint32_t tileData = (Bus_Load(0x2820+layer) << 6) + tileSize + (tileHeightOffset*(tileWidth*nc/16));
+      uint32_t tileData = (this.segmentPtr[layer] << 6) + tileSize + (tileHeightOffset*(tileWidth*nc/16));
       PPU_RenderTileStrip((x*tileWidth)-(xOffset & (tileWidth-1)) - (hOffset & (tileWidth-1)), tileWidth, nc, palOffset, tileData, attr.hFlip, attr.vFlip);
     }
 
@@ -334,16 +334,15 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
   if (!this.layerEnabled[2])
     return;
 
-  if (!(Bus_Load(0x2842) & 1))
+  if (!this.spriteEnable)
     return;
 
   for (int32_t i = 0; i < 256; i++) {
-    uint16_t tile = Bus_Load(0x2c00+(i<<2));
+    uint16_t tile = this.sprites[i].tileID;
     if (tile == 0)
       continue;
 
-    TileAttr_t attr;
-    attr.raw = Bus_Load(0x2c03+(i<<2));
+    TileAttr_t attr = this.sprites[i].attr;
 
    if (attr.depth != depth)
      continue;
@@ -353,8 +352,8 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
     uint8_t nc = (attr.bpp + 1) << 1;
     uint16_t palOffset = attr.palBank << 4;
 
-    uint16_t x = Bus_Load(0x2c01+(i<<2));
-    uint16_t y = Bus_Load(0x2c02+(i<<2));
+    uint16_t x = this.sprites[i].xPos;
+    uint16_t y = this.sprites[i].yPos;
 
     int16_t xPos = 160 + x - (spriteWidth  / 2);
     int16_t yPos = 120 - y - (spriteHeight / 2) + 8;
@@ -368,7 +367,7 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
     if (attr.vFlip)
       spriteHeightOffset = spriteHeight - spriteHeightOffset - 1;
 
-    uint32_t tileData = (Bus_Load(0x2822) << 6) + spriteSize + (spriteHeightOffset*(spriteWidth*nc/16));
+    uint32_t tileData = (this.spriteSegment << 6) + spriteSize + (spriteHeightOffset*(spriteWidth*nc/16));
     PPU_RenderTileStrip(xPos, spriteWidth, nc, palOffset, tileData, attr.hFlip, attr.vFlip);
 
     if (this.spriteOutlinesEnabled) {

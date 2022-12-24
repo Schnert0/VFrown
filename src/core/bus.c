@@ -3,12 +3,6 @@
 
 static Bus_t this;
 
-#define UART_CTRL  0x30
-#define UART_STAT  0x31
-#define UART_RESET 0x32
-#define UART_TX    0x35
-#define UART_RX    0x36
-
 bool Bus_Init() {
   memset(&this, 0, sizeof(Bus_t));
 
@@ -170,54 +164,6 @@ void Bus_Store(uint32_t addr, uint16_t data) {
   else if (addr < PPU_START+PPU_SIZE) {
     PPU_Write(addr, data);
     return;
-
-    // switch (addr) {
-    // case 0x2810: // Page 1 X scroll
-    // case 0x2816: // Page 2 X scroll
-    //   this.ppu[addr - PPU_START] = (data & 0x01ff);
-    //   break;
-    //
-    // case 0x2811: // Page 1 Y scroll
-    // case 0x2817: // Page 2 Y scroll
-    //   this.ppu[addr - PPU_START] = (data & 0x00ff);
-    //   break;
-    //
-    // case 0x2814:
-    // case 0x281a:
-    //   // printf("layer %d tilemap address set to %04x at %06x\n", addr == 0x281a, data, CPU_GetCSPC());
-    //   this.ppu[addr - PPU_START] = data;
-    //   break;
-    //
-    // case 0x2820:
-    // case 0x2821:
-    //   // printf("layer %d tile data segment set to %04x at %06x\n", addr == 0x2821, data, CPU_GetCSPC());
-    //   this.ppu[addr - PPU_START] = data;
-    //   break;
-    //
-    // case 0x2863: // PPU IRQ acknowledge
-    //   this.ppu[addr - PPU_START] &= ~data;
-    //   break;
-    //
-    // case 0x2870: this.ppu[addr - PPU_START] = data & 0x3fff; break;
-    // case 0x2871: this.ppu[addr - PPU_START] = data & 0x03ff; break;
-    // case 0x2872: { // Do PPU DMA
-    //   data &= 0x03ff;
-    //   if (data == 0)
-    //     data = 0x0400;
-    //
-    //   uint32_t src = this.ppu[0x2870 - PPU_START];
-    //   uint32_t dst = this.ppu[0x2871 - PPU_START] + 0x2c00;
-    //   for (uint32_t i = 0; i < data; i++)
-    //     Bus_Store(dst+i, Bus_Load(src+i));
-    //   this.ppu[0x2872 - PPU_START] = 0;
-    //   Misc_SetIRQFlags(0x2863, 0x0004);
-    // } break;
-    //
-    // default:
-    //   this.ppu[addr - PPU_START] = data;
-    // }
-    // printf("write to PPU address %04x with %04x\n", addr, data);
-    // return;
   }
   else if (addr < SPU_START+SPU_SIZE) {
     SPU_Write(addr, data);
