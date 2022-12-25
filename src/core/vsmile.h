@@ -22,8 +22,11 @@ void VSmile_Cleanup();
 
 void VSmile_Run();
 void VSmile_Reset();
+
 void VSmile_LoadROM(const char* path);
 void VSmile_LoadSysRom(const char* path);
+void VSmile_SetRegion(uint8_t region);
+void VSmile_SetIntroEnable(bool shouldShowIntro);
 
 void VSmile_TogglePause();
 void VSmile_Step();

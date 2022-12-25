@@ -3,6 +3,7 @@
 // Command line Argument Parsing
 static uint32_t argparse = 0;
 static uint32_t sysromIndex = 0;
+static uint32_t region = 0;
 
 static const char* usageString = "usage: %s <path/to/rom> [-help][-nosysrom][-sysrom <path/to/BIOS>]\n";
 
@@ -59,6 +60,49 @@ static bool parseArguments(int argc, char* argv[]) {
     else if (strequ(argv[i], "-help")) {
       argparse |= ARGPARSE_HELP;
     }
+    else if (strequ(argv[i], "-region")) {
+      if (i == argc-1) {
+        argparse |= ARGPARSE_USAGE;
+      } else {
+
+        argparse |= ARGPARSE_REGION;
+
+        if (strequ(argv[i+1], "Italian")) {
+          region = REGION_ITALIAN;
+        }
+        else if (strequ(argv[i+1], "Chinese")) {
+          region = REGION_CHINESE;
+        }
+        else if (strequ(argv[i+1], "Portuguese")) {
+          region = REGION_PORTUGUESE;
+        }
+        else if (strequ(argv[i+1], "Dutch")) {
+          region = REGION_DUTCH;
+        }
+        else if (strequ(argv[i+1], "German")) {
+          region = REGION_GERMAN;
+        }
+        else if (strequ(argv[i+1], "Spanish")) {
+          region = REGION_SPANISH;
+        }
+        else if (strequ(argv[i+1], "French")) {
+          region = REGION_FRENCH;
+        }
+        else if (strequ(argv[i+1], "UK")) {
+          region = REGION_UK;
+        }
+        else if (strequ(argv[i+1], "US")) {
+          region = REGION_US;
+        }
+        else {
+          argparse |= ARGPARSE_USAGE;
+        }
+        i++;
+      }
+    }
+    else if (strequ(argv[i], "-nointro")) {
+      argparse |= ARGPARSE_NOINTRO;
+    }
     else {
       argparse |= ARGPARSE_USAGE;
     }
@@ -100,28 +144,31 @@ static bool parseArguments(int argc, char* argv[]) {
 
       "\n"
 
-      // "\t-region <region>\n"
-      // "\t\tSet V.Smile to a specified region. If no region\n"
-      // "\t\tis selected, the emulator defaults to US.\n"
-      // "\t\tvalid regions:\n"
-      // "\t\t\t'US'\n"
-      // "\t\t\t'UK'\n"
-      // "\t\t\t'Italian'\n"
-      // "\t\t\t'German'\n"
-      // "\t\t\t'Spanish'\n"
-      // "\t\t\t'Chinese'\n"
-      //
-      // "\n"
-      //
-      // "\t-noROM\n"
-      // "\t\tBoot V.Smile as if it had no cartridge inserted.\n"
-      //
-      // "\n"
-      //
-      // "\t-nointro\n"
-      // "\t\tDisable the V.Tech/V.Smile boot screen.\n"
-      //
-      // "\n"
+      "\t-region <region>\n"
+      "\t\tSet V.Smile to a specified region. If no region\n"
+      "\t\tis selected, the emulator defaults to US.\n"
+      "\t\tvalid regions:\n"
+      "\t\t\t'Chinese'\n"
+      "\t\t\t'Polish'\n"
+      "\t\t\t'Dutch'\n"
+      "\t\t\t'Italian'\n"
+      "\t\t\t'German'\n"
+      "\t\t\t'Spanish'\n"
+      "\t\t\t'French'\n"
+      "\t\t\t'UK'\n"
+      "\t\t\t'US'\n"
+
+      "\n"
+
+      "\t-noROM\n"
+      "\t\tBoot V.Smile as if it had no cartridge inserted.\n"
+
+      "\n"
+
+      "\t-nointro\n"
+      "\t\tDisable the V.Tech/V.Smile boot screen.\n"
+
+      "\n"
     );
     return false;
   }
@@ -135,6 +182,18 @@ static bool parseArguments(int argc, char* argv[]) {
   }
   else { // no sysrom flags
     VSmile_LoadSysRom("sysrom/sysrom.bin");
+  }
+
+  if (argparse & ARGPARSE_REGION) { // -region <...>
+    VSmile_SetRegion(region);
+  } else {
+    VSmile_SetRegion(REGION_US);
+  }
+
+  if (argparse & ARGPARSE_NOINTRO) { // -nointro
+    VSmile_SetIntroEnable(false);
+  } else {
+    VSmile_SetIntroEnable(true);
   }
 
   return true;

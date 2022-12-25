@@ -23,7 +23,7 @@
 #define SPU_SIZE  0x000800
 
 #define IO_START  0x003d00
-#define IO_SIZE   0x000100
+#define IO_SIZE   0x000200
 
 #define SYSROM_SIZE  0x100000
 #define SYSROM_START 0x300000

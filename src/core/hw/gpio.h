@@ -26,6 +26,8 @@ typedef struct {
 
 
 typedef struct {
+  uint8_t region;
+
   union {
     uint16_t regs[16];
     struct {
@@ -50,5 +52,8 @@ uint16_t GPIO_GetIOB(uint16_t mask);
 void     GPIO_SetIOB(uint16_t data, uint16_t mask);
 uint16_t GPIO_GetIOC(uint16_t mask);
 void     GPIO_SetIOC(uint16_t data, uint16_t mask);
+
+void GPIO_SetRegion(uint8_t region);
+void GPIO_SetIntroEnable(bool shouldShowIntro);
 
 #endif // GPIO_H

@@ -5,8 +5,6 @@ static GPIO_t this;
 bool GPIO_Init() {
   memset(&this, 0, sizeof(GPIO_t));
 
-
-
   return true;
 }
 
@@ -140,8 +138,7 @@ void GPIO_SetIOB(uint16_t data, uint16_t mask) {
 
 // Get data from IO port C
 uint16_t GPIO_GetIOC(uint16_t mask) {
-  uint16_t data = 0x003f;
-  // uint16_t data = 0x0020;
+  uint16_t data = this.region;
   data |= Controller_GetRequests();
 
   // printf("read from IOC (%04x) at %06x\n", data, CPU_GetCSPC());
@@ -161,4 +158,16 @@ void GPIO_SetIOC(uint16_t data, uint16_t mask) {
   if ((mask >> 9) & 1) {
     Controller_SetSelect(1, (data >> 9) & 1);
   }
+}
+
+
+void GPIO_SetRegion(uint8_t region) {
+  this.region &= ~0xf;
+  this.region = region & 0xf;
+}
+
+
+void GPIO_SetIntroEnable(bool shouldShowIntro) {
+  this.region &= 0xffcf;
+  this.region |= shouldShowIntro ? 0x30 : 0x20;
 }

@@ -66,6 +66,15 @@ void VSmile_LoadSysRom(const char* path) {
 }
 
 
+void VSmile_SetRegion(uint8_t region) {
+  GPIO_SetRegion(region);
+}
+
+void VSmile_SetIntroEnable(bool shouldShowIntro) {
+  GPIO_SetIntroEnable(shouldShowIntro);
+}
+
+
 void VSmile_TogglePause() {
   this.paused ^= true;
 }
