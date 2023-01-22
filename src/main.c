@@ -1,200 +1,160 @@
 #include "main.h"
+#include "backend/ui.h"
 
-// Command line Argument Parsing
-static uint32_t argparse = 0;
-static uint32_t sysromIndex = 0;
-static uint32_t region = 0;
+static sg_image emuFrame;
 
-static const char* usageString = "usage: %s <path/to/rom> [-help][-nosysrom][-sysrom <path/to/BIOS>]\n";
-
-static bool parseArguments(int argc, char* argv[]);
-
-int main(int argc, char* argv[]) {
-  if (argc <= 1) {
-    printf(usageString, argv[0]);
-    return 0;
+// Called when the application is initializing.
+static void init() {
+  // Sokol GFX
+  const sg_desc sgdesc = {
+    .context = sapp_sgcontext()
+  };
+  sg_setup(&sgdesc);
+  if (!sg_isvalid()) {
+    VSmile_Error("Failed to create Sokol GFX context");
   }
 
-  VSmile_Init();
+  // Sokol GP
+  sgp_setup(&(sgp_desc){0});
+  if(!sgp_is_valid()) {
+    VSmile_Error("Failed to create Sokol GP context: %s\n", sgp_get_error_message(sgp_get_last_error()));
+  }
 
-  if (!parseArguments(argc, argv))
-    return 0;
+  // Create Emulation framebuffer image
+  emuFrame = sg_make_image(&(sg_image_desc){
+    .width = 320,
+    .height = 240,
+    .usage = SG_USAGE_STREAM,
+    .pixel_format = SG_PIXELFORMAT_BGRA8
+  });
 
-  VSmile_LoadROM(argv[1]);
 
-  // Run the system
+  // Sokol Nuklear
+  snk_setup(&(snk_desc_t){
+    .dpi_scale = sapp_dpi_scale()
+  });
+  // TODO: idk what to call to validate snk_setup worked
+
+  if (!Backend_Init()) {
+    VSmile_Error("Failed to initialize backend");
+  }
+
+  // Emulator core
+  if (!VSmile_Init()) {
+    VSmile_Error("Failed to initialize emulation core");
+  }
+
+  VSmile_LoadSysRom("sysrom/sysrom.bin");
+  VSmile_SetRegion(0xf);
+  VSmile_SetIntroEnable(true);
   VSmile_Reset();
-  VSmile_Run();
-  VSmile_Cleanup();
+  VSmile_SetPause(true);
 
-  return 0;
+  if (!UI_Init()) {
+    VSmile_Error("Failed to create UI handler");
+  }
+
 }
 
 
-static bool parseArguments(int argc, char* argv[]) {
-  bool sysromOptionUsed = false;
+// Called on every frame of the application.
+static void frame() {
+  // Cache window dimensions
+  const int32_t width  = sapp_width();
+  const int32_t height = sapp_height();
 
-  // Parse command line arguments
-  for (int32_t i = 2; i < argc; i++) {
-    if (strequ(argv[i], "-nosysrom")) {
-      if (sysromOptionUsed)
-        argparse |= ARGPARSE_USAGE;
+  // Get nuklear UI rendering context
+  struct nk_context* ctx = snk_new_frame();
 
-      argparse |= ARGPARSE_NOSYSROM;
+  // Run one frame of emulation
+  Backend_Update();
+  VSmile_RunFrame();
 
-      sysromOptionUsed = true;
+  sg_update_image(emuFrame, &(sg_image_data){
+    .subimage[0][0] = {
+      .ptr = Backend_GetScanlinePointer(0),
+      .size = 320*240*sizeof(uint32_t)
     }
-    else if (strequ(argv[i], "-sysrom")) {
-      if (sysromOptionUsed)
-        argparse |= ARGPARSE_USAGE;
+  });
 
-      // Should be argument for path
-      if (i == argc-1) {
-        argparse |= ARGPARSE_USAGE;
-      } else {
-        argparse |= ARGPARSE_SYSROM;
-        sysromIndex = ++i;
-      }
-      sysromOptionUsed = true;
-    }
-    else if (strequ(argv[i], "-help")) {
-      argparse |= ARGPARSE_HELP;
-    }
-    else if (strequ(argv[i], "-region")) {
-      if (i == argc-1) {
-        argparse |= ARGPARSE_USAGE;
-      } else {
+  // Draw the emulated frame to the screen
+  sgp_begin(width, height);
+  sgp_viewport(0, 0, width, height);
+  sgp_set_color(0.0f, 0.0f, 0.0f, 1.0f);
+  sgp_clear();
+  sgp_reset_color();
+  sgp_set_image(0, emuFrame);
+  sgp_draw_textured_rect(0, 0, width, height);
+  sgp_unset_image(0);
 
-        argparse |= ARGPARSE_REGION;
+  UI_RunFrame(ctx);
 
-        if (strequ(argv[i+1], "Italian")) {
-          region = REGION_ITALIAN;
-        }
-        else if (strequ(argv[i+1], "Chinese")) {
-          region = REGION_CHINESE;
-        }
-        else if (strequ(argv[i+1], "Portuguese")) {
-          region = REGION_PORTUGUESE;
-        }
-        else if (strequ(argv[i+1], "Dutch")) {
-          region = REGION_DUTCH;
-        }
-        else if (strequ(argv[i+1], "German")) {
-          region = REGION_GERMAN;
-        }
-        else if (strequ(argv[i+1], "Spanish")) {
-          region = REGION_SPANISH;
-        }
-        else if (strequ(argv[i+1], "French")) {
-          region = REGION_FRENCH;
-        }
-        else if (strequ(argv[i+1], "UK")) {
-          region = REGION_UK;
-        }
-        else if (strequ(argv[i+1], "US")) {
-          region = REGION_US;
-        }
-        else {
-          argparse |= ARGPARSE_USAGE;
-        }
-        i++;
-      }
-    }
-    else if (strequ(argv[i], "-nointro")) {
-      argparse |= ARGPARSE_NOINTRO;
-    }
-    else {
-      argparse |= ARGPARSE_USAGE;
-    }
+  // Draw UI content and render to the window
+  const sg_pass_action pass_action = { 0 };
+  sg_begin_default_pass(&pass_action, width, height);
+  sgp_flush();
+  snk_render(width, height);
+  sgp_end();
+  sg_end_pass();
+  sg_commit();
+}
+
+
+// Called when the application is shutting down
+static void cleanup() {
+  UI_Cleanup();
+  VSmile_Cleanup();
+  Backend_Cleanup();
+
+  snk_shutdown();
+  sg_shutdown();
+}
+
+
+// Called when an event (keypress, mouse movement, etc.) occurs
+static void event(const sapp_event* event) {
+  snk_handle_event(event);
+  Backend_HandleInput(event->key_code, event->type);
+  if (event->type == SAPP_EVENTTYPE_FILES_DROPPED) {
+    const int32_t numFiles = sapp_get_num_dropped_files();
+
+    // for (int32_t i = 0; i < numFiles; i++) {
+    //   printf("%s\n", sapp_get_dropped_file_path(i));
+    // }
+
+    VSmile_LoadROM(sapp_get_dropped_file_path(0));
+    if (numFiles == 2)
+      VSmile_LoadSysRom(sapp_get_dropped_file_path(1));
+    VSmile_Reset();
+    VSmile_SetPause(false);
   }
+}
 
-  // ***  Handling of arguments *** //
 
-  // If an invalid combination of parameters was used, print out usage and quit.
-  if (argparse & ARGPARSE_USAGE) {
-    printf(usageString, argv[0]);
-    return false;
-  }
+// Called in case a critical error occurs
+static void failure(const char* message) {
 
-  if (argparse & ARGPARSE_HELP) { // -help
-    printf(
-      "\n*** V.Frown - The Experimental V.Smile Emulator ***\n\n"
+}
 
-      "V.Frown requires a path to a V.Smile ROM file to run. Some games also\n"
-      "require a system rom/bios file to boot games. If one is not provided\n"
-      "with the '-sysrom' flag, V.Frown will try to find one under the path\n"
-      "'sysrom/sysrom.bin'.\n"
+// Platform-agnostic main from sokol_app.h
+sapp_desc sokol_main(int argc, char* argv[]) {
+  // (void)argc;
+  // (void)argv;
 
-      "\n"
+  sapp_desc desc = {
+    .init_cb = init,
+    .frame_cb = frame,
+    .cleanup_cb = cleanup,
+    .event_cb = event,
+    .fail_cb = failure,
+    .width = 640,
+    .height = 480,
+    .window_title = "V.Frown - The V.Smile Emulator",
+    .enable_dragndrop = true,
+    .max_dropped_files = 2,
+    .sample_count = 1,
+    .high_dpi=true
+  };
 
-      "flags:\n"
-
-      "\t-help\n"
-      "\t\tThis help screen.\n"
-
-      "\n"
-
-      "\t-nosysrom\n"
-      "\t\tBoot V.Smile without loading a system rom/bios.\n"
-
-      "\n"
-
-      "\t-sysrom <path>\n"
-      "\t\tBoot V.Smile with system rom/bios at specified path.\n"
-
-      "\n"
-
-      "\t-region <region>\n"
-      "\t\tSet V.Smile to a specified region. If no region\n"
-      "\t\tis selected, the emulator defaults to US.\n"
-      "\t\tvalid regions:\n"
-      "\t\t\t'Chinese'\n"
-      "\t\t\t'Polish'\n"
-      "\t\t\t'Dutch'\n"
-      "\t\t\t'Italian'\n"
-      "\t\t\t'German'\n"
-      "\t\t\t'Spanish'\n"
-      "\t\t\t'French'\n"
-      "\t\t\t'UK'\n"
-      "\t\t\t'US'\n"
-
-      "\n"
-
-      "\t-noROM\n"
-      "\t\tBoot V.Smile as if it had no cartridge inserted.\n"
-
-      "\n"
-
-      "\t-nointro\n"
-      "\t\tDisable the V.Tech/V.Smile boot screen.\n"
-
-      "\n"
-    );
-    return false;
-  }
-
-  // sysrom flags
-  if (argparse & ARGPARSE_NOSYSROM) { // -nosysrom
-    VSmile_Log("Starting emulation without system rom...");
-  }
-  else if (argparse & ARGPARSE_SYSROM) { // -sysrom <...>
-    VSmile_LoadSysRom(argv[sysromIndex]);
-  }
-  else { // no sysrom flags
-    VSmile_LoadSysRom("sysrom/sysrom.bin");
-  }
-
-  if (argparse & ARGPARSE_REGION) { // -region <...>
-    VSmile_SetRegion(region);
-  } else {
-    VSmile_SetRegion(REGION_US);
-  }
-
-  if (argparse & ARGPARSE_NOINTRO) { // -nointro
-    VSmile_SetIntroEnable(false);
-  } else {
-    VSmile_SetIntroEnable(true);
-  }
-
-  return true;
+  return desc;
 }

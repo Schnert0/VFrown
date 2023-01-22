@@ -5,7 +5,7 @@
 #include "../vsmile.h"
 #include "../timer.h"
 
-typedef void (*Func_t)();
+typedef void (*ControllerFunc_t)();
 struct Timer_t;
 
 /*

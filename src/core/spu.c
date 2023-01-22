@@ -2,7 +2,9 @@
 
 static SPU_t this;
 
-const float rateCutoff = 44100.0f;
+static const float rateCutoff = 44100.0f;
+static float sampleBuffer[MAX_SAMPLES];
+static int32_t sampleCount;
 
 // static const char* registerNames0[] = {
 //   "wave address",          // 0x0
@@ -139,7 +141,7 @@ static const int16_t envelopeFrameCounts[] = {
 bool SPU_Init() {
   memset(&this, 0, sizeof(SPU_t));
 
-  Backend_InitAudioDevice();
+  Backend_InitAudioDevice((float*)&sampleBuffer, &sampleCount);
 
   this.sampleTimer = SPU_SAMPLE_TIMER;
 
@@ -194,37 +196,60 @@ void SPU_Tick(int32_t cycles) {
     this.channelIrq = false;
   }
 
-  int32_t leftSample = 0;
-  int32_t rightSample = 0;
+  float leftSample = 0;
+  float rightSample = 0;
 
+  int32_t left, right;
   for (int32_t i = 0; i < 16; i++) {
     if (this.chanEnable & (1 << i)) { // Channel is enabled
-      int32_t left, right;
       SPU_TickChannel(i, &left, &right);
 
-      leftSample += left;
-      rightSample += right;
+      leftSample  += left  / 16.0f;
+      rightSample += right / 16.0f;
 
     } else {
-      SDLBackend_PushOscilloscopeSample(i, 0);
+      Backend_PushOscilloscopeSample(i, 0);
     }
 
   }
 
+  if (sampleCount >= MAX_SAMPLES)
+    return;
+
+  leftSample  *= (1.0f/256.0f);
+  rightSample *= (1.0f/256.0f);
+
   switch((this.volumeSelect >> 6) & 3) { // Volume select
   case 0:
-    leftSample >>= 10;
-    rightSample >>= 10;
+    leftSample  *= (1.0f/16.0f);
+    rightSample *= (1.0f/16.0f);
     break;
 
-  case 1: case 2: case 3:
-    leftSample >>= 8;
-    leftSample >>= 8;
+  case 1:
+    leftSample  *= (1.0f/8.0f);
+    rightSample *= (1.0f/8.0f);
+    break;
+
+  case 2: break;
+
+  case 3:
+    leftSample *= 2.0f;
+    leftSample *= 2.0f;
     break;
   }
 
-  Backend_PushAudioSample(leftSample, rightSample);
+  // printf("%f, %f\n", leftSample, rightSample);
 
+  // Normalize samples
+  if (leftSample >  1.0f) leftSample =  1.0f;
+  if (leftSample < -1.0f) leftSample = -1.0f;
+
+  if (rightSample >  1.0f) rightSample =  1.0f;
+  if (rightSample < -1.0f) rightSample = -1.0f;
+
+  // Push to audio buffer
+  sampleBuffer[sampleCount++] = leftSample;
+  sampleBuffer[sampleCount++] = rightSample;
 }
 
 
@@ -362,24 +387,24 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
     sample += prevSample;
   }
 
-  sample = (sample * (int32_t)channel->envData.envelopeData) >> 7;
+  float fsample = ((sample * (int32_t)channel->envData.envelopeData) >> 7) / 8192.0f;
 
-  SDLBackend_PushOscilloscopeSample(ch, sample);
+  Backend_PushOscilloscopeSample(ch, sample);
 
-  int32_t pan = channel->panVol.pan;
-  int32_t vol = channel->panVol.vol;
+  float pan = channel->panVol.pan / 127.0f;
+  float vol = channel->panVol.vol;
 
-  int32_t panLeft, panRight;
-  if (pan < 0x40) {
-    panLeft  = 127 * vol;
-    panRight = pan * 2 * vol;
+  float panLeft, panRight;
+  if (pan > 1/64.0f) {
+    panLeft = 1.0f * vol;
+    panRight = pan * 2.0f * vol;
   } else {
-    panLeft  = (127 - pan) * 2 * vol;
-    panRight =  127 * vol;
+    panLeft  = (1.0f - pan) * 2.0f * vol;
+    panRight = 1.0f * vol;
   }
 
-  (*left)  = (sample * panLeft);
-  (*right) = (sample * panRight);
+  (*left)  = (fsample * panLeft);
+  (*right) = (fsample * panRight);
 
   if (this.envRampDown & (1 << ch)) { // Ramp Down
     if (channel->rampDownFrame > 0)

@@ -3,8 +3,6 @@
 static VSmile_t this;
 
 bool VSmile_Init() {
-  if (!Backend_Init()) return false;
-
   if (!Bus_Init()) return false;
   if (!CPU_Init()) return false;
   if (!PPU_Init()) return false;
@@ -21,31 +19,29 @@ void VSmile_Cleanup() {
   SPU_Cleanup();
   CPU_Cleanup();
   Bus_Cleanup();
-
-  Backend_Cleanup();
 }
 
 
-void VSmile_Run() {
-  int32_t cyclesLeft = 0;
-  while (Backend_GetInput()) {
-    if (!this.paused || this.step) {
-      cyclesLeft += CYCLES_PER_LINE;
-      while (cyclesLeft > 0) {
-        int32_t cycles = CPU_Tick();
-        SPU_Tick(cycles);
-        cyclesLeft -= cycles;
-      }
+void VSmile_RunFrame() {
+  if (this.paused)
+    return;
 
-      // Tick these every scan line instead of every cycle.
-      // Even though it's slightly less accurate, it's waaaay more efficient this way.
-      Bus_Update(CYCLES_PER_LINE-cyclesLeft);
-      Controller_Tick(CYCLES_PER_LINE-cyclesLeft);
-      this.step = !PPU_RenderLine();
-    } else {
-      PPU_UpdateScreen();
+  while (true) {
+    this.cyclesLeft += CYCLES_PER_LINE;
+    while (this.cyclesLeft > 0) {
+      int32_t cycles = CPU_Tick();
+      SPU_Tick(cycles);
+      this.cyclesLeft -= cycles;
     }
+
+    // Tick these every scan line instead of every cycle.
+    // Even though it's slightly less accurate, it's waaaay more efficient this way.
+    Bus_Update(CYCLES_PER_LINE-this.cyclesLeft);
+    Controller_Tick(CYCLES_PER_LINE-this.cyclesLeft);
+    if (PPU_RenderLine())
+      break;
   }
+  Backend_PushBuffer();
 }
 
 
@@ -75,8 +71,13 @@ void VSmile_SetIntroEnable(bool shouldShowIntro) {
 }
 
 
-void VSmile_TogglePause() {
-  this.paused ^= true;
+bool VSmile_GetPaused() {
+  return this.paused;
+}
+
+
+void VSmile_SetPause(bool isPaused) {
+  this.paused = isPaused;
 }
 
 

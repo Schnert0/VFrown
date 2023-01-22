@@ -83,7 +83,7 @@ typedef union {
  * Renders Tile data, bitmaps and sprites to the screen
  */
 typedef struct PPU_t {
-  uint16_t* scanlineBuffer;
+  uint32_t* scanlineBuffer;
 
   bool spriteOutlinesEnabled;
   bool flipVisualEnabled;

@@ -2,6 +2,8 @@
 
 static PPU_t this;
 
+#define RGB5A1_TO_RGBA8(color) (((color & 0x1f) << 3) | ((color & 0x3e0) << 6) | ((color & 0x7c00) << 9))
+
 bool PPU_Init() {
   memset(&this, 0, sizeof(PPU_t));
 
@@ -26,7 +28,7 @@ bool PPU_Reset() {
 
 
 void PPU_UpdateScreen() {
-  Backend_UpdateWindow();
+  // Backend_UpdateWindow();
 }
 
 
@@ -54,7 +56,7 @@ bool PPU_RenderLine() {
 
   this.currLine++;
   if (this.currLine >= LINES_PER_FIELD) {
-    PPU_UpdateScreen();
+    // PPU_UpdateScreen();
     this.currLine = 0;
     return true;
   }
@@ -216,7 +218,7 @@ void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t 
     uint16_t color = this.palette[palOffset + (bits >> 16)];
     if (x >= 0 && x < 320) {
       if (!(color & 0x8000))
-        this.scanlineBuffer[x] = color & 0x7fff;
+        this.scanlineBuffer[x] = RGB5A1_TO_RGBA8(color & 0x7fff);
 
       if (this.flipVisualEnabled) {
         uint16_t color = 0x0000;
@@ -225,7 +227,7 @@ void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t 
         if (vFlip)
           color |= 0x001f;
         if ((x & 1) == (this.currLine & 1) && (hFlip || vFlip))
-          this.scanlineBuffer[x] = color;
+          this.scanlineBuffer[x] = RGB5A1_TO_RGBA8(color);
       }
     }
 
@@ -254,7 +256,7 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
   palOffset <<= nc;
 
   if (this.isFirstLayer) {
-    memset(this.scanlineBuffer, 0, 320 * sizeof(uint16_t));
+    memset(this.scanlineBuffer, 0, 320 * sizeof(uint32_t));
     this.isFirstLayer = false;
   }
 
@@ -375,16 +377,15 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
         if (line == yPos || line == yPos + spriteHeight-1) {
             for (int32_t i = xPos; i < xPos+spriteWidth; i++) {
               if (i >= 0 && i < 320) {
-                this.scanlineBuffer[i] = 0xf800;
+                this.scanlineBuffer[i] = 0xffff0000;
               }
             }
         } else {
           if (xPos >= 0 && xPos < 320) {
-            this.scanlineBuffer[xPos] = 0xf800;
+            this.scanlineBuffer[xPos] = 0xffff0000;
           }
-
           if (xPos+spriteWidth-1 >= 0 && xPos+spriteWidth-1 < 320) {
-            this.scanlineBuffer[xPos+spriteWidth-1] = 0xf800;
+            this.scanlineBuffer[xPos+spriteWidth-1] = 0xffff0000;
           }
         }
       }

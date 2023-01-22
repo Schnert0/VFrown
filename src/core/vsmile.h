@@ -14,13 +14,14 @@
  * initialization, cleanup, and the main emulation loop
  */
 typedef struct VSmile_t {
+  int32_t cyclesLeft;
   bool paused, step;
 } VSmile_t;
 
 bool VSmile_Init();
 void VSmile_Cleanup();
 
-void VSmile_Run();
+void VSmile_RunFrame();
 void VSmile_Reset();
 
 void VSmile_LoadROM(const char* path);
@@ -28,7 +29,8 @@ void VSmile_LoadSysRom(const char* path);
 void VSmile_SetRegion(uint8_t region);
 void VSmile_SetIntroEnable(bool shouldShowIntro);
 
-void VSmile_TogglePause();
+bool VSmile_GetPaused();
+void VSmile_SetPause(bool isPaused);
 void VSmile_Step();
 
 void VSmile_Log(const char* message, ...);

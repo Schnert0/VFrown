@@ -6,6 +6,7 @@
 #include "timer.h"
 
 #define SPU_SAMPLE_TIMER (SYSCLOCK / 44100)
+#define MAX_SAMPLES 32768
 
 struct Timer_t;
 
