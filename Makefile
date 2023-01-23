@@ -1,5 +1,5 @@
 CFLAGS=-std=c99
-CFLAGS+=-Wall -ferror-limit=1
+CFLAGS+=-Wall
 DEFS=
 # CC=gcc
 INCS=-I.
@@ -18,7 +18,7 @@ endif
 
 ifeq ($(platform), windows)
 	CC=x86_64-w64-mingw32-gcc
-	LIBS+=-lkernel32 -luser32 -lshell32 -lgdi32 -ld3d11 -ldxgi
+	LIBS+=-lkernel32 -luser32 -lshell32 -lgdi32 -ld3d11 -ldxgi -lole32 -loleaut32
 	OUTEXT=.exe
 else ifeq ($(platform), linux)
 	DEFS+=-D_GNU_SOURCE
