@@ -23,7 +23,8 @@ void UI_RunFrame(struct nk_context* ctx) {
   static bool showHelp = false;
   static bool showAbout = false;
   static bool showChannels = false;
-  static nk_bool chanEnable[12] = {
+  static nk_bool chanEnable[16] = {
+    true, true, true, true,
     true, true, true, true,
     true, true, true, true,
     true, true, true, true
@@ -195,6 +196,16 @@ void UI_RunFrame(struct nk_context* ctx) {
           nk_checkbox_label(ctx, "Channel 9",  &chanEnable[9]);
           nk_checkbox_label(ctx, "Channel 10", &chanEnable[10]);
           nk_checkbox_label(ctx, "Channel 11", &chanEnable[11]);
+          nk_checkbox_label(ctx, "Channel 12", &chanEnable[12]);
+          nk_checkbox_label(ctx, "Channel 13", &chanEnable[13]);
+          nk_checkbox_label(ctx, "Channel 14", &chanEnable[14]);
+          nk_checkbox_label(ctx, "Channel 15", &chanEnable[15]);
+          SPU_SetEnabledChannels(
+            (chanEnable[0]       ) | (chanEnable[1]  <<  1) | (chanEnable[2]  <<  2) | (chanEnable[3]  <<  3) |
+            (chanEnable[4]  <<  4) | (chanEnable[5]  <<  5) | (chanEnable[6]  <<  6) | (chanEnable[7]  <<  7) |
+            (chanEnable[8]  <<  8) | (chanEnable[9]  <<  9) | (chanEnable[10] << 10) | (chanEnable[11] << 11) |
+            (chanEnable[12] << 12) | (chanEnable[13] << 13) | (chanEnable[14] << 14) | (chanEnable[15] << 15)
+          );
           nk_popup_end(ctx);
       } else showChannels = false;
     }

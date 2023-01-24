@@ -152,6 +152,8 @@ bool SPU_Init() {
   this.beatTimer = Timer_Init(SYSCLOCK / (281250.0f/4.0f), (TimerFunc_t)SPU_TriggerBeatIRQ, 0);
   Timer_Reset(this.beatTimer);
 
+  this.enabledChannels = 0xffff;
+
   return true;
 }
 
@@ -204,8 +206,10 @@ void SPU_Tick(int32_t cycles) {
     if (this.chanEnable & (1 << i)) { // Channel is enabled
       SPU_TickChannel(i, &left, &right);
 
-      leftSample  += left  / 16.0f;
-      rightSample += right / 16.0f;
+      if (this.enabledChannels & (1 << i)) {
+        leftSample  += left  / 16.0f;
+        rightSample += right / 16.0f;
+      }
 
     } else {
       Backend_PushOscilloscopeSample(i, 0);
@@ -805,4 +809,9 @@ uint16_t SPU_GetIRQ() {
 
 uint16_t SPU_GetChannelIRQ() {
   return this.channelIrq;
+}
+
+
+void SPU_SetEnabledChannels(uint16_t enabled) {
+  this.enabledChannels = enabled;
 }

@@ -208,6 +208,7 @@ typedef struct SPU_t {
   struct Timer_t* beatTimer;
   bool irq, channelIrq;
 
+  uint16_t enabledChannels;
   uint16_t currBeatBase;
   uint32_t bufferLen;
   int32_t  sampleTimer, accumulatedSamples;
@@ -239,5 +240,7 @@ void SPU_WriteBeatCount(uint16_t data);
 void SPU_TriggerBeatIRQ(uint8_t index);
 uint16_t SPU_GetIRQ();
 uint16_t SPU_GetChannelIRQ();
+
+void SPU_SetEnabledChannels(uint16_t enable);
 
 #endif // SPU_H
