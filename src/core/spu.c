@@ -652,7 +652,7 @@ void SPU_Write(uint16_t addr, uint16_t data) {
       case 0x00:   // Phase high
       case 0x04: { // Phase
         channel->regs2[reg] = data;
-        int32_t intPhase = channel->phase | ((channel->phaseHigh & 3) << 16);
+        int32_t intPhase = channel->phase | ((channel->phaseHigh & 7) << 16);
         float phase = (float)intPhase;
         channel->rate = (phase * 281250.0f) / 524288.0f;
         channel->accum = 0.0f;
