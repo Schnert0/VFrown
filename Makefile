@@ -23,7 +23,7 @@ ifeq ($(platform), windows)
 else ifeq ($(platform), linux)
 	DEFS+=-D_GNU_SOURCE
 	CFLAGS+=-pthread
-	LIBS+=-lX11 -lXi -lXcursor -lGL -ldl -lm
+	LIBS+=-lX11 -lXi -lXcursor -lGL -ldl -lm -lasound
 else ifeq ($(platform), macos)
   LIBS+=-framework Cocoa -framework QuartzCore -framework Metal -framework MetalKit -framework AudioToolbox
   CFLAGS+= -x objective-c
