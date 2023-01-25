@@ -155,7 +155,7 @@ typedef struct {
   ADPCM36Header_t adpcm36Header;
   int16_t adpcm36Prev[2];
 
-  uint16_t rampDownFrame, envelopeFrame;
+  int32_t rampDownFrame, envelopeFrame;
 
   struct Timer_t* timer;
 } Channel_t;
