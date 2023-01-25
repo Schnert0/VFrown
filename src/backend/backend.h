@@ -1,6 +1,10 @@
 #ifndef BACKEND_H
 #define BACKEND_H
 
+#ifndef DNDEBUG
+  #define SOKOL_LOG(s) VSmile_Error(s);
+#endif // DNDEBUG
+
 #include "lib/nuklear_def.h"
 
 #include "../common.h"
