@@ -3,6 +3,8 @@
 
 static sg_image emuFrame;
 
+static float speed;
+
 // Called when the application is initializing.
 static void init() {
   // Sokol GFX
@@ -28,6 +30,7 @@ static void init() {
     .pixel_format = SG_PIXELFORMAT_RGBA8
   });
 
+  speed = 0.0f;
 
   // Sokol Nuklear
   snk_setup(&(snk_desc_t){
@@ -68,7 +71,16 @@ static void frame() {
 
   // Run one frame of emulation
   Backend_Update();
-  VSmile_RunFrame();
+
+  float systemSpeed = Backend_GetSpeed();
+  speed += systemSpeed;
+  if (speed >= 1.0f) {
+    systemSpeed = 1.0f / systemSpeed;
+    while (speed > 0.0f) {
+      VSmile_RunFrame();
+      speed -= systemSpeed;
+    }
+  }
 
   sg_update_image(emuFrame, &(sg_image_data){
     .subimage[0][0] = {

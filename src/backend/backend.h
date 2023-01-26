@@ -21,6 +21,9 @@ bool Backend_Init();
 void Backend_Cleanup();
 void Backend_Update();
 
+float Backend_GetSpeed();
+void Backend_SetSpeed(float newSpeed);
+
 // Window
 uint32_t* Backend_GetScanlinePointer(uint16_t scanlineNum);
 bool Backend_RenderScanline();

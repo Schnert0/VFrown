@@ -15,6 +15,7 @@
  */
 typedef struct VSmile_t {
   int32_t cyclesLeft;
+  float clockScale;
   bool paused, step;
 } VSmile_t;
 
@@ -31,6 +32,8 @@ void VSmile_SetIntroEnable(bool shouldShowIntro);
 
 bool VSmile_GetPaused();
 void VSmile_SetPause(bool isPaused);
+float VSmile_GetClockScale();
+void VSmile_SetClockScale(float newSpeed);
 void VSmile_Step();
 
 void VSmile_Log(const char* message, ...);

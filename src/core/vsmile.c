@@ -9,6 +9,8 @@ bool VSmile_Init() {
   if (!SPU_Init()) return false;
   if (!Controller_Init()) return false;
 
+  this.clockScale = 1.0f;
+
   return true;
 }
 
@@ -78,6 +80,16 @@ bool VSmile_GetPaused() {
 
 void VSmile_SetPause(bool isPaused) {
   this.paused = isPaused;
+}
+
+
+float VSmile_GetClockScale() {
+  return this.clockScale;
+}
+
+
+void VSmile_SetClockScale(float newScale) {
+  this.clockScale = newScale;
 }
 
 

@@ -187,7 +187,7 @@ void SPU_Tick(int32_t cycles) {
 
   while (this.accumulatedSamples > 0) {
     for (int32_t i = 0; i < 16; i++) {
-      Timer_Tick(this.channels[i].timer, SPU_SAMPLE_TIMER);
+      Timer_Tick(this.channels[i].timer, SPU_SAMPLE_TIMER-this.sampleTimer);
     }
     this.accumulatedSamples -= SPU_SAMPLE_TIMER;
   }
@@ -261,7 +261,7 @@ uint16_t SPU_TickSample(uint8_t ch) {
 
   channel->prevWaveData = channel->waveData;
 
-  channel->accum += channel->rate;
+  channel->accum += channel->rate;// * VSmile_GetSystemSpeed();
   int32_t sampleTicks = 0;
   while (channel->accum >= rateCutoff) {
     channel->accum -= rateCutoff;

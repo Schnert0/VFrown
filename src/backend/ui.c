@@ -74,6 +74,7 @@ void UI_RunFrame(struct nk_context* ctx) {
       if (nk_menu_item_label(ctx, "Reset", NK_TEXT_LEFT)) {
         VSmile_Reset();
       }
+      emulationSpeed = (int32_t)(Backend_GetSpeed() * 100.0f);
       char speedText[256];
       snprintf((char*)&speedText, 256, "Emulation Speed (%d)", emulationSpeed);
       nk_label(ctx, speedText, NK_TEXT_LEFT);
@@ -81,6 +82,7 @@ void UI_RunFrame(struct nk_context* ctx) {
       if (nk_menu_item_label(ctx, "Set speed to 100%", NK_TEXT_LEFT)) {
         emulationSpeed = 100;
       }
+      Backend_SetSpeed(emulationSpeed / 100.0f);
 
       nk_menu_end(ctx);
     }

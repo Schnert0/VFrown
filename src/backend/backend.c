@@ -1,6 +1,8 @@
 #define SOKOL_IMPL
 #include "backend.h"
 
+static float emulationSpeed = 1.0f;
+
 static uint32_t pixelBuffer[240][320];
 static uint32_t currButtons = 0, prevButtons = 0;
 
@@ -29,6 +31,16 @@ void Backend_Update() {
   if (Backend_GetChangedButtons())
     Controller_UpdateButtons(0, currButtons);
   prevButtons = currButtons;
+}
+
+
+float Backend_GetSpeed() {
+  return emulationSpeed;
+}
+
+
+void Backend_SetSpeed(float newSpeed) {
+  emulationSpeed = newSpeed;
 }
 
 
