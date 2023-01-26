@@ -261,7 +261,7 @@ uint16_t SPU_TickSample(uint8_t ch) {
 
   channel->prevWaveData = channel->waveData;
 
-  channel->accum += channel->rate;// * VSmile_GetSystemSpeed();
+  channel->accum += channel->rate * VSmile_GetClockScale();
   int32_t sampleTicks = 0;
   while (channel->accum >= rateCutoff) {
     channel->accum -= rateCutoff;

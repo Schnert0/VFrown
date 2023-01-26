@@ -25,11 +25,13 @@ void VSmile_Cleanup() {
 
 
 void VSmile_RunFrame() {
-  if (this.paused)
+  if (this.paused && !this.step)
     return;
 
+  float cyclesPerLine = CYCLES_PER_LINE * this.clockScale;
+
   while (true) {
-    this.cyclesLeft += CYCLES_PER_LINE;
+    this.cyclesLeft += cyclesPerLine;
     while (this.cyclesLeft > 0) {
       int32_t cycles = CPU_Tick();
       SPU_Tick(cycles);
@@ -38,12 +40,13 @@ void VSmile_RunFrame() {
 
     // Tick these every scan line instead of every cycle.
     // Even though it's slightly less accurate, it's waaaay more efficient this way.
-    Bus_Update(CYCLES_PER_LINE-this.cyclesLeft);
-    Controller_Tick(CYCLES_PER_LINE-this.cyclesLeft);
+    Bus_Update(cyclesPerLine-this.cyclesLeft);
+    Controller_Tick(cyclesPerLine-this.cyclesLeft);
     if (PPU_RenderLine())
       break;
   }
   Backend_PushBuffer();
+  this.step = false;
 }
 
 

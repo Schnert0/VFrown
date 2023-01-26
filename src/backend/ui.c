@@ -17,6 +17,7 @@ void UI_Cleanup() {
 void UI_RunFrame(struct nk_context* ctx) {
   // System settings
   static int32_t emulationSpeed = 100;
+  static int32_t clockSpeed = 100;
   static nk_bool emulationPaused = false;
 
   // Popup window settings
@@ -58,7 +59,7 @@ void UI_RunFrame(struct nk_context* ctx) {
     }
 
     // Emulation
-    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(175, 220))) {
+    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(175, 320))) {
       nk_layout_row_dynamic(ctx, 25, 1);
       if (nk_menu_item_label(ctx, "Toggle FullScreen", NK_TEXT_LEFT)) {
         sapp_toggle_fullscreen();
@@ -83,6 +84,16 @@ void UI_RunFrame(struct nk_context* ctx) {
         emulationSpeed = 100;
       }
       Backend_SetSpeed(emulationSpeed / 100.0f);
+
+      float clockScale = VSmile_GetClockScale();
+      snprintf((char*)&speedText, 256, "Clock Speed (%.2f MHz)", (27000000.0f * clockScale) / 1000000.0f);
+      nk_label(ctx, speedText, NK_TEXT_LEFT);
+      clockSpeed = (int32_t)(clockScale * 100.0f);
+      nk_slider_int(ctx, 10, &clockSpeed, 200, 1);
+      if (nk_menu_item_label(ctx, "Set clock speed to 100%", NK_TEXT_LEFT)) {
+        clockSpeed = 100;
+      }
+      VSmile_SetClockScale(clockSpeed / 100.0f);
 
       nk_menu_end(ctx);
     }
@@ -161,14 +172,14 @@ void UI_RunFrame(struct nk_context* ctx) {
           nk_label(ctx, "1 - Toggle Layer 0", NK_TEXT_LEFT);
           nk_label(ctx, "2 - Toggle Layer 1", NK_TEXT_LEFT);
           nk_label(ctx, "3 - Toggle Sprites", NK_TEXT_LEFT);
-          nk_label(ctx, "4 - Pause", NK_TEXT_LEFT);
-          nk_label(ctx, "5 - Step", NK_TEXT_LEFT);
-          nk_label(ctx, "6 - Sprite Outlines", NK_TEXT_LEFT);
-          nk_label(ctx, "7 - Sprite Flip Visualization", NK_TEXT_LEFT);
-          nk_label(ctx, "8 - Sound Oscilloscope Visualization", NK_TEXT_LEFT);
+          nk_label(ctx, "P - Pause", NK_TEXT_LEFT);
+          nk_label(ctx, "O - Step", NK_TEXT_LEFT);
+          // nk_label(ctx, "6 - Sprite Outlines", NK_TEXT_LEFT);
+          // nk_label(ctx, "7 - Sprite Flip Visualization", NK_TEXT_LEFT);
+          // nk_label(ctx, "8 - Sound Oscilloscope Visualization", NK_TEXT_LEFT);
           nk_label(ctx, "0 - Reset", NK_TEXT_LEFT);
-          nk_label(ctx, "F1 - Toggle LEV Visualization", NK_TEXT_LEFT);
-          nk_label(ctx, "F10 - Close Emulator", NK_TEXT_LEFT);
+          // nk_label(ctx, "F1 - Toggle LED Visualization", NK_TEXT_LEFT);
+          // nk_label(ctx, "F10 - Close Emulator", NK_TEXT_LEFT);
           nk_label(ctx, "z - RED", NK_TEXT_LEFT);
           nk_label(ctx, "x - YELLOW", NK_TEXT_LEFT);
           nk_label(ctx, "c - GREEN", NK_TEXT_LEFT);

@@ -122,6 +122,14 @@ void Backend_PushOscilloscopeSample(uint8_t ch, int16_t sample) {
 void Backend_HandleInput(int32_t keycode, int32_t eventType) {
   if (eventType == SAPP_EVENTTYPE_KEY_DOWN) {
     switch (keycode) {
+    case SAPP_KEYCODE_0: VSmile_Reset(); break;
+    case SAPP_KEYCODE_1: PPU_ToggleLayer(0); break;
+    case SAPP_KEYCODE_2: PPU_ToggleLayer(1); break;
+    case SAPP_KEYCODE_3: PPU_ToggleLayer(2); break;
+
+    case SAPP_KEYCODE_O: VSmile_Step(); break;
+    case SAPP_KEYCODE_P: VSmile_SetPause(!VSmile_GetPaused()); break;
+
     case SAPP_KEYCODE_UP:    currButtons |= (1 << INPUT_UP);     break;
     case SAPP_KEYCODE_DOWN:  currButtons |= (1 << INPUT_DOWN);   break;
     case SAPP_KEYCODE_LEFT:  currButtons |= (1 << INPUT_LEFT);   break;
