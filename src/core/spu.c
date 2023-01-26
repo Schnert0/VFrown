@@ -2,7 +2,7 @@
 
 static SPU_t this;
 
-static const float rateCutoff = 44100.0f;
+static const float rateCutoff = 48000.0f;
 static float sampleBuffer[MAX_SAMPLES];
 static int32_t sampleCount;
 

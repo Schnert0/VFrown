@@ -10,6 +10,7 @@ static int32_t* sampleCount = NULL;
 
 bool Backend_Init() {
   saudio_setup(&(saudio_desc){
+    .sample_rate  = 48000,
     .num_channels = 2
   });
   saudio_sample_rate();

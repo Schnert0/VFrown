@@ -25,7 +25,7 @@ static void init() {
     .width = 320,
     .height = 240,
     .usage = SG_USAGE_STREAM,
-    .pixel_format = SG_PIXELFORMAT_BGRA8
+    .pixel_format = SG_PIXELFORMAT_RGBA8
   });
 
 

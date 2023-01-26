@@ -2,7 +2,7 @@
 
 static PPU_t this;
 
-#define RGB5A1_TO_RGBA8(color) (((color & 0x1f) << 3) | ((color & 0x3e0) << 6) | ((color & 0x7c00) << 9))
+#define RGB5A1_TO_RGBA8(color) (((color & 0x1f) << 19) | ((color & 0x3e0) << 6) | ((color & 0x7c00) >> 7))
 
 bool PPU_Init() {
   memset(&this, 0, sizeof(PPU_t));
