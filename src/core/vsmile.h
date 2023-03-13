@@ -29,6 +29,7 @@ void VSmile_LoadROM(const char* path);
 void VSmile_LoadSysRom(const char* path);
 void VSmile_SetRegion(uint8_t region);
 void VSmile_SetIntroEnable(bool shouldShowIntro);
+bool VSmile_GetIntroEnable();
 
 bool VSmile_GetPaused();
 void VSmile_SetPause(bool isPaused);
