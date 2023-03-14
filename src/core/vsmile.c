@@ -1,7 +1,5 @@
 #include "vsmile.h"
 
-bool VSmile_IntroEnabled = true;
-
 static VSmile_t this;
 
 bool VSmile_Init() {
@@ -71,12 +69,12 @@ void VSmile_SetRegion(uint8_t region) {
 }
 
 void VSmile_SetIntroEnable(bool shouldShowIntro) {
-  VSmile_IntroEnabled = shouldShowIntro;
+  this.introEnabled = shouldShowIntro;
   GPIO_SetIntroEnable(shouldShowIntro);
 }
 
 bool VSmile_GetIntroEnable() {
-  return VSmile_IntroEnabled;
+  return this.introEnabled;
 }
 
 
