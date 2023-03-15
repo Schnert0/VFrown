@@ -10,6 +10,7 @@ bool VSmile_Init() {
   if (!Controller_Init()) return false;
 
   this.clockScale = 1.0f;
+  this.introEnabled = true;
 
   return true;
 }
