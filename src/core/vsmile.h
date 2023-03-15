@@ -16,8 +16,7 @@
 typedef struct VSmile_t {
   int32_t cyclesLeft;
   float clockScale;
-  bool paused, step;
-  bool introEnabled = true;
+  bool paused, step, introEnabled;
 } VSmile_t;
 
 bool VSmile_Init();
