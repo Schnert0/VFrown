@@ -16,7 +16,7 @@
 typedef struct VSmile_t {
   int32_t cyclesLeft;
   float clockScale;
-  bool paused, step;
+  bool paused, step, introEnabled;
 } VSmile_t;
 
 bool VSmile_Init();
@@ -29,6 +29,7 @@ void VSmile_LoadROM(const char* path);
 void VSmile_LoadSysRom(const char* path);
 void VSmile_SetRegion(uint8_t region);
 void VSmile_SetIntroEnable(bool shouldShowIntro);
+bool VSmile_GetIntroEnable();
 
 bool VSmile_GetPaused();
 void VSmile_SetPause(bool isPaused);

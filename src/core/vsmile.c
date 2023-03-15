@@ -10,6 +10,7 @@ bool VSmile_Init() {
   if (!Controller_Init()) return false;
 
   this.clockScale = 1.0f;
+  this.introEnabled = true;
 
   return true;
 }
@@ -69,7 +70,12 @@ void VSmile_SetRegion(uint8_t region) {
 }
 
 void VSmile_SetIntroEnable(bool shouldShowIntro) {
+  this.introEnabled = shouldShowIntro;
   GPIO_SetIntroEnable(shouldShowIntro);
+}
+
+bool VSmile_GetIntroEnable() {
+  return this.introEnabled;
 }
 
 
