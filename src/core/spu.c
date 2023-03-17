@@ -243,8 +243,8 @@ void SPU_Tick(int32_t cycles) {
   if (sampleCount >= MAX_SAMPLES)
     return;
 
-  leftSample  *= (1.0f/128.0f);
-  rightSample *= (1.0f/128.0f);
+  leftSample  *= (1.0f/32.0f);
+  rightSample *= (1.0f/32.0f);
 
   switch((this.volumeSelect >> 6) & 3) { // Volume select
   case 0:
