@@ -14,6 +14,16 @@ void DMA_Cleanup() {
 }
 
 
+void DMA_SaveState() {
+  Backend_WriteSave(&this, sizeof(DMA_t));
+}
+
+
+void DMA_LoadState() {
+  Backend_ReadSave(&this, sizeof(DMA_t));
+}
+
+
 void DMA_Reset() {
   this.src  = 0x000000;
   this.dst  =   0x0000;

@@ -14,6 +14,16 @@ void GPIO_Cleanup() {
 }
 
 
+void GPIO_SaveState() {
+  Backend_WriteSave(&this, sizeof(GPIO_t));
+}
+
+
+void GPIO_LoadState() {
+  Backend_ReadSave(&this, sizeof(GPIO_t));
+}
+
+
 void GPIO_Reset() {
   this.config = 0x001f; // 0x3d00
 

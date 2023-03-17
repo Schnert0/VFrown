@@ -127,6 +127,9 @@ void PPU_Cleanup();
 bool PPU_Reset();
 void PPU_UpdateScreen();
 
+void PPU_SaveState();
+void PPU_LoadState();
+
 uint16_t PPU_Read(uint16_t addr);
 void PPU_Write(uint16_t addr, uint16_t data);
 

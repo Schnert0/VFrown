@@ -218,6 +218,9 @@ typedef struct SPU_t {
 bool SPU_Init();
 void SPU_Cleanup();
 
+void SPU_SaveState();
+void SPU_LoadState();
+
 void SPU_Tick(int32_t cycles);
 
 uint16_t SPU_TickSample(uint8_t ch);

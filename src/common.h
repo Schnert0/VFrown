@@ -10,12 +10,13 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include <Windows.h>
+#define PATH_CHAR '\\'
 #else
-#include <unistd.h>
+#define PATH_CHAR '/'
 #endif
 
 #include "backend/backend.h"
+
 
 #define CYCLES_PER_LINE 1716
 #define LINES_PER_FIELD 262

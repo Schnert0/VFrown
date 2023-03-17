@@ -175,6 +175,30 @@ void SPU_Reset() {
 }
 
 
+void SPU_SaveState() {
+  Backend_WriteSave(&this, sizeof(SPU_t));
+  Timer_SaveState(this.beatTimer);
+  for (int32_t i = 0; i < 16; i++) {
+    Timer_SaveState(this.channels[i].timer);
+  }
+}
+
+
+void SPU_LoadState() {
+  Timer_t* beatTimer = this.beatTimer;
+  Timer_t* timer[16];
+  for (int32_t i = 0; i < 16; i++)
+    timer[i] = this.channels[i].timer;
+  Backend_ReadSave(&this, sizeof(SPU_t));
+  this.beatTimer = beatTimer;
+  Timer_LoadState(this.beatTimer);
+  for (int32_t i = 0; i < 16; i++) {
+    this.channels[i].timer = timer[i];
+    Timer_LoadState(this.channels[i].timer);
+  }
+}
+
+
 void SPU_Tick(int32_t cycles) {
   Timer_Tick(this.beatTimer, cycles);
 

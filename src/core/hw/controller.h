@@ -35,6 +35,9 @@ typedef struct Controller_t {
 bool Controller_Init();
 void Controller_Cleanup();
 
+void Controller_SaveState();
+void Controller_LoadState();
+
 void Controller_Tick(int32_t cycles);
 uint16_t Controller_GetRequests();
 void Controller_SetSelects(uint16_t data);

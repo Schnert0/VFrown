@@ -17,9 +17,28 @@
 #include "lib/sokol_gp.h"
 #include "lib/sokol_nuklear.h"
 
+typedef struct {
+  float* sampleBuffer;
+  int32_t* sampleCount;
+  FILE* saveFile;
+
+  float emulationSpeed;
+  uint32_t pixelBuffer[240][320];
+  uint32_t currButtons;
+  uint32_t prevButtons;
+  char title[256];
+} Backend_t;
+
 bool Backend_Init();
 void Backend_Cleanup();
 void Backend_Update();
+
+// Save states
+void Backend_GetFileName(const char* path);
+void Backend_WriteSave(void* data, uint32_t size);
+void Backend_ReadSave(void* data, uint32_t size);
+void Backend_SaveState();
+void Backend_LoadState();
 
 float Backend_GetSpeed();
 void Backend_SetSpeed(float newSpeed);

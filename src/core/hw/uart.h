@@ -33,6 +33,10 @@ typedef struct {
 bool UART_Init();
 void UART_Cleanup();
 
+
+void UART_SaveState();
+void UART_LoadState();
+
 void UART_Reset();
 void UART_Update();
 

@@ -20,6 +20,9 @@ typedef struct Timer_t {
 struct Timer_t* Timer_Init(int32_t resetValue, TimerFunc_t callback, int32_t index);
 void Timer_Cleanup(struct Timer_t* this);
 
+void Timer_SaveState(struct Timer_t* this);
+void Timer_LoadState(struct Timer_t* this);
+
 void Timer_Tick(struct Timer_t* this, int32_t cycles);
 void Timer_Reset(struct Timer_t* this);
 void Timer_Adjust(struct Timer_t* this, int32_t newResetValue);

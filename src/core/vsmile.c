@@ -3,6 +3,8 @@
 static VSmile_t this;
 
 bool VSmile_Init() {
+  memset(&this, 0, sizeof(VSmile_t));
+
   if (!Bus_Init()) return false;
   if (!CPU_Init()) return false;
   if (!PPU_Init()) return false;
@@ -57,8 +59,19 @@ void VSmile_Reset() {
 }
 
 
+void VSmile_SaveState() {
+  Backend_WriteSave(&this, sizeof(VSmile_t));
+}
+
+
+void VSmile_LoadState() {
+  Backend_ReadSave(&this, sizeof(VSmile_t));
+}
+
+
 void VSmile_LoadROM(const char* path) {
   Bus_LoadROM(path);
+  Backend_GetFileName(path);
 }
 
 

@@ -25,6 +25,9 @@ void VSmile_Cleanup();
 void VSmile_RunFrame();
 void VSmile_Reset();
 
+void VSmile_SaveState();
+void VSmile_LoadState();
+
 void VSmile_LoadROM(const char* path);
 void VSmile_LoadSysRom(const char* path);
 void VSmile_SetRegion(uint8_t region);
