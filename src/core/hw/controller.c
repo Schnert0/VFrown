@@ -34,6 +34,37 @@ void Controller_Cleanup() {
 }
 
 
+void Controller_SaveState() {
+  for (int32_t i = 0; i < 2; i++) {
+    Backend_WriteSave(&controllers[i], sizeof(Controller_t));
+    Timer_SaveState(controllers[i].txTimer);
+    Timer_SaveState(controllers[i].rxTimer);
+    Timer_SaveState(controllers[i].rtsTimer);
+    Timer_SaveState(controllers[i].idleTimer);
+  }
+}
+
+
+void Controller_LoadState() {
+  for (int32_t i = 0; i < 2; i++) {
+    struct Timer_t* txTimer = controllers[i].txTimer;
+    struct Timer_t* rxTimer = controllers[i].rxTimer;
+    struct Timer_t* rtsTimer = controllers[i].rtsTimer;
+    struct Timer_t* idleTimer = controllers[i].idleTimer;
+    Backend_ReadSave(&controllers[i], sizeof(Controller_t));
+    controllers[i].txTimer = txTimer;
+    controllers[i].rxTimer = rxTimer;
+    controllers[i].rtsTimer = rtsTimer;
+    controllers[i].idleTimer = idleTimer;
+    Timer_LoadState(controllers[i].txTimer);
+    Timer_LoadState(controllers[i].rxTimer);
+    Timer_LoadState(controllers[i].rtsTimer);
+    Timer_LoadState(controllers[i].idleTimer);
+  }
+
+}
+
+
 void Controller_Tick(int32_t cycles) {
   for (int32_t i = 0; i < 2; i++) {
     Controller_t* this = &controllers[i];
@@ -69,6 +100,7 @@ uint8_t Controller_SendByte() {
 
 
 void Controller_RecieveByte(uint8_t data) {
+  // printf("ctrl recieving %02x\n", data);
   if (controllers[0].select) {
     controllers[0].rxBuffer = data;
     Timer_Reset(controllers[0].rxTimer);
@@ -83,6 +115,8 @@ void Controller_RecieveByte(uint8_t data) {
 
 bool Controller_PushTx(uint8_t ctrlNum, uint8_t data) {
   Controller_t* this = &controllers[ctrlNum];
+
+  // printf("controller push %02x\n", data);
 
   if (!this->txEmpty && (this->txHead == this->txTail)) {
     VSmile_Warning("Tx byte %02x discarded because FIFO is full", data);
@@ -108,6 +142,8 @@ uint8_t Controller_PopTx(uint8_t ctrlNum) {
   uint8_t data = this->txFifo[this->txTail];
   this->txTail = (this->txTail + 1) & 0xf;
   this->txEmpty = (this->txHead == this->txTail);
+
+  // printf("controller pop %02x\n", data);
 
   return data;
 }

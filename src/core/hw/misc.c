@@ -23,6 +23,30 @@ void Misc_Cleanup() {
 }
 
 
+void Misc_SaveState() {
+  Backend_WriteSave(&this, sizeof(Misc_t));
+  Timer_SaveState(this.watchdogTimer);
+  for (int32_t i = 0; i < 4; i++) {
+    Timer_SaveState(this.adcTimers[i]);
+  }
+}
+
+
+void Misc_LoadState() {
+  struct Timer_t* adcTimers[4];
+  struct Timer_t* watchdogTimer = this.watchdogTimer;
+  for (int32_t i = 0; i < 4; i++)
+    adcTimers[i] = this.adcTimers[i];
+  Backend_ReadSave(&this, sizeof(Misc_t));
+  this.watchdogTimer = watchdogTimer;
+  Timer_LoadState(this.watchdogTimer);
+  for (int32_t i = 0; i < 4; i++) {
+    this.adcTimers[i] = adcTimers[i];
+    Timer_LoadState(this.adcTimers[i]);
+  }
+}
+
+
 void Misc_Reset() {
   this.sysCtrl    = 0x4006;
   this.irqCtrl    = 0x3ffb;

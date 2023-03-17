@@ -50,6 +50,37 @@ void Timers_Cleanup() {
 }
 
 
+void Timers_SaveState() {
+  Backend_WriteSave(&this, sizeof(Timers_t));
+  Timer_SaveState(this.sysTimers);
+  Timer_SaveState(this.tmb[0]);
+  Timer_SaveState(this.tmb[1]);
+  Timer_SaveState(this.timerABSource);
+  Timer_SaveState(this.timerCSource);
+}
+
+
+void Timers_LoadState() {
+  struct Timer_t* tmb[2];
+  struct Timer_t* sysTimers = this.sysTimers;
+  tmb[0] = this.tmb[0];
+  tmb[1] = this.tmb[1];
+  struct Timer_t* timerABSource = this.timerABSource;
+  struct Timer_t* timerCSource = this.timerCSource;
+  Backend_ReadSave(&this, sizeof(Timers_t));
+  this.sysTimers = sysTimers;
+  this.tmb[0] = tmb[0];
+  this.tmb[1] = tmb[1];
+  this.timerABSource = timerABSource;
+  this.timerCSource = timerCSource;
+  Timer_LoadState(this.sysTimers);
+  Timer_LoadState(this.tmb[0]);
+  Timer_LoadState(this.tmb[1]);
+  Timer_LoadState(this.timerABSource);
+  Timer_LoadState(this.timerCSource);
+}
+
+
 void Timers_Reset() {
   Timer_Adjust(this.tmb[0], SYSCLOCK / 128);
   Timer_Adjust(this.tmb[1], SYSCLOCK / 8);

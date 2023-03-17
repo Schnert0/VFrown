@@ -14,6 +14,16 @@ void UART_Cleanup() {
 }
 
 
+void UART_SaveState() {
+  Backend_WriteSave(&this, sizeof(UART_t));
+}
+
+
+void UART_LoadState() {
+  Backend_ReadSave(&this, sizeof(UART_t));
+}
+
+
 void UART_Reset() {
   // Maybe wrong since init captured using uart
   this.ctrl   = 0x00ef;
@@ -32,14 +42,16 @@ void UART_Update(int32_t cycles) {
   // TODO: Use Timer objects for these instead
   if (this.txTimer > 0) {
     this.txTimer -= cycles;
-    if (this.txTimer <= 0)
+    if (this.txTimer <= 0) {
       UART_TransmitTick();
+    }
   }
 
   if (this.rxTimer > 0) {
     this.rxTimer -= cycles;
-    if (this.rxTimer <= 0)
+    if (this.rxTimer <= 0) {
       UART_RecieveTick();
+    }
   }
 }
 
@@ -130,7 +142,7 @@ void UART_SetTxBuffer(uint16_t data) {
 
 
 uint16_t UART_GetRxBuffer() {
-  if (this.rxAvailable) {        // If there is data available in the Rx buffer
+  if (this.rxAvailable) { // If there is data available in the Rx buffer
     this.stat &= ~0x81; // Unset the Rx Buffer full flag and Rx Ready flags
     if (!this.rxEmpty) {
       this.rxBuffer = UART_PopRx();
@@ -151,7 +163,7 @@ uint16_t UART_GetRxBuffer() {
 
 
 void UART_RxTimerReset() {
-  this.rxTimer = SYSCLOCK / 960;
+  this.rxTimer = SYSCLOCK / 9600;
 }
 
 

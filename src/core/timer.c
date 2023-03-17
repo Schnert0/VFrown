@@ -17,6 +17,18 @@ void Timer_Cleanup(struct Timer_t* this) {
 }
 
 
+void Timer_SaveState(struct Timer_t* this) {
+  Backend_WriteSave(this, sizeof(Timer_t));
+}
+
+
+void Timer_LoadState(struct Timer_t* this) {
+  TimerFunc_t callback = this->callback;
+  Backend_ReadSave(this, sizeof(Timer_t));
+  this->callback = callback;
+}
+
+
 void Timer_Tick(struct Timer_t* this, int32_t cycles) {
   if (this->ticksLeft > 0) {
     this->ticksLeft -= cycles;

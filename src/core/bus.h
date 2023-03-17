@@ -34,9 +34,9 @@
  * as well as I/O access. Bus always outputs 16-bit words
  */
 typedef struct Bus_t {
-  uint16_t mem[BUS_SIZE];
+  // uint16_t mem[BUS_SIZE];
   uint16_t ram[RAM_SIZE];
-  uint16_t nvram[0x200000];
+  // uint16_t nvram[0x200000];
 
   uint16_t* romBuffer;
   uint16_t* sysRomBuffer;
@@ -51,6 +51,9 @@ typedef struct Bus_t {
 
 bool Bus_Init();
 void Bus_Cleanup();
+
+void Bus_SaveState();
+void Bus_LoadState();
 
 void Bus_Reset();
 void Bus_LoadROM(const char* filePath);

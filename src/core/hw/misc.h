@@ -31,6 +31,9 @@ typedef struct {
 bool Misc_Init();
 void Misc_Cleanup();
 
+void Misc_SaveState();
+void Misc_LoadState();
+
 void Misc_Reset();
 void Misc_Update(int32_t cycles);
 

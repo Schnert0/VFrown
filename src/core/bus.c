@@ -31,6 +31,20 @@ void Bus_Cleanup() {
 }
 
 
+void Bus_SaveState() {
+  Backend_WriteSave(&this, sizeof(Bus_t));
+}
+
+
+void Bus_LoadState() {
+  uint16_t* romBuffer = this.romBuffer;
+  uint16_t* sysRomBuffer = this.sysRomBuffer;
+  Backend_ReadSave(&this, sizeof(Bus_t));
+  this.romBuffer = romBuffer;
+  this.sysRomBuffer = sysRomBuffer;
+}
+
+
 void Bus_Reset() {
   GPIO_Reset();
   Timers_Reset();

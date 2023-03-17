@@ -22,6 +22,9 @@ typedef struct {
 bool DMA_Init();
 void DMA_Cleanup();
 
+void DMA_SaveState();
+void DMA_LoadState();
+
 void DMA_Reset();
 
 uint16_t DMA_Read(uint16_t addr);

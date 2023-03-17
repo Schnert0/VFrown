@@ -47,6 +47,9 @@ typedef struct {
 bool Timers_Init();
 void Timers_Cleanup();
 
+void Timers_SaveState();
+void Timers_LoadState();
+
 void Timers_Reset();
 void Timers_Update();
 

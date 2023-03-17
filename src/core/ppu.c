@@ -27,6 +27,18 @@ bool PPU_Reset() {
 }
 
 
+void PPU_SaveState() {
+  Backend_WriteSave(&this, sizeof(PPU_t));
+}
+
+
+void PPU_LoadState() {
+  uint32_t* scanlineBuffer = this.scanlineBuffer;
+  Backend_ReadSave(&this, sizeof(PPU_t));
+  this.scanlineBuffer = scanlineBuffer;
+}
+
+
 void PPU_UpdateScreen() {
   // Backend_UpdateWindow();
 }

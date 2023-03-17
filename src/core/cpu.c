@@ -63,6 +63,7 @@ static Func_t CPU_OperandFunctionsEx[] = {
 // Initialize CPU state
 bool CPU_Init() {
   memset(&this, 0, sizeof(CPU_t));
+
   return true;
 }
 
@@ -70,6 +71,16 @@ bool CPU_Init() {
 // Cleanup CPU state
 void CPU_Cleanup() {
 
+}
+
+
+void CPU_SaveState() {
+  Backend_WriteSave(&this, sizeof(CPU_t));
+}
+
+
+void CPU_LoadState() {
+  Backend_ReadSave(&this, sizeof(CPU_t));
 }
 
 

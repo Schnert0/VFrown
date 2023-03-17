@@ -41,6 +41,9 @@ typedef struct {
 bool GPIO_Init();
 void GPIO_Cleanup();
 
+void GPIO_SaveState();
+void GPIO_LoadState();
+
 void GPIO_Reset();
 
 uint16_t GPIO_Read(uint16_t addr);

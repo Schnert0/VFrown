@@ -1,22 +1,25 @@
 #define SOKOL_IMPL
 #include "backend.h"
 
-static float emulationSpeed = 1.0f;
-
-static uint32_t pixelBuffer[240][320];
-static uint32_t currButtons = 0, prevButtons = 0;
-
-static float* sampleBuffer = NULL;
-static int32_t* sampleCount = NULL;
-
+static Backend_t this;
 
 bool Backend_Init() {
+  memset(&this, 0, sizeof(Backend_t));
+
   saudio_setup(&(saudio_desc){
     .sample_rate  = 48000,
     .num_channels = 2
   });
   saudio_sample_rate();
   saudio_channels();
+
+  this.sampleBuffer = NULL;
+  this.sampleCount = NULL;
+  this.saveFile = NULL;
+
+  this.emulationSpeed = 1.0f;
+  this.currButtons = 0;
+  this.prevButtons = 0;
 
   return true;
 }
@@ -29,23 +32,140 @@ void Backend_Cleanup() {
 
 void Backend_Update() {
   if (Backend_GetChangedButtons())
-    Controller_UpdateButtons(0, currButtons);
-  prevButtons = currButtons;
+    Controller_UpdateButtons(0, this.currButtons);
+  this.prevButtons = this.currButtons;
+}
+
+
+// Find and store the title of the current ROM
+void Backend_GetFileName(const char* path) {
+  if (!path)
+    return;
+
+  // Get the end of the file name before the '.' of the file extension
+  char* end = (char*)(path + strlen(path));
+  while (end != path && (*end) != PATH_CHAR && (*end) != '.') {
+    end--;
+  }
+  // If the found character is not '.', then there's probably no file extension
+  if (end == path || (*end) != '.')
+    end = (char*)(path + strlen(path));
+
+  // Start searching for the start of the title without the directory
+  char* start = end;
+  while (start != path && (*start) != PATH_CHAR) {
+    start--;
+  }
+  start++; // Moved one too far
+
+  int32_t size = (int32_t)(end - start);
+  if (size > 256)
+    size = 256;
+
+  for (int i = 0; i < size; i++)
+    this.title[i] = start[i];
+  this.title[255] = '\0';
+}
+
+
+void Backend_WriteSave(void* data, uint32_t size) {
+  uint8_t* bytes = (uint8_t*)data;
+  for (int32_t i = 0; i < size; i++)
+    fputc(bytes[i], this.saveFile);
+
+  uint32_t alignmentSize = (size + 0xf) & ~0xf;
+  for (int32_t i = 0; i < (alignmentSize - size); i++)
+    fputc(0x00, this.saveFile);
+
+}
+
+
+void Backend_ReadSave(void* data, uint32_t size) {
+  uint8_t* bytes = (uint8_t*)data;
+  for (int32_t i = 0; i < size; i++)
+    bytes[i] = fgetc(this.saveFile);
+
+  uint32_t alignmentSize = (size + 0xf) & ~0xf;
+  for (int32_t i = 0; i < (alignmentSize - size); i++)
+    fgetc(this.saveFile);
+}
+
+
+void Backend_SaveState() {
+  char path[256];
+  snprintf((char*)&path, 256, "savestates/%s.vfss", (const char*)&this.title);
+
+  VSmile_Log("Saving state from '%s'...", (const char*)&path);
+  this.saveFile = fopen(path, "wb+");
+  if (!this.saveFile) {
+    VSmile_Warning("Save state failed!");
+    return;
+  }
+
+  Bus_SaveState();
+  CPU_SaveState();
+  PPU_SaveState();
+  SPU_SaveState();
+  VSmile_SaveState();
+  Controller_SaveState();
+  DMA_SaveState();
+  GPIO_SaveState();
+  Misc_SaveState();
+  Timers_SaveState();
+  UART_SaveState();
+
+  Backend_WriteSave(&this.currButtons, sizeof(uint32_t));
+  Backend_WriteSave(&this.prevButtons, sizeof(uint32_t));
+
+  fclose(this.saveFile);
+
+  VSmile_Log("State saved!");
+}
+
+void Backend_LoadState() {
+  char path[256];
+  snprintf((char*)&path, 256, "savestates/%s.vfss", (const char*)&this.title);
+
+  VSmile_Log("Loading state from '%s'...", (const char*)&path);
+  this.saveFile = fopen(path, "rb");
+  if (!this.saveFile) {
+    VSmile_Warning("Load state failed!");
+    return;
+  }
+
+  Bus_LoadState();
+  CPU_LoadState();
+  PPU_LoadState();
+  SPU_LoadState();
+  VSmile_LoadState();
+  Controller_LoadState();
+  DMA_LoadState();
+  GPIO_LoadState();
+  Misc_LoadState();
+  Timers_LoadState();
+  UART_LoadState();
+
+  Backend_ReadSave(&this.currButtons, sizeof(uint32_t));
+  Backend_ReadSave(&this.prevButtons, sizeof(uint32_t));
+
+  fclose(this.saveFile);
+
+  VSmile_Log("State loaded!");
 }
 
 
 float Backend_GetSpeed() {
-  return emulationSpeed;
+  return this.emulationSpeed;
 }
 
 
 void Backend_SetSpeed(float newSpeed) {
-  emulationSpeed = newSpeed;
+  this.emulationSpeed = newSpeed;
 }
 
 
 uint32_t* Backend_GetScanlinePointer(uint16_t scanlineNum) {
-  return (uint32_t*)&pixelBuffer[scanlineNum][0];
+  return (uint32_t*)&this.pixelBuffer[scanlineNum][0];
 }
 
 
@@ -68,19 +188,19 @@ uint32_t Backend_GetcurrButtonstates() {
 
 
 uint32_t Backend_GetChangedButtons() {
-  return currButtons ^ prevButtons;
+  return this.currButtons ^ this.prevButtons;
 }
 
 
 void Backend_InitAudioDevice(float* buffer, int32_t* count) {
-  sampleBuffer = buffer;
-  sampleCount = count;
+  this.sampleBuffer = buffer;
+  this.sampleCount = count;
 }
 
 void Backend_PushBuffer() {
-  saudio_push(sampleBuffer, (*sampleCount)/2);
-  memset(sampleBuffer, 0, (*sampleCount)*sizeof(float));
-  (*sampleCount) = 0;
+  saudio_push(this.sampleBuffer, (*this.sampleCount)/2);
+  memset(this.sampleBuffer, 0, (*this.sampleCount)*sizeof(float));
+  (*this.sampleCount) = 0;
 }
 
 
@@ -122,33 +242,50 @@ void Backend_PushOscilloscopeSample(uint8_t ch, int16_t sample) {
 void Backend_HandleInput(int32_t keycode, int32_t eventType) {
   if (eventType == SAPP_EVENTTYPE_KEY_DOWN) {
     switch (keycode) {
-    case SAPP_KEYCODE_UP:    currButtons |= (1 << INPUT_UP);     break;
-    case SAPP_KEYCODE_DOWN:  currButtons |= (1 << INPUT_DOWN);   break;
-    case SAPP_KEYCODE_LEFT:  currButtons |= (1 << INPUT_LEFT);   break;
-    case SAPP_KEYCODE_RIGHT: currButtons |= (1 << INPUT_RIGHT);  break;
-    case SAPP_KEYCODE_SPACE: currButtons |= (1 << INPUT_ENTER);  break;
-    case SAPP_KEYCODE_Z:     currButtons |= (1 << INPUT_RED);    break;
-    case SAPP_KEYCODE_X:     currButtons |= (1 << INPUT_YELLOW); break;
-    case SAPP_KEYCODE_V:     currButtons |= (1 << INPUT_BLUE);   break;
-    case SAPP_KEYCODE_C:     currButtons |= (1 << INPUT_GREEN);  break;
-    case SAPP_KEYCODE_A:     currButtons |= (1 << INPUT_HELP);   break;
-    case SAPP_KEYCODE_S:     currButtons |= (1 << INPUT_EXIT);   break;
-    case SAPP_KEYCODE_D:     currButtons |= (1 << INPUT_ABC);    break;
+    case SAPP_KEYCODE_0: VSmile_Reset(); break;
+    case SAPP_KEYCODE_1: PPU_ToggleLayer(0); break;
+    case SAPP_KEYCODE_2: PPU_ToggleLayer(1); break;
+    case SAPP_KEYCODE_3: PPU_ToggleLayer(2); break;
+
+    case SAPP_KEYCODE_O: VSmile_Step(); break;
+    case SAPP_KEYCODE_P: VSmile_SetPause(!VSmile_GetPaused()); break;
+
+    case SAPP_KEYCODE_J:
+      if (this.title[0])
+        Backend_SaveState();
+      break;
+    case SAPP_KEYCODE_K:
+      if (this.title[0])
+        Backend_LoadState();
+      break;
+
+    case SAPP_KEYCODE_UP:    this.currButtons |= (1 << INPUT_UP);     break;
+    case SAPP_KEYCODE_DOWN:  this.currButtons |= (1 << INPUT_DOWN);   break;
+    case SAPP_KEYCODE_LEFT:  this.currButtons |= (1 << INPUT_LEFT);   break;
+    case SAPP_KEYCODE_RIGHT: this.currButtons |= (1 << INPUT_RIGHT);  break;
+    case SAPP_KEYCODE_SPACE: this.currButtons |= (1 << INPUT_ENTER);  break;
+    case SAPP_KEYCODE_Z:     this.currButtons |= (1 << INPUT_RED);    break;
+    case SAPP_KEYCODE_X:     this.currButtons |= (1 << INPUT_YELLOW); break;
+    case SAPP_KEYCODE_V:     this.currButtons |= (1 << INPUT_BLUE);   break;
+    case SAPP_KEYCODE_C:     this.currButtons |= (1 << INPUT_GREEN);  break;
+    case SAPP_KEYCODE_A:     this.currButtons |= (1 << INPUT_HELP);   break;
+    case SAPP_KEYCODE_S:     this.currButtons |= (1 << INPUT_EXIT);   break;
+    case SAPP_KEYCODE_D:     this.currButtons |= (1 << INPUT_ABC);    break;
     }
   } else if (eventType == SAPP_EVENTTYPE_KEY_UP){
     switch (keycode) {
-    case SAPP_KEYCODE_UP:    currButtons &= ~(1 << INPUT_UP);     break;
-    case SAPP_KEYCODE_DOWN:  currButtons &= ~(1 << INPUT_DOWN);   break;
-    case SAPP_KEYCODE_LEFT:  currButtons &= ~(1 << INPUT_LEFT);   break;
-    case SAPP_KEYCODE_RIGHT: currButtons &= ~(1 << INPUT_RIGHT);  break;
-    case SAPP_KEYCODE_SPACE: currButtons &= ~(1 << INPUT_ENTER);  break;
-    case SAPP_KEYCODE_Z:     currButtons &= ~(1 << INPUT_RED);    break;
-    case SAPP_KEYCODE_X:     currButtons &= ~(1 << INPUT_YELLOW); break;
-    case SAPP_KEYCODE_V:     currButtons &= ~(1 << INPUT_BLUE);   break;
-    case SAPP_KEYCODE_C:     currButtons &= ~(1 << INPUT_GREEN);  break;
-    case SAPP_KEYCODE_A:     currButtons &= ~(1 << INPUT_HELP);   break;
-    case SAPP_KEYCODE_S:     currButtons &= ~(1 << INPUT_EXIT);   break;
-    case SAPP_KEYCODE_D:     currButtons &= ~(1 << INPUT_ABC);    break;
+    case SAPP_KEYCODE_UP:    this.currButtons &= ~(1 << INPUT_UP);     break;
+    case SAPP_KEYCODE_DOWN:  this.currButtons &= ~(1 << INPUT_DOWN);   break;
+    case SAPP_KEYCODE_LEFT:  this.currButtons &= ~(1 << INPUT_LEFT);   break;
+    case SAPP_KEYCODE_RIGHT: this.currButtons &= ~(1 << INPUT_RIGHT);  break;
+    case SAPP_KEYCODE_SPACE: this.currButtons &= ~(1 << INPUT_ENTER);  break;
+    case SAPP_KEYCODE_Z:     this.currButtons &= ~(1 << INPUT_RED);    break;
+    case SAPP_KEYCODE_X:     this.currButtons &= ~(1 << INPUT_YELLOW); break;
+    case SAPP_KEYCODE_V:     this.currButtons &= ~(1 << INPUT_BLUE);   break;
+    case SAPP_KEYCODE_C:     this.currButtons &= ~(1 << INPUT_GREEN);  break;
+    case SAPP_KEYCODE_A:     this.currButtons &= ~(1 << INPUT_HELP);   break;
+    case SAPP_KEYCODE_S:     this.currButtons &= ~(1 << INPUT_EXIT);   break;
+    case SAPP_KEYCODE_D:     this.currButtons &= ~(1 << INPUT_ABC);    break;
     }
   }
 }
