@@ -6,6 +6,8 @@
 #include "backend.h"
 #include "lib/sokol_nuklear.h"
 
+#define ITEM_HEIGHT 40
+
 typedef struct {
   size_t placeholderValue;
 } UI_t;

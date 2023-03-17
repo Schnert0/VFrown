@@ -39,7 +39,7 @@ void UI_RunFrame(struct nk_context* ctx) {
     nk_layout_row_static(ctx, 18, 48, 8);
 
     // File
-    if (nk_menu_begin_label(ctx, "File", NK_TEXT_CENTERED, nk_vec2(60, 200))) {
+    if (nk_menu_begin_label(ctx, "File", NK_TEXT_CENTERED, nk_vec2(60, 3*ITEM_HEIGHT))) {
       nk_layout_row_dynamic(ctx, 25, 1);
 
       // Drag and drop for now
@@ -60,7 +60,7 @@ void UI_RunFrame(struct nk_context* ctx) {
     }
 
     // Emulation
-    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(175, 240))) {
+    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(200, 6*ITEM_HEIGHT))) {
       nk_layout_row_dynamic(ctx, 25, 1);
       if (nk_menu_item_label(ctx, "Toggle FullScreen", NK_TEXT_LEFT)) {
         sapp_toggle_fullscreen();
@@ -82,7 +82,7 @@ void UI_RunFrame(struct nk_context* ctx) {
       }
       emulationSpeed = (int32_t)(Backend_GetSpeed() * 100.0f);
       char speedText[256];
-      snprintf((char*)&speedText, 256, "Emulation Speed (%d)", emulationSpeed);
+      snprintf((char*)&speedText, 256, "Emulation Speed (%d%%)", emulationSpeed);
       nk_label(ctx, speedText, NK_TEXT_LEFT);
       nk_slider_int(ctx, 10, &emulationSpeed, 200, 1);
       if (nk_menu_item_label(ctx, "Set speed to 100%", NK_TEXT_LEFT)) {
@@ -90,21 +90,11 @@ void UI_RunFrame(struct nk_context* ctx) {
       }
       Backend_SetSpeed(emulationSpeed / 100.0f);
 
-      float clockScale = VSmile_GetClockScale();
-      snprintf((char*)&speedText, 256, "Clock Speed (%.2f MHz)", (27000000.0f * clockScale) / 1000000.0f);
-      nk_label(ctx, speedText, NK_TEXT_LEFT);
-      clockSpeed = (int32_t)(clockScale * 100.0f);
-      nk_slider_int(ctx, 10, &clockSpeed, 200, 1);
-      if (nk_menu_item_label(ctx, "Set clock speed to 100%", NK_TEXT_LEFT)) {
-        clockSpeed = 100;
-      }
-      VSmile_SetClockScale(clockSpeed / 100.0f);
-
       nk_menu_end(ctx);
     }
 
-    // Graphics
-    if (nk_menu_begin_label(ctx, "Video", NK_TEXT_CENTERED, nk_vec2(180, 200))) {
+    // Video
+    if (nk_menu_begin_label(ctx, "Video", NK_TEXT_CENTERED, nk_vec2(200, 7*ITEM_HEIGHT))) {
       nk_layout_row_dynamic(ctx, 25, 1);
       if (nk_menu_item_label(ctx, "Toggle Layer 0", NK_TEXT_LEFT)) {
         PPU_ToggleLayer(0);
@@ -125,8 +115,8 @@ void UI_RunFrame(struct nk_context* ctx) {
       nk_menu_end(ctx);
     }
 
-    // Debug
-    if (nk_menu_begin_label(ctx, "Audio", NK_TEXT_CENTERED, nk_vec2(120, 200))) {
+    // Audio
+    if (nk_menu_begin_label(ctx, "Audio", NK_TEXT_CENTERED, nk_vec2(200, 1*ITEM_HEIGHT))) {
       nk_layout_row_dynamic(ctx, 25, 1);
       if (nk_menu_item_label(ctx, "Toggle Channels", NK_TEXT_LEFT)) {
         showChannels = true;
@@ -143,6 +133,24 @@ void UI_RunFrame(struct nk_context* ctx) {
       // if (nk_menu_item_label(ctx, "", NK_TEXT_LEFT)) {
       //
       // }
+
+      nk_menu_end(ctx);
+    }
+
+    // Advanced
+    if (nk_menu_begin_label(ctx, "Advanced", NK_TEXT_CENTERED, nk_vec2(200, 3*ITEM_HEIGHT))) {
+      nk_layout_row_dynamic(ctx, 25, 1);
+
+      float clockScale = VSmile_GetClockScale();
+      char speedText[256];
+      snprintf((char*)&speedText, 256, "Clock Speed (%.2f MHz)", (27000000.0f * clockScale) / 1000000.0f);
+      nk_label(ctx, speedText, NK_TEXT_LEFT);
+      clockSpeed = (int32_t)(clockScale * 100.0f);
+      nk_slider_int(ctx, 10, &clockSpeed, 200, 1);
+      if (nk_menu_item_label(ctx, "Set clock speed to 100%", NK_TEXT_LEFT)) {
+        clockSpeed = 100;
+      }
+      VSmile_SetClockScale(clockSpeed / 100.0f);
 
       nk_menu_end(ctx);
     }
