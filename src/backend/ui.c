@@ -19,6 +19,7 @@ void UI_RunFrame(struct nk_context* ctx) {
   static int32_t emulationSpeed = 100;
   static int32_t clockSpeed = 100;
   static nk_bool emulationPaused = false;
+  static nk_bool introShown = true;
 
   // Popup window settings
   static bool showHelp = false;
@@ -59,7 +60,7 @@ void UI_RunFrame(struct nk_context* ctx) {
     }
 
     // Emulation
-    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(175, 320))) {
+    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(175, 240))) {
       nk_layout_row_dynamic(ctx, 25, 1);
       if (nk_menu_item_label(ctx, "Toggle FullScreen", NK_TEXT_LEFT)) {
         sapp_toggle_fullscreen();
@@ -68,6 +69,10 @@ void UI_RunFrame(struct nk_context* ctx) {
       emulationPaused = VSmile_GetPaused();
       nk_checkbox_label(ctx, "Paused",  &emulationPaused);
       VSmile_SetPause(emulationPaused);
+
+      introShown = VSmile_GetIntroEnable();
+      nk_checkbox_label(ctx, "Intro Enabled", &introShown);
+      VSmile_SetIntroEnable(introShown);
 
       if (nk_menu_item_label(ctx, "Step", NK_TEXT_LEFT)) {
         VSmile_Step();
