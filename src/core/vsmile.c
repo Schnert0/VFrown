@@ -73,6 +73,7 @@ void VSmile_LoadState() {
 void VSmile_LoadROM(const char* path) {
   Bus_LoadROM(path);
   Backend_GetFileName(path);
+  this.romLoaded = true;
 }
 
 
@@ -101,7 +102,10 @@ bool VSmile_GetPaused() {
 
 
 void VSmile_SetPause(bool isPaused) {
-  this.paused = isPaused;
+  if (this.romLoaded)
+    this.paused = isPaused;
+  else
+    this.paused = true;
 }
 
 

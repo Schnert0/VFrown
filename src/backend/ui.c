@@ -36,7 +36,7 @@ void UI_RunFrame(struct nk_context* ctx) {
   if (nk_begin(ctx, "V.Frown", nk_rect(0, 0, sapp_width(), 30), 0)) {
 
     // MENU BAR //
-    nk_layout_row_static(ctx, 18, 48, 8);
+    nk_layout_row_static(ctx, 20, 64, 8);
 
     // File
     if (nk_menu_begin_label(ctx, "File", NK_TEXT_CENTERED, nk_vec2(60, 3*ITEM_HEIGHT))) {
