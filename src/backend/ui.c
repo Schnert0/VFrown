@@ -60,7 +60,7 @@ void UI_RunFrame(struct nk_context* ctx) {
     }
 
     // Emulation
-    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(200, 6*ITEM_HEIGHT))) {
+    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(200, 8*ITEM_HEIGHT))) {
       nk_layout_row_dynamic(ctx, 25, 1);
       if (nk_menu_item_label(ctx, "Toggle FullScreen", NK_TEXT_LEFT)) {
         sapp_toggle_fullscreen();
@@ -79,6 +79,12 @@ void UI_RunFrame(struct nk_context* ctx) {
       }
       if (nk_menu_item_label(ctx, "Reset", NK_TEXT_LEFT)) {
         VSmile_Reset();
+      }
+      if (nk_menu_item_label(ctx, "Save State", NK_TEXT_LEFT)) {
+        Backend_SaveState();
+      }
+      if (nk_menu_item_label(ctx, "Load State", NK_TEXT_LEFT)) {
+        Backend_LoadState();
       }
       emulationSpeed = (int32_t)(Backend_GetSpeed() * 100.0f);
       char speedText[256];
