@@ -2,7 +2,9 @@
 
 static SPU_t this;
 
-const float rateCutoff = 44100.0f;
+static const float rateCutoff = 48000.0f;
+static float sampleBuffer[MAX_SAMPLES];
+static int32_t sampleCount;
 
 // static const char* registerNames0[] = {
 //   "wave address",          // 0x0
@@ -72,7 +74,6 @@ const float rateCutoff = 44100.0f;
 
 static const int8_t adpcmStepShift[] = { -1, -1, -1, -1, 2, 4, 6, 8 };
 
-
 static const int16_t adpcmLookup[] = {
     2,     6,    10,    14,    18,    22,    26,    30,    -2,    -6,   -10,   -14,   -18,   -22,   -26,   -30,
     2,     6,    10,    14,    19,    23,    27,    31,    -2,    -6,   -10,   -14,   -19,   -23,   -27,   -31,
@@ -126,20 +127,20 @@ static const int16_t adpcmLookup[] = {
 };
 
 
-static const uint32_t rampdownFrameCounts[] = {
-  52, 208, 832, 3328, 13312, 53248, 106496, 106496
+static const int32_t rampdownFrameCounts[] = {
+  13*4, 13*16, 13*64, 13*256, 13*1024, 13*4096, 13*8192, 13*8192
 };
 
 
-static const int16_t envelopeFrameCounts[] = {
-	4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 8192, 8192, 8192, 8192
+static const int32_t envelopeFrameCounts[] = {
+	4*4, 8*4, 16*4, 32*4, 64*4, 128*4, 256*4, 512*4, 1024*4, 2048*4, 4096*4, 8192*4, 8192*4, 8192*4, 8192*4, 8192*4
 };
 
 
 bool SPU_Init() {
   memset(&this, 0, sizeof(SPU_t));
 
-  Backend_InitAudioDevice();
+  Backend_InitAudioDevice((float*)&sampleBuffer, &sampleCount);
 
   this.sampleTimer = SPU_SAMPLE_TIMER;
 
@@ -149,6 +150,8 @@ bool SPU_Init() {
 
   this.beatTimer = Timer_Init(SYSCLOCK / (281250.0f/4.0f), (TimerFunc_t)SPU_TriggerBeatIRQ, 0);
   Timer_Reset(this.beatTimer);
+
+  this.enabledChannels = 0xffff;
 
   return true;
 }
@@ -172,6 +175,30 @@ void SPU_Reset() {
 }
 
 
+void SPU_SaveState() {
+  Backend_WriteSave(&this, sizeof(SPU_t));
+  Timer_SaveState(this.beatTimer);
+  for (int32_t i = 0; i < 16; i++) {
+    Timer_SaveState(this.channels[i].timer);
+  }
+}
+
+
+void SPU_LoadState() {
+  Timer_t* beatTimer = this.beatTimer;
+  Timer_t* timer[16];
+  for (int32_t i = 0; i < 16; i++)
+    timer[i] = this.channels[i].timer;
+  Backend_ReadSave(&this, sizeof(SPU_t));
+  this.beatTimer = beatTimer;
+  Timer_LoadState(this.beatTimer);
+  for (int32_t i = 0; i < 16; i++) {
+    this.channels[i].timer = timer[i];
+    Timer_LoadState(this.channels[i].timer);
+  }
+}
+
+
 void SPU_Tick(int32_t cycles) {
   Timer_Tick(this.beatTimer, cycles);
 
@@ -184,7 +211,7 @@ void SPU_Tick(int32_t cycles) {
 
   while (this.accumulatedSamples > 0) {
     for (int32_t i = 0; i < 16; i++) {
-      Timer_Tick(this.channels[i].timer, SPU_SAMPLE_TIMER);
+      Timer_Tick(this.channels[i].timer, SPU_SAMPLE_TIMER-this.sampleTimer);
     }
     this.accumulatedSamples -= SPU_SAMPLE_TIMER;
   }
@@ -194,37 +221,62 @@ void SPU_Tick(int32_t cycles) {
     this.channelIrq = false;
   }
 
-  int32_t leftSample = 0;
-  int32_t rightSample = 0;
+  float leftSample = 0;
+  float rightSample = 0;
 
+  int32_t left, right;
   for (int32_t i = 0; i < 16; i++) {
     if (this.chanEnable & (1 << i)) { // Channel is enabled
-      int32_t left, right;
       SPU_TickChannel(i, &left, &right);
 
-      leftSample += left;
-      rightSample += right;
+      if (this.enabledChannels & (1 << i)) {
+        leftSample  += left  / 16.0f;
+        rightSample += right / 16.0f;
+      }
 
     } else {
-      SDLBackend_PushOscilloscopeSample(i, 0);
+      Backend_PushOscilloscopeSample(i, 0);
     }
 
   }
 
+  if (sampleCount >= MAX_SAMPLES)
+    return;
+
+  leftSample  *= (1.0f/32.0f);
+  rightSample *= (1.0f/32.0f);
+
   switch((this.volumeSelect >> 6) & 3) { // Volume select
   case 0:
-    leftSample >>= 10;
-    rightSample >>= 10;
+    leftSample  *= (1.0f/16.0f);
+    rightSample *= (1.0f/16.0f);
     break;
 
-  case 1: case 2: case 3:
-    leftSample >>= 8;
-    leftSample >>= 8;
+  case 1:
+    leftSample  *= (1.0f/8.0f);
+    rightSample *= (1.0f/8.0f);
+    break;
+
+  case 2: break;
+
+  case 3:
+    leftSample *= 2.0f;
+    leftSample *= 2.0f;
     break;
   }
 
-  Backend_PushAudioSample(leftSample, rightSample);
+  // printf("%f, %f\n", leftSample, rightSample);
 
+  // Normalize samples
+  if (leftSample >  1.0f) leftSample =  1.0f;
+  if (leftSample < -1.0f) leftSample = -1.0f;
+
+  if (rightSample >  1.0f) rightSample =  1.0f;
+  if (rightSample < -1.0f) rightSample = -1.0f;
+
+  // Push to audio buffer
+  sampleBuffer[sampleCount++] = leftSample;
+  sampleBuffer[sampleCount++] = rightSample;
 }
 
 
@@ -233,7 +285,7 @@ uint16_t SPU_TickSample(uint8_t ch) {
 
   channel->prevWaveData = channel->waveData;
 
-  channel->accum += channel->rate;
+  channel->accum += channel->rate * VSmile_GetClockScale();
   int32_t sampleTicks = 0;
   while (channel->accum >= rateCutoff) {
     channel->accum -= rateCutoff;
@@ -245,9 +297,59 @@ uint16_t SPU_TickSample(uint8_t ch) {
 
   uint32_t waveAddr = channel->waveAddr | (channel->mode.waveHi << 16);
 
-  switch (channel->mode.pcmMode) {
-  case 0: // 8-bit PCM mode
-    for (int32_t i = 0; i < sampleTicks; i++) {
+  uint16_t nybble;
+  for (int32_t i = 0; i < sampleTicks; i++) {
+    if ((channel->mode.pcmMode & 2) || channel->adpcmSel.codec) { // ADPCM mode
+      if (channel->adpcmSel.codec && channel->adpcm36Remaining == 0 && channel->mode.playMode != 0) {
+        channel->adpcm36Header.raw = Bus_Load(waveAddr);
+        waveAddr++;
+        channel->adpcm36Remaining = 8;
+      }
+      if(Bus_Load(waveAddr) == 0xffff) {
+        waveAddr++;
+        if (channel->mode.playMode == 1) { // One shot mode
+          SPU_StopChannel(ch);
+        } else {
+          waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
+          channel->pcmShift = 0;
+          channel->adpcmLastSample = 0;
+          channel->adpcmStepIndex = 0;
+          channel->mode.raw &= ~0x8000;
+        }
+      } else {
+        nybble = (Bus_Load(waveAddr) >> channel->pcmShift) & 0xf;
+        if (channel->adpcmSel.codec) {
+          channel->waveData = SPU_GetADPCM36Sample(ch, nybble);
+        } else {
+          channel->waveData = SPU_GetADPCMSample(ch, nybble);
+          channel->waveData = (channel->waveData << 4) ^ 0x8000;
+        }
+
+        channel->pcmShift += 4;
+        if (channel->pcmShift >= 16) {
+          channel->pcmShift = 0;
+          waveAddr++;
+          channel->adpcm36Remaining--;
+        }
+      }
+      continue;
+    }
+
+    if (channel->mode.pcmMode == 1) { // 16-bit PCM mode
+      channel->waveData = Bus_Load(waveAddr);
+      waveAddr++;
+
+      if(Bus_Load(waveAddr) == 0xffff && channel->mode.playMode != 0) {
+        if (channel->mode.playMode == 1) { // One shot mode
+          SPU_StopChannel(ch);
+        } else {
+          waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
+        }
+      }
+      continue;
+    }
+
+    if (channel->mode.pcmMode == 0) { // 8-bit PCM mode
       channel->waveData = (uint8_t)(Bus_Load(waveAddr) >> channel->pcmShift) & 0xff;
       channel->waveData <<= 8;
       channel->pcmShift += 8;
@@ -265,80 +367,8 @@ uint16_t SPU_TickSample(uint8_t ch) {
           channel->pcmShift = 0;
         }
       }
+      continue;
     }
-    break;
-
-  case 1: // 16-bit PCM mode
-    for (int32_t i = 0; i < sampleTicks; i++) {
-      channel->waveData = Bus_Load(waveAddr);
-      waveAddr++;
-
-      if(Bus_Load(waveAddr) == 0xffff) {
-        if (channel->mode.playMode == 1) { // One shot mode
-          SPU_StopChannel(ch);
-        } else {
-          waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
-        }
-      }
-    }
-    break;
-
-  case 2: // ADPCM mode
-  case 3:
-    for (int32_t i = 0; i < sampleTicks; i++) {
-      uint16_t nybble = (Bus_Load(waveAddr) >> channel->pcmShift) & 0xf;
-      channel->waveData = SPU_GetADPCMSample(ch, nybble);
-      channel->waveData = (channel->waveData << 4) ^ 0x8000;
-      channel->pcmShift += 4;
-      if (channel->pcmShift >= 16) {
-        channel->pcmShift = 0;
-        waveAddr++;
-      }
-
-      if(Bus_Load(waveAddr) == 0xffff) {
-        if (channel->mode.pcmMode == 3)
-          channel->mode.pcmMode = 1;
-
-        if (channel->mode.playMode == 1) { // One shot mode
-          SPU_StopChannel(ch);
-        } else {
-          waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
-          channel->pcmShift = 0;
-          channel->adpcmLastSample = 0;
-          channel->adpcmStepIndex = 0;
-        }
-      }
-    }
-    break;
-
-  // case 3: // ADPCM36 Mode
-  //   for (int32_t i = 0; i < sampleTicks; i++) {
-  //     if (channel->adpcm36Remaining == 0) {
-  //       channel->adpcm36Header.raw = Bus_Load(waveAddr++);
-  //       channel->adpcm36Remaining = 8;
-  //     }
-  //
-  //     uint16_t nybble = (Bus_Load(waveAddr) >> channel->pcmShift) & 0xf;
-  //     channel->waveData = SPU_GetADPCM36Sample(ch, nybble);
-  //     channel->pcmShift += 4;
-  //     if (channel->pcmShift >= 16) {
-  //       channel->pcmShift = 0;
-  //       waveAddr++;
-  //       channel->adpcm36Remaining--;
-  //     }
-  //
-  //     if(Bus_Load(waveAddr) == 0xffff) {
-  //       channel->mode.pcmMode = 1;
-  //       if (channel->mode.playMode == 1) { // One shot mode
-  //         SPU_StopChannel(ch);
-  //       } else {
-  //         waveAddr = channel->loopAddr | (channel->mode.loopHi << 16);
-  //         channel->pcmShift = 0;
-  //         channel->adpcm36Remaining = 0;
-  //       }
-  //     }
-  //   }
-  //   break;
   }
 
   channel->waveAddr = waveAddr & 0xffff;
@@ -356,30 +386,30 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
   int32_t sample = (int16_t)(channel->waveData ^ 0x8000);
   if (!(this.ctrl & 0x0200)) { // Audio CTRL
     int32_t prevSample = (int16_t)(channel->waveData ^ 0x8000);
-    int32_t lerp = (int32_t)((channel->rate / 44100.0f) * 256.0f);
+    int32_t lerp = (int32_t)((channel->rate / 48000.0f) * 256.0f);
     prevSample = (prevSample * (0x100 - lerp)) >> 8;
     sample = (sample * lerp) >> 8;
     sample += prevSample;
   }
 
-  sample = (sample * (int32_t)channel->envData.envelopeData) >> 7;
+  Backend_PushOscilloscopeSample(ch, (int16_t)sample);
 
-  SDLBackend_PushOscilloscopeSample(ch, sample);
+  float fsample = ((sample * (int32_t)channel->envData.envelopeData) >> 7) / 8192.0f;
 
-  int32_t pan = channel->panVol.pan;
-  int32_t vol = channel->panVol.vol;
+  float pan = channel->panVol.pan / 127.0f;
+  float vol = channel->panVol.vol;
 
-  int32_t panLeft, panRight;
-  if (pan < 0x40) {
-    panLeft  = 127 * vol;
-    panRight = pan * 2 * vol;
+  float panLeft, panRight;
+  if (pan > 1/64.0f) {
+    panLeft = 1.0f * vol;
+    panRight = pan * 2.0f * vol;
   } else {
-    panLeft  = (127 - pan) * 2 * vol;
-    panRight =  127 * vol;
+    panLeft  = (1.0f - pan) * 2.0f * vol;
+    panRight = 1.0f * vol;
   }
 
-  (*left)  = (sample * panLeft);
-  (*right) = (sample * panRight);
+  (*left)  = (fsample * panLeft);
+  (*right) = (fsample * panRight);
 
   if (this.envRampDown & (1 << ch)) { // Ramp Down
     if (channel->rampDownFrame > 0)
@@ -409,7 +439,6 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
 
     if (channel->envelopeFrame == 0) {
       SPU_TickEnvelope(ch);
-
       channel->envelopeFrame = envelopeFrameCounts[SPU_GetEnvelopeClock(ch)];
     }
   }
@@ -419,11 +448,11 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
 int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble) {
   Channel_t* channel = &this.channels[ch];
 
-  channel->adpcmLastSample += adpcmLookup[(channel->adpcmStepIndex << 4) + nybble];
+  channel->adpcmLastSample += adpcmLookup[(channel->adpcmStepIndex << 4) + (nybble & 0xf)];
   if (channel->adpcmLastSample >  2047) channel->adpcmLastSample =  2047;
   if (channel->adpcmLastSample < -2048) channel->adpcmLastSample = -2048;
 
-  channel->adpcmStepIndex += adpcmStepShift[nybble & 7];
+  channel->adpcmStepIndex += adpcmStepShift[(nybble & 0x7)];
   if (channel->adpcmStepIndex > 48) channel->adpcmStepIndex = 48;
   if (channel->adpcmStepIndex <  0) channel->adpcmStepIndex =  0;
 
@@ -434,12 +463,15 @@ int16_t SPU_GetADPCMSample(uint8_t ch, uint8_t nybble) {
 int16_t SPU_GetADPCM36Sample(uint8_t ch, uint8_t nybble) {
   Channel_t* channel = &this.channels[ch];
 
+  int32_t shift = channel->adpcm36Header.shift;
   int16_t f0 = channel->adpcm36Header.filter;
+  if (f0 & 0x20) f0 |= ~0x3f;
   int16_t f1 = 1;
   int16_t sample = nybble << 12;
-	sample = (sample >> channel->adpcm36Header.shift) + (((channel->adpcm36Prev[0] * f0) + (channel->adpcm36Prev[1] * f1) + 32) >> 12);
+	sample = (sample >> shift) + (((channel->adpcm36Prev[0] * f0) + (channel->adpcm36Prev[1] * f1) + 32) >> 12);
 	channel->adpcm36Prev[1] = channel->adpcm36Prev[0];
 	channel->adpcm36Prev[0] = sample;
+  // printf("%04x\n", sample ^ 0x8000);
 
   return sample ^ 0x8000;
 }
@@ -448,7 +480,7 @@ int16_t SPU_GetADPCM36Sample(uint8_t ch, uint8_t nybble) {
 void SPU_TickEnvelope(uint8_t ch) {
   Channel_t* channel = &this.channels[ch];
 
-  uint8_t prevEnvData = channel->envData.envelopeData;
+  uint16_t prevEnvData = channel->envData.envelopeData;
 
   if (channel->envData.envelopeCount > 0)
     channel->envData.envelopeCount--;
@@ -487,9 +519,7 @@ void SPU_TickEnvelope(uint8_t ch) {
           channel->env0.raw = Bus_Load(envAddr);
           channel->env1.raw = Bus_Load(envAddr+1);
           channel->envLoopCtrl.raw = Bus_Load(envAddr+2);
-          int16_t offset = channel->envLoopCtrl.envAddrOffset;
-          if (offset & 0x100) offset |= 0xfe00;
-          envAddr = (channel->envAddr | (channel->envAddrHigh.envAddrHi << 16)) + offset;
+           envAddr = (channel->envAddr | (channel->envAddrHigh.envAddrHi << 16)) + channel->envLoopCtrl.envAddrOffset;
         }
       } else {
         channel->env0.raw = Bus_Load(envAddr);
@@ -570,6 +600,8 @@ uint16_t SPU_Read(uint16_t addr) {
     return this.regs4[reg];
   }
 
+  VSmile_Warning("Read from unknown SPU register %04x", addr);
+
   return 0x0000;
 }
 
@@ -623,7 +655,7 @@ void SPU_Write(uint16_t addr, uint16_t data) {
       case 0x00:   // Phase high
       case 0x04: { // Phase
         channel->regs2[reg] = data;
-        int32_t intPhase = channel->phase | ((channel->phaseHigh & 3) << 16);
+        int32_t intPhase = channel->phase | ((channel->phaseHigh & 7) << 16);
         float phase = (float)intPhase;
         channel->rate = (phase * 281250.0f) / 524288.0f;
         channel->accum = 0.0f;
@@ -650,11 +682,14 @@ void SPU_Write(uint16_t addr, uint16_t data) {
       return;
     case 0x05: SPU_WriteBeatCount(data); return;
     case 0x0b: this.regs4[reg] &= ~data; return;
+    case 0x1b: case 0x1c: printf("0x34%02x = %04x\n", reg, data);
     default:   this.regs4[reg] = data;   return;
     }
 
     return;
   }
+
+  VSmile_Warning("write to unknown SPU register %04x with %04x", addr, data);
 
 }
 
@@ -780,4 +815,9 @@ uint16_t SPU_GetIRQ() {
 
 uint16_t SPU_GetChannelIRQ() {
   return this.channelIrq;
+}
+
+
+void SPU_SetEnabledChannels(uint16_t enabled) {
+  this.enabledChannels = enabled;
 }

@@ -5,7 +5,8 @@
 #include "vsmile.h"
 #include "timer.h"
 
-#define SPU_SAMPLE_TIMER (SYSCLOCK / 44100)
+#define SPU_SAMPLE_TIMER (SYSCLOCK / 48000)
+#define MAX_SAMPLES 32768
 
 struct Timer_t;
 
@@ -154,7 +155,7 @@ typedef struct {
   ADPCM36Header_t adpcm36Header;
   int16_t adpcm36Prev[2];
 
-  uint16_t rampDownFrame, envelopeFrame;
+  int32_t rampDownFrame, envelopeFrame;
 
   struct Timer_t* timer;
 } Channel_t;
@@ -207,6 +208,7 @@ typedef struct SPU_t {
   struct Timer_t* beatTimer;
   bool irq, channelIrq;
 
+  uint16_t enabledChannels;
   uint16_t currBeatBase;
   uint32_t bufferLen;
   int32_t  sampleTimer, accumulatedSamples;
@@ -215,6 +217,9 @@ typedef struct SPU_t {
 
 bool SPU_Init();
 void SPU_Cleanup();
+
+void SPU_SaveState();
+void SPU_LoadState();
 
 void SPU_Tick(int32_t cycles);
 
@@ -238,5 +243,7 @@ void SPU_WriteBeatCount(uint16_t data);
 void SPU_TriggerBeatIRQ(uint8_t index);
 uint16_t SPU_GetIRQ();
 uint16_t SPU_GetChannelIRQ();
+
+void SPU_SetEnabledChannels(uint16_t enable);
 
 #endif // SPU_H

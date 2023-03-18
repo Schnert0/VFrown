@@ -1,11 +1,11 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include "../common.h"
-#include "vsmile.h"
-#include "timer.h"
+#include "../../common.h"
+#include "../vsmile.h"
+#include "../timer.h"
 
-typedef void (*Func_t)();
+typedef void (*ControllerFunc_t)();
 struct Timer_t;
 
 /*
@@ -34,6 +34,9 @@ typedef struct Controller_t {
 
 bool Controller_Init();
 void Controller_Cleanup();
+
+void Controller_SaveState();
+void Controller_LoadState();
 
 void Controller_Tick(int32_t cycles);
 uint16_t Controller_GetRequests();

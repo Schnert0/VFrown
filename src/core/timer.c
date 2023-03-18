@@ -1,7 +1,5 @@
 #include "timer.h"
 
-typedef void (*TimerFunc_t)(int32_t index);
-
 struct Timer_t* Timer_Init(int32_t resetValue, TimerFunc_t callback, int32_t index) {
   struct Timer_t* this = malloc(sizeof(Timer_t));
   memset(this, 0, sizeof(Timer_t));
@@ -16,6 +14,18 @@ struct Timer_t* Timer_Init(int32_t resetValue, TimerFunc_t callback, int32_t ind
 void Timer_Cleanup(struct Timer_t* this) {
   if (this)
     free(this);
+}
+
+
+void Timer_SaveState(struct Timer_t* this) {
+  Backend_WriteSave(this, sizeof(Timer_t));
+}
+
+
+void Timer_LoadState(struct Timer_t* this) {
+  TimerFunc_t callback = this->callback;
+  Backend_ReadSave(this, sizeof(Timer_t));
+  this->callback = callback;
 }
 
 

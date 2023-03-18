@@ -10,12 +10,14 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include <Windows.h>
+#define PATH_CHAR '\\'
 #else
-#include <unistd.h>
+#define PATH_CHAR '/'
 #endif
 
 #include "backend/backend.h"
+
+#define RGB5A1_TO_RGBA8(color) (((color & 0x1f) << 19) | ((color & 0x3e0) << 6) | ((color & 0x7c00) >> 7))
 
 #define CYCLES_PER_LINE 1716
 #define LINES_PER_FIELD 262

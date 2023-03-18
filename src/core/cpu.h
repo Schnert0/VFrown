@@ -81,6 +81,9 @@ typedef struct CPU_t {
 bool CPU_Init();
 void CPU_Cleanup();
 
+void CPU_SaveState();
+void CPU_LoadState();
+
 void CPU_Reset();
 int32_t CPU_Tick();
 

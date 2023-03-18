@@ -3,7 +3,7 @@
 static VSmile_t this;
 
 bool VSmile_Init() {
-  if (!Backend_Init()) return false;
+  memset(&this, 0, sizeof(VSmile_t));
 
   if (!Bus_Init()) return false;
   if (!CPU_Init()) return false;
@@ -11,65 +11,45 @@ bool VSmile_Init() {
   if (!SPU_Init()) return false;
   if (!Controller_Init()) return false;
 
-  if (!TMB_Init(0, SYSCLOCK / 128)) return false;
-  if (!TMB_Init(1, SYSCLOCK / 8))   return false;
+  this.clockScale = 1.0f;
+  this.introEnabled = true;
 
   return true;
 }
 
 
 void VSmile_Cleanup() {
-  TMB_Cleanup(1);
-  TMB_Cleanup(0);
-
   Controller_Cleanup();
   PPU_Cleanup();
   SPU_Cleanup();
   CPU_Cleanup();
   Bus_Cleanup();
-
-  Backend_Cleanup();
 }
 
 
-void VSmile_Run() {
-  int32_t cyclesLeft = 0;
-  while (Backend_GetInput()) {
-    if (!this.paused || this.step) {
-      cyclesLeft += CYCLES_PER_LINE;
-      while (cyclesLeft > 0) {
-        int32_t cycles = CPU_Tick();
-        SPU_Tick(cycles);
-        cyclesLeft -= cycles;
-      }
+void VSmile_RunFrame() {
+  if (this.paused && !this.step)
+    return;
 
-      // Tick these every scan line instead of every cycle.
-      // Even though it's slightly less accurate, it's waaaay more efficient this way.
-      Bus_Tick(CYCLES_PER_LINE-cyclesLeft);
-      Controller_Tick(CYCLES_PER_LINE-cyclesLeft);
-      TMB_Tick(0, CYCLES_PER_LINE-cyclesLeft);
-      TMB_Tick(1, CYCLES_PER_LINE-cyclesLeft);
-      PPU_RenderLine();
+  float cyclesPerLine = CYCLES_PER_LINE * this.clockScale;
 
-      uint16_t currLine = PPU_GetCurrLine();
-
-      if (currLine == 240) {
-        Bus_SetIRQFlags(0x2863, 0x0001);
-      }
-
-      if (currLine == Bus_Load(0x2836)) {
-        Bus_SetIRQFlags(0x2863, 0x0002);
-      }
-
-      if (currLine >= LINES_PER_FIELD) {
-        PPU_UpdateScreen();
-        this.step = false;
-      }
-
-    } else {
-      PPU_UpdateScreen();
+  while (true) {
+    this.cyclesLeft += cyclesPerLine;
+    while (this.cyclesLeft > 0) {
+      int32_t cycles = CPU_Tick();
+      SPU_Tick(cycles);
+      this.cyclesLeft -= cycles;
     }
+
+    // Tick these every scan line instead of every cycle.
+    // Even though it's slightly less accurate, it's waaaay more efficient this way.
+    Bus_Update(cyclesPerLine-this.cyclesLeft);
+    Controller_Tick(cyclesPerLine-this.cyclesLeft);
+    if (PPU_RenderLine())
+      break;
   }
+  Backend_PushBuffer();
+  this.step = false;
 }
 
 
@@ -80,8 +60,20 @@ void VSmile_Reset() {
 }
 
 
+void VSmile_SaveState() {
+  Backend_WriteSave(&this, sizeof(VSmile_t));
+}
+
+
+void VSmile_LoadState() {
+  Backend_ReadSave(&this, sizeof(VSmile_t));
+}
+
+
 void VSmile_LoadROM(const char* path) {
   Bus_LoadROM(path);
+  Backend_GetFileName(path);
+  this.romLoaded = true;
 }
 
 
@@ -90,8 +82,40 @@ void VSmile_LoadSysRom(const char* path) {
 }
 
 
-void VSmile_TogglePause() {
-  this.paused ^= true;
+void VSmile_SetRegion(uint8_t region) {
+  GPIO_SetRegion(region);
+}
+
+void VSmile_SetIntroEnable(bool shouldShowIntro) {
+  this.introEnabled = shouldShowIntro;
+  GPIO_SetIntroEnable(shouldShowIntro);
+}
+
+bool VSmile_GetIntroEnable() {
+  return this.introEnabled;
+}
+
+
+bool VSmile_GetPaused() {
+  return this.paused;
+}
+
+
+void VSmile_SetPause(bool isPaused) {
+  if (this.romLoaded)
+    this.paused = isPaused;
+  else
+    this.paused = true;
+}
+
+
+float VSmile_GetClockScale() {
+  return this.clockScale;
+}
+
+
+void VSmile_SetClockScale(float newScale) {
+  this.clockScale = newScale;
 }
 
 

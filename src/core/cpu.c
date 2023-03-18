@@ -63,6 +63,7 @@ static Func_t CPU_OperandFunctionsEx[] = {
 // Initialize CPU state
 bool CPU_Init() {
   memset(&this, 0, sizeof(CPU_t));
+
   return true;
 }
 
@@ -70,6 +71,16 @@ bool CPU_Init() {
 // Cleanup CPU state
 void CPU_Cleanup() {
 
+}
+
+
+void CPU_SaveState() {
+  Backend_WriteSave(&this, sizeof(CPU_t));
+}
+
+
+void CPU_LoadState() {
+  Backend_ReadSave(&this, sizeof(CPU_t));
 }
 
 
@@ -1014,14 +1025,14 @@ void CPU_TestIRQ() {
   if (!this.irqEnabled || this.irqActive)
     return;
 
-  uint16_t maskedIRQ = Bus_Load(0x3d21) & Bus_Load(0x3d22);
-  uint16_t gpuMaskedIRQ = Bus_Load(0x2862) & Bus_Load(0x2863);
+  uint16_t maskedIRQ = Misc_Read(0x3d21) & Misc_Read(0x3d22);
+  uint16_t ppuMaskedIRQ = PPU_Read(0x2862) & PPU_Read(0x2863);
   uint16_t spuIRQ = SPU_GetIRQ();
   uint16_t spuChannelIRQ = SPU_GetChannelIRQ();
 
   // If there's no active IRQs to handle, break out early
   // and hint that there's no more IRQs to the CPU
-  if (!maskedIRQ && !gpuMaskedIRQ && !spuIRQ && !spuChannelIRQ) {
+  if (!maskedIRQ && !ppuMaskedIRQ && !spuIRQ && !spuChannelIRQ) {
     this.irqPending = false;
     return;
   }
@@ -1029,7 +1040,7 @@ void CPU_TestIRQ() {
   if (this.fiq) {
     CPU_DoFIQ();
   }
-  else if (gpuMaskedIRQ) { // Video
+  else if (ppuMaskedIRQ) { // PPU
     CPU_DoIRQ(0);
   }
   // else if (spuChannelIRQ) { // SPU

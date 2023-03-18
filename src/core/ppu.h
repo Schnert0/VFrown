@@ -55,24 +55,70 @@ typedef union {
   };
 } TileCtrl_t;
 
+
+typedef union {
+  uint16_t regs[5];
+  struct {
+    uint16_t xPos, yPos;
+    TileAttr_t attr;
+    TileCtrl_t ctrl;
+    uint16_t tilemapAddr;
+    uint16_t attribAddr;
+  };
+} Layer_t;
+
+
+typedef union {
+  uint16_t regs[4];
+  struct {
+    uint16_t   tileID;
+    uint16_t   xPos, yPos;
+    TileAttr_t attr;
+  };
+} Sprite_t;
+
+
 /*
  * Picture Processing Unit
  * Renders Tile data, bitmaps and sprites to the screen
  */
 typedef struct PPU_t {
-  uint16_t scroll[0x100];
-  uint16_t hComp[0x100];
-  uint16_t palette[0x100];
-  uint16_t sprites[0x400];
-
-  uint16_t currLine;
+  uint32_t* scanlineBuffer;
 
   bool spriteOutlinesEnabled;
   bool flipVisualEnabled;
   bool isFirstLayer;
   bool layerEnabled[3];
 
-  uint16_t* scanlineBuffer;
+  Layer_t  layers[2];     // 0x2810 - 0x281b
+  uint16_t vertScale;     // 0x281c
+  uint16_t vertMovement;  // 0x281d
+  uint16_t segmentPtr[2]; // 0x2820 - 0x2821
+  uint16_t spriteSegment; // 0x2822
+  uint16_t blendLevel;    // 0x282a
+  uint16_t fadeLevel;     // 0x2830
+  uint16_t vCompare;      // 0x2836
+  uint16_t hCompare;      // 0x2837
+  uint16_t currLine;      // 0x2838
+  uint16_t hueSatAdjust;  // 0x283c
+  uint16_t LFPInterlace;  // 0x283d
+  uint16_t lightpenX;     // 0x283e
+  uint16_t lightpenY;     // 0x283f
+  uint16_t spriteEnable;  // 0x2842
+  uint16_t lcdCtrl;       // 0x2854
+  uint16_t irqCtrl;       // 0x2862
+  uint16_t irqStat;       // 0x2863
+  uint16_t dmaSrc;        // 0x2870
+  uint16_t dmaDst;        // 0x2871
+  uint16_t dmaSize;       // 0x2872
+
+  uint16_t scroll[0x100];  // 0x2900 - 0x29ff
+  uint16_t hScale[0x100];  // 0x2a00 - 0x2aff
+  uint16_t palette[0x100]; // 0x2b00 - 0x2bff
+  union {
+    uint16_t sprData[0x400]; // 0x2c00 - 0x2fff
+    Sprite_t sprites[0x100];
+  };
 } PPU_t;
 
 bool PPU_Init();
@@ -81,13 +127,23 @@ void PPU_Cleanup();
 bool PPU_Reset();
 void PPU_UpdateScreen();
 
-void PPU_RenderLine();
+void PPU_SaveState();
+void PPU_LoadState();
+
+uint16_t PPU_Read(uint16_t addr);
+void PPU_Write(uint16_t addr, uint16_t data);
+
+bool PPU_RenderLine();
 void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t palOffset, uint32_t tileData, bool hFlip, bool vFlip);
 void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line);
 void PPU_RenderSpriteStrips(int32_t depth, int32_t line);
+void PPU_RenderBitmapStrip(int32_t layer);
 
 uint16_t PPU_GetCurrLine();
 void PPU_IncrementCurrLine();
+
+void PPU_DoDMA(uint16_t data);
+void PPU_SetIRQFlags(uint16_t data);
 
 void PPU_ToggleSpriteOutlines();
 void PPU_ToggleFlipVisual();
