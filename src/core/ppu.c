@@ -389,15 +389,15 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
         if (line == yPos || line == yPos + spriteHeight-1) {
             for (int32_t i = xPos; i < xPos+spriteWidth; i++) {
               if (i >= 0 && i < 320) {
-                this.scanlineBuffer[i] = 0xffff0000;
+                this.scanlineBuffer[i] = RGB5A1_TO_RGBA8(0xf800);
               }
             }
         } else {
           if (xPos >= 0 && xPos < 320) {
-            this.scanlineBuffer[xPos] = 0xffff0000;
+            this.scanlineBuffer[xPos] = RGB5A1_TO_RGBA8(0xf800);
           }
           if (xPos+spriteWidth-1 >= 0 && xPos+spriteWidth-1 < 320) {
-            this.scanlineBuffer[xPos+spriteWidth-1] = 0xffff0000;
+            this.scanlineBuffer[xPos+spriteWidth-1] = RGB5A1_TO_RGBA8(0xf800);
           }
         }
       }
