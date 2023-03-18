@@ -7,6 +7,8 @@
 
 #include "lib/nuklear_def.h"
 
+#include "font.xpm"
+
 #include "../common.h"
 #include "../core/vsmile.h"
 
@@ -70,5 +72,7 @@ void Backend_HandleInput(int32_t keycode, int32_t eventType);
 void Backend_SetDrawColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 void Backend_SetPixel(int32_t x, int32_t y);
 void Backend_DrawCircle(int32_t x, int32_t y, uint32_t radius);
+void Backend_DrawText(int32_t x, int32_t y, const char* text, ...);
+void Backend_DrawChar(int32_t x, int32_t y, char c);
 
 #endif // BACKEND_H

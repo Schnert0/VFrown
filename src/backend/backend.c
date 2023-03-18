@@ -345,7 +345,6 @@ void Backend_DrawCircle(int32_t x, int32_t y, uint32_t radius) {
   offsetx = 0;
   offsety = radius;
   d = radius - 1;
-  // int32_t status = 0;
 
   while (offsety >= offsetx) {
     Backend_SetPixel(x + offsetx, y + offsety);
@@ -358,10 +357,6 @@ void Backend_DrawCircle(int32_t x, int32_t y, uint32_t radius) {
     Backend_SetPixel(x - offsetx, y - offsety);
     Backend_SetPixel(x - offsety, y - offsetx);
 
-    // if (status < 0) {
-    //   status = -1;
-    //   break;
-    // }
     if (d >= 2*offsetx) {
       d -= 2*offsetx + 1;
       offsetx += 1;
@@ -374,4 +369,39 @@ void Backend_DrawCircle(int32_t x, int32_t y, uint32_t radius) {
       offsetx += 1;
     }
   }
+}
+
+
+void Backend_DrawText(int32_t x, int32_t y, const char* text, ...) {
+  if (!text)
+    return;
+
+  char buffer[256];
+  va_list args;
+  va_start(args, text);
+  vsnprintf(buffer, sizeof(buffer), text, args);
+  va_end(args);
+
+  buffer[255] = '\0';
+
+  size_t len = strlen(buffer);
+  for(int32_t i = 0 ; i < len; i++) {
+    Backend_DrawChar(x, y, buffer[i]);
+    x += 11;
+  }
+}
+
+
+void Backend_DrawChar(int32_t x, int32_t y, char c) {
+  char p;
+  for(int32_t i = 0; i < 11; i++)
+    for(int32_t j = 0; j < 17; j++) {
+      p = font[j+3][((c-32)*11)+i];
+      if (p == ' ')
+        Backend_SetDrawColor(0xff, 0xff, 0xff, 0xff);
+      else
+        Backend_SetDrawColor(0x00, 0x00, 0x00, 0x80);
+
+      Backend_SetPixel(x+i, y+j);
+    }
 }

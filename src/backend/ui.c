@@ -22,9 +22,9 @@ void UI_RunFrame(struct nk_context* ctx) {
   static nk_bool introShown = true;
 
   // Popup window settings
-  static bool showHelp = false;
-  static bool showAbout = false;
-  static bool showChannels = false;
+  static nk_bool showHelp = false;
+  static nk_bool showAbout = false;
+  static nk_bool showChannels = false;
   static nk_bool showLeds = false;
   static nk_bool chanEnable[16] = {
     true, true, true, true,
