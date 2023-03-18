@@ -2,8 +2,9 @@
 #include "backend/ui.h"
 
 static sg_image emuFrame;
-
 static float speed;
+static romPath[1024];
+static sysromPath[1024];
 
 // Called when the application is initializing.
 static void init() {
@@ -47,11 +48,23 @@ static void init() {
     VSmile_Error("Failed to initialize emulation core");
   }
 
-  VSmile_LoadSysRom("sysrom/sysrom.bin");
+  if (sysromPath[0] != '\0')
+    VSmile_LoadSysRom((const char*)&sysromPath);
+  else
+    VSmile_LoadSysRom("sysrom/sysrom.bin");
+
+
+  if (romPath[0] != '\0') {
+    VSmile_LoadROM((const char*)&romPath);
+    VSmile_SetPause(false);
+  } else {
+    VSmile_SetPause(true);
+  }
+
   VSmile_SetRegion(0xf);
   VSmile_SetIntroEnable(true);
+
   VSmile_Reset();
-  VSmile_SetPause(true);
 
   if (!UI_Init()) {
     VSmile_Error("Failed to create UI handler");
@@ -152,8 +165,19 @@ static void failure(const char* message) {
 
 // Platform-agnostic main from sokol_app.h
 sapp_desc sokol_main(int argc, char* argv[]) {
-  // (void)argc;
-  // (void)argv;
+  romPath[0] = '\0';
+  sysromPath[0] = '\0';
+
+  if (argc == 2) {
+    strncpy(romPath, argv[1], 1024);
+    romPath[1023] = '\0';
+  }
+  else if (argc == 3) {
+    strncpy(sysromPath, argv[1], 1024);
+    strncpy(romPath, argv[2], 1024);
+    sysromPath[1023] = '\0';
+    romPath[1023] = '\0';
+  }
 
   sapp_desc desc = {
     .init_cb = init,
