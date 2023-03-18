@@ -3,8 +3,8 @@
 
 static sg_image emuFrame;
 static float speed;
-static romPath[1024];
-static sysromPath[1024];
+static char romPath[1024];
+static char sysromPath[1024];
 
 // Called when the application is initializing.
 static void init() {
@@ -169,12 +169,12 @@ sapp_desc sokol_main(int argc, char* argv[]) {
   sysromPath[0] = '\0';
 
   if (argc == 2) {
-    strncpy(romPath, argv[1], 1024);
+    strncpy((char*)&romPath, argv[1], 1024);
     romPath[1023] = '\0';
   }
   else if (argc == 3) {
-    strncpy(sysromPath, argv[1], 1024);
-    strncpy(romPath, argv[2], 1024);
+    strncpy((char*)&sysromPath, argv[1], 1024);
+    strncpy((char*)&romPath, argv[2], 1024);
     sysromPath[1023] = '\0';
     romPath[1023] = '\0';
   }

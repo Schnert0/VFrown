@@ -137,6 +137,7 @@ bool PPU_RenderLine();
 void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t palOffset, uint32_t tileData, bool hFlip, bool vFlip);
 void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line);
 void PPU_RenderSpriteStrips(int32_t depth, int32_t line);
+void PPU_RenderBitmapStrip(int32_t layer);
 
 uint16_t PPU_GetCurrLine();
 void PPU_IncrementCurrLine();

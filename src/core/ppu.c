@@ -281,6 +281,11 @@ void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line) {
   if (attr.depth != depth)
     return;
 
+  if (ctrl.bitMap) {
+    PPU_RenderBitmapStrip(layer);
+    return;
+  }
+
   uint16_t hOffset = this.scroll[((line+yOffset) & 0xff)] * ctrl.rowScroll;
 
   int32_t screenTilesW = (320 / tileWidth) + 1;
@@ -403,6 +408,51 @@ void PPU_RenderSpriteStrips(int32_t depth, int32_t line) {
       }
     }
 
+  }
+}
+
+
+void PPU_RenderBitmapStrip(int32_t layer) {
+  uint32_t line = this.currLine + this.layers[layer].yPos;
+  uint32_t tileMap = this.layers[layer].tilemapAddr;
+  uint32_t palMap = this.layers[layer].attribAddr;
+  uint32_t tile = Bus_Load(tileMap + line);
+  uint16_t palette = Bus_Load(palMap + (line >> 1));
+
+  if (this.currLine & 1)
+		palette >>= 8;
+	else
+		palette &= 0xff;
+
+  uint32_t start = (palette << 16) | tile;
+
+  if (this.layers[layer].ctrl.directColor) {
+    uint16_t data;
+    for (int32_t i = 0; i < 320; i++) {
+      data = Bus_Load(start + i);
+      if (!(data & 0x8000)) {
+        this.scanlineBuffer[i] = RGB5A1_TO_RGBA8(data & 0x7fff);
+      }
+    }
+  } else {
+    uint8_t p;
+    uint16_t color;
+    uint16_t data;
+    for (int32_t i = 0; i < 160; i++) {
+			data = Bus_Load(start + i);
+			p = (data & 0x00ff);
+			color = this.palette[p];
+      if (!(color & 0x8000)) {
+        this.scanlineBuffer[(i<<1)] = RGB5A1_TO_RGBA8(color & 0x7fff);
+      }
+
+      data >>= 8;
+      p = (data & 0x00ff);
+			color = this.palette[p];
+      if (!(color & 0x8000)) {
+        this.scanlineBuffer[(i<<1)+1] = RGB5A1_TO_RGBA8(color & 0x7fff);
+      }
+    }
   }
 }
 
