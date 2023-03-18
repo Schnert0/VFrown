@@ -187,7 +187,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
     .fail_cb = failure,
     .width = 640,
     .height = 480,
-    .window_title = "V.Frown - The V.Smile Emulator",
+    .window_title = "V.Frown",
     .enable_dragndrop = true,
     .max_dropped_files = 2,
     .sample_count = 1,
