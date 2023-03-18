@@ -32,6 +32,7 @@ void UI_RunFrame(struct nk_context* ctx) {
     true, true, true, true,
     true, true, true, true
   };
+  static nk_bool oscilloscopeEnabled = false;
 
   // UI START //
   if (nk_begin(ctx, "V.Frown", nk_rect(0, 0, sapp_width(), 30), 0)) {
@@ -127,23 +128,13 @@ void UI_RunFrame(struct nk_context* ctx) {
     }
 
     // Audio
-    if (nk_menu_begin_label(ctx, "Audio", NK_TEXT_CENTERED, nk_vec2(200, 1*ITEM_HEIGHT))) {
+    if (nk_menu_begin_label(ctx, "Audio", NK_TEXT_CENTERED, nk_vec2(200, 2*ITEM_HEIGHT))) {
       nk_layout_row_dynamic(ctx, 25, 1);
       if (nk_menu_item_label(ctx, "Toggle Channels", NK_TEXT_LEFT)) {
         showChannels = true;
       }
-      // if (nk_menu_item_label(ctx, "", NK_TEXT_LEFT)) {
-      //
-      // }
-      // if (nk_menu_item_label(ctx, "", NK_TEXT_LEFT)) {
-      //
-      // }
-      // if (nk_menu_item_label(ctx, "", NK_TEXT_LEFT)) {
-      //
-      // }
-      // if (nk_menu_item_label(ctx, "", NK_TEXT_LEFT)) {
-      //
-      // }
+      nk_checkbox_label(ctx, "Oscilloscope View", &oscilloscopeEnabled);
+      Backend_SetOscilloscopeEnabled(oscilloscopeEnabled);
 
       nk_menu_end(ctx);
     }

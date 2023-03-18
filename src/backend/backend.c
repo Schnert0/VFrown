@@ -34,6 +34,12 @@ void Backend_Update() {
   if (Backend_GetChangedButtons())
     Controller_UpdateButtons(0, this.currButtons);
   this.prevButtons = this.currButtons;
+
+  if (this.oscilloscopeEnabled) {
+    memset(this.pixelBuffer, 0, 320*240*sizeof(uint32_t));
+    for (int32_t i = 0; i < 16; i++)
+      this.currSampleX[i] = 0;
+  }
 }
 
 
@@ -170,7 +176,7 @@ uint32_t* Backend_GetScanlinePointer(uint16_t scanlineNum) {
 
 
 bool Backend_RenderScanline() {
-  return true;
+  return !this.oscilloscopeEnabled;
 }
 
 
@@ -241,8 +247,59 @@ void Backend_PushBuffer() {
   (*this.sampleCount) = 0;
 }
 
+static const uint16_t channelColors[] = {
+  0x7c00, 0x83e0, 0x001f, 0xffe0,
+  0x7c1f, 0x83ff, 0xfe24, 0xffff,
+  0x7c00, 0x83e0, 0x001f, 0xffe0,
+  0x7c1f, 0x83ff, 0xfe24, 0xffff
+};
+
 
 void Backend_PushOscilloscopeSample(uint8_t ch, int16_t sample) {
+  if (!this.oscilloscopeEnabled)
+    return;
+
+  sample = sample / 1200;
+
+  if (this.currSampleX[ch] % 10 == 0) {
+
+    int32_t x = (ch & 0x3) * 80;
+    int32_t y = ((ch >> 2) * 60) + 30;
+
+    x += (this.currSampleX[ch] / 10);
+
+    int32_t start, end;
+    if (sample > this.prevSample[ch]) {
+      start = this.prevSample[ch];
+      end = sample;
+    } else if (sample < this.prevSample[ch]){
+      start = sample;
+      end = this.prevSample[ch];
+    } else {
+      start = sample;
+      end = sample+1;
+    }
+
+    Backend_SetDrawColor32(RGB5A1_TO_RGBA8(channelColors[ch]));
+
+    for (int32_t i = start; i < end; i++) {
+      Backend_SetPixel(x, y+i);
+    }
+
+    this.prevSample[ch] = sample;
+  }
+
+  this.currSampleX[ch]++;
+}
+
+
+bool Backend_GetOscilloscopeEnabled() {
+  return this.oscilloscopeEnabled;
+}
+
+
+void Backend_SetOscilloscopeEnabled(bool shouldShow) {
+  this.oscilloscopeEnabled = shouldShow;
 }
 
 // Old SDL keycodes
@@ -334,8 +391,14 @@ void Backend_SetDrawColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 }
 
 
+void Backend_SetDrawColor32(uint32_t color) {
+  this.drawColor = color;
+}
+
+
 void Backend_SetPixel(int32_t x, int32_t y) {
-  this.pixelBuffer[y][x] = this.drawColor;
+  if (x >= 0 && x < 320 && y >= 0 && y < 240)
+    this.pixelBuffer[y][x] = this.drawColor;
 }
 
 

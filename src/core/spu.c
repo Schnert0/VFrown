@@ -392,9 +392,9 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
     sample += prevSample;
   }
 
-  float fsample = ((sample * (int32_t)channel->envData.envelopeData) >> 7) / 8192.0f;
+  Backend_PushOscilloscopeSample(ch, (int16_t)sample);
 
-  Backend_PushOscilloscopeSample(ch, sample);
+  float fsample = ((sample * (int32_t)channel->envData.envelopeData) >> 7) / 8192.0f;
 
   float pan = channel->panVol.pan / 127.0f;
   float vol = channel->panVol.vol;

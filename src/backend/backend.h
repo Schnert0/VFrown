@@ -26,12 +26,15 @@ typedef struct {
 
   float emulationSpeed;
   uint32_t pixelBuffer[240][320];
+  int32_t currSampleX[16];
+  int16_t prevSample[16];
   uint32_t drawColor;
   uint32_t currButtons;
   uint32_t prevButtons;
   uint32_t currLed;
   char title[256];
   bool showLeds;
+  bool oscilloscopeEnabled;
 } Backend_t;
 
 bool Backend_Init();
@@ -56,6 +59,7 @@ bool Backend_RenderScanline();
 bool Backend_GetInput();
 uint32_t Backend_GetButtonStates();
 uint32_t Backend_GetChangedButtons();
+void Backend_HandleInput(int32_t keycode, int32_t eventType);
 
 // Leds
 uint8_t Backend_SetLedStates(uint8_t state);
@@ -66,10 +70,12 @@ void Backend_ShowLeds(bool shouldShowLeds);
 void Backend_InitAudioDevice(float* buffer, int32_t* count);
 void Backend_PushBuffer();
 void Backend_PushOscilloscopeSample(uint8_t ch, int16_t sample);
-void Backend_HandleInput(int32_t keycode, int32_t eventType);
+bool Backend_GetOscilloscopeEnabled();
+void Backend_SetOscilloscopeEnabled(bool shouldShow);
 
 // Drawing
 void Backend_SetDrawColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void Backend_SetDrawColor32(uint32_t color);
 void Backend_SetPixel(int32_t x, int32_t y);
 void Backend_DrawCircle(int32_t x, int32_t y, uint32_t radius);
 void Backend_DrawText(int32_t x, int32_t y, const char* text, ...);
