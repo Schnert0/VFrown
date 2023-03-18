@@ -82,6 +82,8 @@ static void frame() {
     }
   }
 
+  Backend_RenderLeds();
+
   sg_update_image(emuFrame, &(sg_image_data){
     .subimage[0][0] = {
       .ptr = Backend_GetScanlinePointer(0),

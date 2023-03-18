@@ -25,6 +25,7 @@ void UI_RunFrame(struct nk_context* ctx) {
   static bool showHelp = false;
   static bool showAbout = false;
   static bool showChannels = false;
+  static nk_bool showLeds = false;
   static nk_bool chanEnable[16] = {
     true, true, true, true,
     true, true, true, true,
@@ -60,8 +61,9 @@ void UI_RunFrame(struct nk_context* ctx) {
     }
 
     // Emulation
-    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(200, 8*ITEM_HEIGHT))) {
+    if (nk_menu_begin_label(ctx, "System", NK_TEXT_CENTERED, nk_vec2(200, 9*ITEM_HEIGHT))) {
       nk_layout_row_dynamic(ctx, 25, 1);
+
       if (nk_menu_item_label(ctx, "Toggle FullScreen", NK_TEXT_LEFT)) {
         sapp_toggle_fullscreen();
       }
@@ -95,6 +97,9 @@ void UI_RunFrame(struct nk_context* ctx) {
         emulationSpeed = 100;
       }
       Backend_SetSpeed(emulationSpeed / 100.0f);
+
+      nk_checkbox_label(ctx, "Show LEDs", &showLeds);
+      Backend_ShowLeds(showLeds);
 
       nk_menu_end(ctx);
     }

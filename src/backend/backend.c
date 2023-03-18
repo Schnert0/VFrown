@@ -178,17 +178,55 @@ bool Backend_GetInput() {
   return true;
 }
 
-uint32_t Backend_SetLedStates(uint8_t state) {
-  return 0;
-}
-
-uint32_t Backend_GetcurrButtonstates() {
-  return 0;
-}
-
 
 uint32_t Backend_GetChangedButtons() {
   return this.currButtons ^ this.prevButtons;
+}
+
+
+uint8_t Backend_SetLedStates(uint8_t state) {
+  this.currLed = state;
+  return this.currLed;
+}
+
+void Backend_RenderLeds() {
+  if (!this.showLeds)
+    return;
+
+  uint8_t alpha = 128;
+
+  if (this.currLed & (1 << LED_RED))
+    Backend_SetDrawColor(255, 0, 0, alpha);
+  else
+    Backend_SetDrawColor(0, 0, 0, alpha);
+
+  Backend_DrawCircle(16, 224, 10);
+
+  if (this.currLed & (1 << LED_YELLOW))
+    Backend_SetDrawColor(255, 255, 0, alpha);
+  else
+    Backend_SetDrawColor(0, 0, 0, alpha);
+
+  Backend_DrawCircle(46, 224, 10);
+
+  if (this.currLed & (1 << LED_BLUE))
+    Backend_SetDrawColor(0, 0, 255, alpha);
+  else
+    Backend_SetDrawColor(0, 0, 0, alpha);
+
+  Backend_DrawCircle(76, 224, 10);
+
+  if (this.currLed & (1 << LED_GREEN))
+    Backend_SetDrawColor(0, 255, 0, alpha);
+  else
+    Backend_SetDrawColor(0, 0, 0, alpha);
+
+  Backend_DrawCircle(106, 224, 10);
+}
+
+
+void Backend_ShowLeds(bool shouldShowLeds) {
+  this.showLeds = shouldShowLeds;
 }
 
 
@@ -286,6 +324,54 @@ void Backend_HandleInput(int32_t keycode, int32_t eventType) {
     case SAPP_KEYCODE_A:     this.currButtons &= ~(1 << INPUT_HELP);   break;
     case SAPP_KEYCODE_S:     this.currButtons &= ~(1 << INPUT_EXIT);   break;
     case SAPP_KEYCODE_D:     this.currButtons &= ~(1 << INPUT_ABC);    break;
+    }
+  }
+}
+
+
+void Backend_SetDrawColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+  this.drawColor = (a << 24) | (b << 16) | (g << 8) | r;
+}
+
+
+void Backend_SetPixel(int32_t x, int32_t y) {
+  this.pixelBuffer[y][x] = this.drawColor;
+}
+
+
+void Backend_DrawCircle(int32_t x, int32_t y, uint32_t radius) {
+  int32_t offsetx, offsety, d;
+
+  offsetx = 0;
+  offsety = radius;
+  d = radius - 1;
+  // int32_t status = 0;
+
+  while (offsety >= offsetx) {
+    Backend_SetPixel(x + offsetx, y + offsety);
+    Backend_SetPixel(x + offsety, y + offsetx);
+    Backend_SetPixel(x - offsetx, y + offsety);
+    Backend_SetPixel(x - offsety, y + offsetx);
+
+    Backend_SetPixel(x + offsetx, y - offsety);
+    Backend_SetPixel(x + offsety, y - offsetx);
+    Backend_SetPixel(x - offsetx, y - offsety);
+    Backend_SetPixel(x - offsety, y - offsetx);
+
+    // if (status < 0) {
+    //   status = -1;
+    //   break;
+    // }
+    if (d >= 2*offsetx) {
+      d -= 2*offsetx + 1;
+      offsetx += 1;
+    } else if (d < 2 * (radius - offsety)) {
+      d += 2 * offsety - 1;
+      offsety -= 1;
+    } else {
+      d += 2 * (offsety - offsetx -1);
+      offsety -= 1;
+      offsetx += 1;
     }
   }
 }
