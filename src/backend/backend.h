@@ -16,16 +16,21 @@
 #include "lib/sokol_audio.h"
 #include "lib/sokol_gfx.h"
 #include "lib/sokol_glue.h"
-#include "lib/sokol_gp.h"
-#include "lib/sokol_nuklear.h"
+#include "lib/sokol_gl.h"
+// #include "lib/sokol_nuklear.h"
+
+#include "ui.h"
 
 typedef struct {
+  sgl_context  context;
+  sgl_pipeline pipeline;
+  sg_image     screenTexture;
+
   float* sampleBuffer;
   int32_t* sampleCount;
   FILE* saveFile;
 
   float emulationSpeed;
-  uint32_t pixelBuffer[240][320];
   int32_t currSampleX[16];
   int16_t prevSample[16];
   uint32_t drawColor;

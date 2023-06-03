@@ -6,6 +6,47 @@ static Backend_t this;
 bool Backend_Init() {
   memset(&this, 0, sizeof(Backend_t));
 
+  // Sokol GFX
+  sg_desc sgDesc = {
+    .context = sapp_sgcontext()
+  };
+  sg_setup(&sgDesc);
+  if (!sg_isvalid()) {
+    VSmile_Error("Failed to create Sokol GFX context\n");
+    return false;
+  }
+
+  // Sokol GL
+  sgl_desc_t sglDesc = {
+    .face_winding = SG_FACEWINDING_CW,
+    .max_vertices = 4*64*1024,
+  };
+  sgl_setup(&sglDesc);
+
+  // Create pipeline
+  sg_pipeline_desc pipelineDesc = { 0 };
+  pipelineDesc.colors[0].blend.enabled          = true;
+  pipelineDesc.colors[0].blend.src_factor_rgb   = SG_BLENDFACTOR_SRC_ALPHA;
+  pipelineDesc.colors[0].blend.dst_factor_rgb   = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+  pipelineDesc.colors[0].blend.op_rgb           = SG_BLENDOP_ADD;
+  pipelineDesc.colors[0].blend.src_factor_alpha = SG_BLENDFACTOR_ONE;
+  pipelineDesc.colors[0].blend.dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+  pipelineDesc.colors[0].blend.op_alpha         = SG_BLENDOP_ADD;
+  this.pipeline = sgl_make_pipeline(&pipelineDesc);
+
+  // Create GPU-side texture for rendering emulated frame
+  sg_image_data imageData = { 0 };
+  imageData.subimage[0][0].ptr  = PPU_GetPixelBuffer();
+  imageData.subimage[0][0].size = 320*240*sizeof(uint32_t);
+  sg_image_desc imageDesc = {
+    .width        = 320,
+    .height       = 240,
+    .usage        = SG_USAGE_DYNAMIC,
+    .pixel_format = SG_PIXELFORMAT_RGBA8
+  };
+  this.screenTexture = sg_make_image(&imageDesc);
+
+  // Sokol audio
   saudio_setup(&(saudio_desc){
     .sample_rate  = 48000,
     .num_channels = 2
@@ -35,11 +76,44 @@ void Backend_Update() {
     Controller_UpdateButtons(0, this.currButtons);
   this.prevButtons = this.currButtons;
 
-  if (this.oscilloscopeEnabled) {
-    memset(this.pixelBuffer, 0, 320*240*sizeof(uint32_t));
-    for (int32_t i = 0; i < 16; i++)
-      this.currSampleX[i] = 0;
-  }
+  // Update screen texture
+  sg_image_data imageData;
+  imageData.subimage[0][0].ptr  = PPU_GetPixelBuffer();
+  imageData.subimage[0][0].size = 320*240*sizeof(uint32_t);
+  sg_update_image(this.screenTexture, &imageData);
+
+  // Begin render pass
+  const int32_t width  = sapp_width();
+  const int32_t height = sapp_height();
+  const sg_pass_action pass_action = { 0 };
+  sg_begin_default_pass(&pass_action, width, height);
+
+  // Draw emulated frame to window
+  sgl_texture(this.screenTexture);
+  sgl_enable_texture();
+  sgl_begin_quads();
+  sgl_c1i(0xffffffff);
+  sgl_v2f_t2f( 1.0f,  1.0f, 1.0f, 0.0f);
+  sgl_v2f_t2f(-1.0f,  1.0f, 0.0f, 0.0f);
+  sgl_v2f_t2f(-1.0f, -1.0f, 0.0f, 1.0f);
+  sgl_v2f_t2f( 1.0f, -1.0f, 1.0f, 1.0f);
+  sgl_end();
+  sgl_draw();
+
+  // Draw UI
+  struct nk_context* ctx = snk_new_frame();
+  UI_RunFrame(ctx);
+  snk_render(width, height);
+
+  // End render pass
+  sg_end_pass();
+  sg_commit();
+
+  // if (this.oscilloscopeEnabled) {
+  //   memset(this.pixelBuffer, 0, 320*240*sizeof(uint32_t));
+  //   for (int32_t i = 0; i < 16; i++)
+  //     this.currSampleX[i] = 0;
+  // }
 }
 
 
@@ -171,7 +245,7 @@ void Backend_SetSpeed(float newSpeed) {
 
 
 uint32_t* Backend_GetScanlinePointer(uint16_t scanlineNum) {
-  return (uint32_t*)&this.pixelBuffer[scanlineNum][0];
+  return PPU_GetPixelBuffer() + (320*scanlineNum);
 }
 
 
@@ -397,8 +471,8 @@ void Backend_SetDrawColor32(uint32_t color) {
 
 
 void Backend_SetPixel(int32_t x, int32_t y) {
-  if (x >= 0 && x < 320 && y >= 0 && y < 240)
-    this.pixelBuffer[y][x] = this.drawColor;
+  // if (x >= 0 && x < 320 && y >= 0 && y < 240)
+  //   this.pixelBuffer[y][x] = this.drawColor;
 }
 
 

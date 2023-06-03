@@ -119,6 +119,8 @@ typedef struct PPU_t {
     uint16_t sprData[0x400]; // 0x2c00 - 0x2fff
     Sprite_t sprites[0x100];
   };
+
+  uint32_t pixelBuffer[320*240]; // Pixel buffer for screen
 } PPU_t;
 
 bool PPU_Init();
@@ -134,6 +136,7 @@ uint16_t PPU_Read(uint16_t addr);
 void PPU_Write(uint16_t addr, uint16_t data);
 
 bool PPU_RenderLine();
+uint32_t* PPU_GetPixelBuffer();
 void PPU_RenderTileStrip(int16_t xPos, int16_t tileWidth, uint16_t nc, uint16_t palOffset, uint32_t tileData, bool hFlip, bool vFlip);
 void PPU_RenderLayerStrip(int32_t layer, int32_t depth, int32_t line);
 void PPU_RenderSpriteStrips(int32_t depth, int32_t line);

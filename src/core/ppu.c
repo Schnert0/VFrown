@@ -75,6 +75,11 @@ bool PPU_RenderLine() {
 }
 
 
+uint32_t* PPU_GetPixelBuffer() {
+  return (uint32_t*)&this.pixelBuffer;
+}
+
+
 uint16_t PPU_Read(uint16_t addr) {
   // printf("PPU read %04x\n", addr);
   if (addr < 0x2900) {
