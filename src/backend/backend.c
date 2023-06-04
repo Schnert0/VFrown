@@ -1,5 +1,5 @@
-#define SOKOL_IMPL
 #include "backend.h"
+#include "font.xpm" // TODO: remove
 
 static Backend_t this;
 
@@ -17,34 +17,35 @@ bool Backend_Init() {
   }
 
   // Sokol GL
-  sgl_desc_t sglDesc = {
+  sgl_setup(&(sgl_desc_t){
     .face_winding = SG_FACEWINDING_CW,
     .max_vertices = 4*64*1024,
-  };
-  sgl_setup(&sglDesc);
-
-  // Create pipeline
-  sg_pipeline_desc pipelineDesc = { 0 };
-  pipelineDesc.colors[0].blend.enabled          = true;
-  pipelineDesc.colors[0].blend.src_factor_rgb   = SG_BLENDFACTOR_SRC_ALPHA;
-  pipelineDesc.colors[0].blend.dst_factor_rgb   = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-  pipelineDesc.colors[0].blend.op_rgb           = SG_BLENDOP_ADD;
-  pipelineDesc.colors[0].blend.src_factor_alpha = SG_BLENDFACTOR_ONE;
-  pipelineDesc.colors[0].blend.dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-  pipelineDesc.colors[0].blend.op_alpha         = SG_BLENDOP_ADD;
-  this.pipeline = sgl_make_pipeline(&pipelineDesc);
+  });
 
   // Create GPU-side texture for rendering emulated frame
-  sg_image_data imageData = { 0 };
-  imageData.subimage[0][0].ptr  = PPU_GetPixelBuffer();
-  imageData.subimage[0][0].size = 320*240*sizeof(uint32_t);
-  sg_image_desc imageDesc = {
+  this.screenTexture = sg_make_image(&(sg_image_desc){
     .width        = 320,
     .height       = 240,
+    .min_filter   = SG_FILTER_NEAREST,
+    .mag_filter   = SG_FILTER_NEAREST,
+    // .min_filter   = SG_FILTER_LINEAR,
+    // .mag_filter   = SG_FILTER_LINEAR,
     .usage        = SG_USAGE_DYNAMIC,
     .pixel_format = SG_PIXELFORMAT_RGBA8
-  };
-  this.screenTexture = sg_make_image(&imageDesc);
+  });
+
+  // Create and load pipeline
+  this.pipeline = sgl_make_pipeline(&(sg_pipeline_desc){
+    .colors[0].blend = {
+      .enabled          = true,
+      .src_factor_rgb   = SG_BLENDFACTOR_SRC_ALPHA,
+      .dst_factor_rgb   = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+      .op_rgb           = SG_BLENDOP_ADD,
+      .src_factor_alpha = SG_BLENDFACTOR_ONE,
+      .dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+      .op_alpha         = SG_BLENDOP_ADD
+    }
+  });
 
   // Sokol audio
   saudio_setup(&(saudio_desc){
@@ -82,30 +83,42 @@ void Backend_Update() {
   imageData.subimage[0][0].size = 320*240*sizeof(uint32_t);
   sg_update_image(this.screenTexture, &imageData);
 
-  // Begin render pass
   const int32_t width  = sapp_width();
   const int32_t height = sapp_height();
-  const sg_pass_action pass_action = { 0 };
+
+  // Begin render pass
+  const sg_pass_action pass_action = {
+    .colors[0] = {
+      .load_action  = SG_LOADACTION_CLEAR,
+      .store_action = SG_STOREACTION_DONTCARE,
+      .clear_value  = { 0.0f, 0.0f, 0.0f, 1.0f }
+    }
+  };
   sg_begin_default_pass(&pass_action, width, height);
 
   // Draw emulated frame to window
-  sgl_texture(this.screenTexture);
+  sgl_defaults();
+  sgl_load_pipeline(this.pipeline);
   sgl_enable_texture();
+  sgl_texture(this.screenTexture);
+  sgl_matrix_mode_projection();
+  sgl_push_matrix();
+  sgl_ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
   sgl_begin_quads();
-  sgl_c1i(0xffffffff);
-  sgl_v2f_t2f( 1.0f,  1.0f, 1.0f, 0.0f);
-  sgl_v2f_t2f(-1.0f,  1.0f, 0.0f, 0.0f);
-  sgl_v2f_t2f(-1.0f, -1.0f, 0.0f, 1.0f);
-  sgl_v2f_t2f( 1.0f, -1.0f, 1.0f, 1.0f);
-  sgl_end();
-  sgl_draw();
 
-  // Draw UI
-  struct nk_context* ctx = snk_new_frame();
-  UI_RunFrame(ctx);
-  snk_render(width, height);
+  sgl_c1i(0xffffffff);
+  sgl_v2f_t2f(0,      0,      0.0f, 0.0f);
+  sgl_v2f_t2f(width,  0,      1.0f, 0.0f);
+  sgl_v2f_t2f(width,  height, 1.0f, 1.0f);
+  sgl_v2f_t2f(0,      height, 0.0f, 1.0f);
+
+  // Update and draw UI
+  UI_RunFrame();
 
   // End render pass
+  sgl_end();
+  sgl_draw();
+  sgl_pop_matrix();
   sg_end_pass();
   sg_commit();
 

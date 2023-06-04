@@ -38,7 +38,7 @@ void UART_SaveState();
 void UART_LoadState();
 
 void UART_Reset();
-void UART_Update();
+void UART_Update(int32_t cycles);
 
 uint16_t UART_Read(uint16_t addr);
 void UART_Write(uint16_t addr, uint16_t data);

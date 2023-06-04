@@ -15,15 +15,17 @@
 #define PATH_CHAR '/'
 #endif
 
+#include "backend/libs.h"
 #include "backend/backend.h"
 
-#define RGB5A1_TO_RGBA8(color) (((color & 0x1f) << 19) | ((color & 0x3e0) << 6) | ((color & 0x7c00) >> 7))
+#define RGB5A1_TO_RGBA8(color) (((color & 0x1f) << 19) | ((color & 0x3e0) << 6) | ((color & 0x7c00) >> 7) | 0xff000000)
 
 #define CYCLES_PER_LINE 1716
 #define LINES_PER_FIELD 262
+
 // Is this correct? or is it 27000000?
 #define SYSCLOCK 27000000
-//(CYCLES_PER_LINE * LINES_PER_FIELD * 60)
+// #define SYSCLOCK (CYCLES_PER_LINE * LINES_PER_FIELD * 60)
 
 #define IN_RANGE(addr, start, size) \
   (addr >= start && addr < start+size)

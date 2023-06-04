@@ -1,23 +1,9 @@
 #ifndef BACKEND_H
 #define BACKEND_H
 
-#ifndef DNDEBUG
-  #define SOKOL_LOG(s) VSmile_Error(s);
-#endif // DNDEBUG
-
-#include "lib/nuklear_def.h"
-
-#include "font.xpm"
-
 #include "../common.h"
 #include "../core/vsmile.h"
-
-#include "lib/sokol_app.h"
-#include "lib/sokol_audio.h"
-#include "lib/sokol_gfx.h"
-#include "lib/sokol_glue.h"
-#include "lib/sokol_gl.h"
-// #include "lib/sokol_nuklear.h"
+#include "libs.h"
 
 #include "ui.h"
 

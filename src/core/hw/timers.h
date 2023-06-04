@@ -51,7 +51,7 @@ void Timers_SaveState();
 void Timers_LoadState();
 
 void Timers_Reset();
-void Timers_Update();
+void Timers_Update(int32_t cycles);
 
 uint16_t Timers_Read(uint16_t addr);
 void Timers_Write(uint16_t addr, uint16_t data);
@@ -61,7 +61,7 @@ void Timers_SetTimerACTRL(uint16_t data);
 void Timers_UpdateTimerB();
 
 void Timers_TickSysTimers();
-void Timers_TickTMB();
+void Timers_TickTMB(uint32_t index);
 void Timers_TickAB();
 void Timers_TickA();
 void Timers_TickC();

@@ -6,18 +6,12 @@ static char romPath[1024];
 static char sysromPath[1024];
 
 // Called when the application is initializing.
-static void init() {
+static void initFunc() {
   speed = 0.0f;
 
   if (!Backend_Init()) {
     VSmile_Error("Failed to initialize backend");
   }
-
-  // Sokol Nuklear
-  snk_setup(&(snk_desc_t){
-    .dpi_scale = sapp_dpi_scale()
-  });
-  // TODO: idk what to call to validate snk_setup worked
 
   // Emulator core
   if (!VSmile_Init()) {
@@ -50,7 +44,7 @@ static void init() {
 
 
 // Called on every frame of the application.
-static void frame() {
+static void frameFunc() {
   float systemSpeed = Backend_GetSpeed();
   speed += systemSpeed;
   if (speed >= 1.0f) {
@@ -66,26 +60,24 @@ static void frame() {
 
 
 // Called when the application is shutting down
-static void cleanup() {
+static void cleanupFunc() {
   UI_Cleanup();
   VSmile_Cleanup();
   Backend_Cleanup();
 
-  snk_shutdown();
   sg_shutdown();
 }
 
 
 // Called when an event (keypress, mouse movement, etc.) occurs
-static void event(const sapp_event* event) {
-  snk_handle_event(event);
+static void eventFunc(sapp_event* event) {
+  UI_HandleEvent(event);
   Backend_HandleInput(event->key_code, event->type);
+
+
+  // TODO: move this to the backend
   if (event->type == SAPP_EVENTTYPE_FILES_DROPPED) {
     const int32_t numFiles = sapp_get_num_dropped_files();
-
-    // for (int32_t i = 0; i < numFiles; i++) {
-    //   printf("%s\n", sapp_get_dropped_file_path(i));
-    // }
 
     VSmile_LoadROM(sapp_get_dropped_file_path(0));
     if (numFiles == 2)
@@ -93,12 +85,6 @@ static void event(const sapp_event* event) {
     VSmile_Reset();
     VSmile_SetPause(false);
   }
-}
-
-
-// Called in case a critical error occurs
-static void failure(const char* message) {
-
 }
 
 // Platform-agnostic main from sokol_app.h
@@ -118,18 +104,17 @@ sapp_desc sokol_main(int argc, char* argv[]) {
   }
 
   sapp_desc desc = {
-    .init_cb = init,
-    .frame_cb = frame,
-    .cleanup_cb = cleanup,
-    .event_cb = event,
-    .fail_cb = failure,
+    .init_cb = initFunc,
+    .frame_cb = frameFunc,
+    .cleanup_cb = cleanupFunc,
+    .event_cb = (void(*)(const sapp_event*))eventFunc,
     .width = 640,
     .height = 480,
     .window_title = "V.Frown",
     .enable_dragndrop = true,
     .max_dropped_files = 2,
     .sample_count = 1,
-    .high_dpi=true
+    .high_dpi=false
   };
 
   return desc;
