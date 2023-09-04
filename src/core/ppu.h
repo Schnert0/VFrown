@@ -148,8 +148,8 @@ void PPU_IncrementCurrLine();
 void PPU_DoDMA(uint16_t data);
 void PPU_SetIRQFlags(uint16_t data);
 
-void PPU_ToggleSpriteOutlines();
-void PPU_ToggleFlipVisual();
-void PPU_ToggleLayer(uint8_t layer);
+void PPU_SetSpriteOutlines(bool enabled);
+void PPU_SetFlipVisual(bool enabled);
+void PPU_SetLayerVisibility(uint8_t layer, bool enabled);
 
 #endif // PPU_H

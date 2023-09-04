@@ -22,8 +22,8 @@ bool Backend_Init() {
     .max_vertices = 4*64*1024,
   });
 
-  // Create GPU-side texture for rendering emulated frame
-  this.screenTexture = sg_make_image(&(sg_image_desc){
+  // Create GPU-side textures for rendering emulated frame
+  sg_image_desc imgDesc = {
     .width        = 320,
     .height       = 240,
     .min_filter   = SG_FILTER_NEAREST,
@@ -32,7 +32,11 @@ bool Backend_Init() {
     // .mag_filter   = SG_FILTER_LINEAR,
     .usage        = SG_USAGE_DYNAMIC,
     .pixel_format = SG_PIXELFORMAT_RGBA8
-  });
+  };
+  this.screenTextures[0] = sg_make_image(&imgDesc);
+  imgDesc.min_filter   = SG_FILTER_LINEAR,
+  imgDesc.mag_filter   = SG_FILTER_LINEAR,
+  this.screenTextures[1] = sg_make_image(&imgDesc);
 
   // Create and load pipeline
   this.pipeline = sgl_make_pipeline(&(sg_pipeline_desc){
@@ -60,6 +64,7 @@ bool Backend_Init() {
   this.saveFile = NULL;
 
   this.emulationSpeed = 1.0f;
+  this.controlsEnabled = true;
   this.currButtons = 0;
   this.prevButtons = 0;
 
@@ -73,34 +78,39 @@ void Backend_Cleanup() {
 
 
 void Backend_Update() {
-  if (Backend_GetChangedButtons())
-    Controller_UpdateButtons(0, this.currButtons);
-  this.prevButtons = this.currButtons;
+  if (this.controlsEnabled) {
+    if (Backend_GetChangedButtons())
+      Controller_UpdateButtons(0, this.currButtons);
+    this.prevButtons = this.currButtons;
+  }
 
   // Update screen texture
   sg_image_data imageData;
   imageData.subimage[0][0].ptr  = PPU_GetPixelBuffer();
   imageData.subimage[0][0].size = 320*240*sizeof(uint32_t);
-  sg_update_image(this.screenTexture, &imageData);
+  sg_update_image(this.screenTextures[this.currScreenFilter], &imageData);
 
   const int32_t width  = sapp_width();
   const int32_t height = sapp_height();
 
   // Begin render pass
-  const sg_pass_action pass_action = {
+  const sg_pass_action defaultPass = {
     .colors[0] = {
       .load_action  = SG_LOADACTION_CLEAR,
       .store_action = SG_STOREACTION_DONTCARE,
       .clear_value  = { 0.0f, 0.0f, 0.0f, 1.0f }
     }
   };
-  sg_begin_default_pass(&pass_action, width, height);
+
+  UI_StartFrame();
+
+  sg_begin_default_pass(&defaultPass, width, height);
 
   // Draw emulated frame to window
   sgl_defaults();
   sgl_load_pipeline(this.pipeline);
   sgl_enable_texture();
-  sgl_texture(this.screenTexture);
+  sgl_texture(this.screenTextures[this.currScreenFilter]);
   sgl_matrix_mode_projection();
   sgl_push_matrix();
   sgl_ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
@@ -112,13 +122,14 @@ void Backend_Update() {
   sgl_v2f_t2f(width,  height, 1.0f, 1.0f);
   sgl_v2f_t2f(0,      height, 0.0f, 1.0f);
 
-  // Update and draw UI
-  UI_RunFrame();
-
-  // End render pass
   sgl_end();
   sgl_draw();
   sgl_pop_matrix();
+
+  UI_RunFrame();
+
+  // End rendering
+  UI_Render();
   sg_end_pass();
   sg_commit();
 
@@ -162,6 +173,9 @@ void Backend_GetFileName(const char* path) {
 
 
 void Backend_WriteSave(void* data, uint32_t size) {
+  if (!this.saveFile)
+    return;
+
   uint8_t* bytes = (uint8_t*)data;
   for (int32_t i = 0; i < size; i++)
     fputc(bytes[i], this.saveFile);
@@ -174,6 +188,9 @@ void Backend_WriteSave(void* data, uint32_t size) {
 
 
 void Backend_ReadSave(void* data, uint32_t size) {
+  if (!this.saveFile)
+    return;
+
   uint8_t* bytes = (uint8_t*)data;
   for (int32_t i = 0; i < size; i++)
     bytes[i] = fgetc(this.saveFile);
@@ -254,6 +271,11 @@ float Backend_GetSpeed() {
 
 void Backend_SetSpeed(float newSpeed) {
   this.emulationSpeed = newSpeed;
+}
+
+
+void Backend_SetControlsEnable(bool isEnabled) {
+  this.controlsEnabled = isEnabled;
 }
 
 
@@ -389,6 +411,11 @@ void Backend_SetOscilloscopeEnabled(bool shouldShow) {
   this.oscilloscopeEnabled = shouldShow;
 }
 
+
+void Backend_SetScreenFilter(uint8_t filterMode) {
+  this.currScreenFilter = filterMode;
+}
+
 // Old SDL keycodes
 // case SDLK_BACKQUOTE: SDLBackend_ToggleFullscreen(); break;
 // case SDLK_1: PPU_ToggleLayer(0); break; // Layer 0
@@ -424,11 +451,12 @@ void Backend_SetOscilloscopeEnabled(bool shouldShow) {
 void Backend_HandleInput(int32_t keycode, int32_t eventType) {
   if (eventType == SAPP_EVENTTYPE_KEY_DOWN) {
     switch (keycode) {
-    case SAPP_KEYCODE_0: VSmile_Reset(); break;
-    case SAPP_KEYCODE_1: PPU_ToggleLayer(0); break;
-    case SAPP_KEYCODE_2: PPU_ToggleLayer(1); break;
-    case SAPP_KEYCODE_3: PPU_ToggleLayer(2); break;
+    // case SAPP_KEYCODE_1: PPU_ToggleLayer(0); break;
+    // case SAPP_KEYCODE_2: PPU_ToggleLayer(1); break;
+    // case SAPP_KEYCODE_3: PPU_ToggleLayer(2); break;
 
+    case SAPP_KEYCODE_R: VSmile_Reset(); break;
+    case SAPP_KEYCODE_U: UI_Toggle(); break;
     case SAPP_KEYCODE_O: VSmile_Step(); break;
     case SAPP_KEYCODE_P: VSmile_SetPause(!VSmile_GetPaused()); break;
 
@@ -470,6 +498,11 @@ void Backend_HandleInput(int32_t keycode, int32_t eventType) {
     case SAPP_KEYCODE_D:     this.currButtons &= ~(1 << INPUT_ABC);    break;
     }
   }
+}
+
+
+void Backend_UpdateButtonMapping(const char* buttonName, char* mappingText, uint32_t mappingLen) {
+
 }
 
 

@@ -60,6 +60,9 @@ uint16_t UART_Read(uint16_t addr) {
   switch (addr) {
   case 0x3d30: return this.ctrl;
   case 0x3d31: return this.stat;
+  case 0x3d33: return this.baudLo;
+  case 0x3d34: return this.baudHi;
+  case 0x3d35: return this.txBuffer;
   case 0x3d36: return UART_GetRxBuffer();
   default:
     VSmile_Warning("Unknown read from UART address %04x %06x", addr, CPU_GetCSPC());

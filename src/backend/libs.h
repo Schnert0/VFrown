@@ -11,9 +11,8 @@
   #define SOKOL_LOG(msg) VSmile_Error(msg);
 #endif // DNDEBUG
 
-#include "lib/ini.h"
-#include "lib/microui.h"
-#include "lib/atlas.inl"
+// #include "lib/ini.h"
+#include "lib/nuklear.h"
 
 #ifndef SOKOL_APP_INCLUDED
 #include "lib/sokol_app.h"
@@ -30,6 +29,10 @@
 #ifndef SOKOL_GL_INCLUDED
 #include "lib/sokol_gl.h"
 #endif // SOKOL_GL_INCLUDED
+
+#ifndef SOKOL_NUKLEAR_INCLUDED
+#include "lib/sokol_nuklear.h"
+#endif // SOKOL_NUKLEAR_INCLUDED
 
 #ifndef SOKOL_GLUE_INCLUDED
 #include "lib/sokol_glue.h"

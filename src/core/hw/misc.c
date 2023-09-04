@@ -80,6 +80,11 @@ void Misc_Update(int32_t cycles) {
   // Watchdog
   Timer_Tick(this.watchdogTimer, cycles);
 
+  for (int32_t i = 0; i < cycles; i++) {
+    Misc_UpdatePRNG(0);
+    Misc_UpdatePRNG(1);
+  }
+
   // ADC Conversion
   Timer_Tick(this.adcTimers[0], cycles);
   Timer_Tick(this.adcTimers[1], cycles);
@@ -100,8 +105,8 @@ uint16_t Misc_Read(uint16_t addr) {
   case 0x3d29: return this.wakeupSrc;
   case 0x3d2a: return this.wakeupTime;
   case 0x3d2b: return this.tvSystem;
-  case 0x3d2c: Misc_UpdatePRNG(0); return this.prng[0];
-  case 0x3d2d: Misc_UpdatePRNG(1); return this.prng[1];
+  case 0x3d2c: return this.prng[0];
+  case 0x3d2d: return this.prng[1];
   case 0x3d2e: return this.fiqSelect;
   case 0x3d2f: return CPU_GetDataSegment();
   default:

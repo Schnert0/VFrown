@@ -492,16 +492,30 @@ void PPU_SetIRQFlags(uint16_t data) {
 }
 
 
-void PPU_ToggleSpriteOutlines() {
-  this.spriteOutlinesEnabled = !this.spriteOutlinesEnabled;
+bool PPU_GetSpriteOutlines() {
+  return this.spriteOutlinesEnabled;
 }
 
 
-void PPU_ToggleFlipVisual() {
-  this.flipVisualEnabled = !this.flipVisualEnabled;
+void PPU_SetSpriteOutlines(bool isEnabled) {
+  this.spriteOutlinesEnabled = isEnabled;
 }
 
 
-void PPU_ToggleLayer(uint8_t layer) {
-  this.layerEnabled[layer] = !this.layerEnabled[layer];
+bool PPU_GetFlipVisual() {
+  return this.flipVisualEnabled;
+}
+
+
+void PPU_SetFlipVisual(bool isEnabled) {
+  this.flipVisualEnabled = isEnabled;
+}
+
+
+bool PPU_GetLayerVisibility(uint8_t layer) {
+  return this.layerEnabled[layer];
+}
+
+void PPU_SetLayerVisibility(uint8_t layer, bool isEnabled) {
+  this.layerEnabled[layer] = isEnabled;
 }
