@@ -1,18 +1,26 @@
-#if defined(SOKOL_IMPL) && !defined(SOKOL_NUKLEAR_IMPL)
-#define SOKOL_NUKLEAR_IMPL
+#if defined(SOKOL_IMPL) && !defined(SOKOL_IMGUI_IMPL)
+#define SOKOL_IMGUI_IMPL
 #endif
-#ifndef SOKOL_NUKLEAR_INCLUDED
+#ifndef SOKOL_IMGUI_INCLUDED
 /*
-    sokol_nuklear.h -- drop-in Nuklear renderer/event-handler for sokol_gfx.h
+    sokol_imgui.h -- drop-in Dear ImGui renderer/event-handler for sokol_gfx.h
 
     Project URL: https://github.com/floooh/sokol
 
     Do this:
         #define SOKOL_IMPL or
-        #define SOKOL_NUKLEAR_IMPL
+        #define SOKOL_IMGUI_IMPL
 
     before you include this file in *one* C or C++ file to create the
     implementation.
+
+    NOTE that the implementation can be compiled either as C++ or as C.
+    When compiled as C++, sokol_imgui.h will directly call into the
+    Dear ImGui C++ API. When compiled as C, sokol_imgui.h will call
+    cimgui.h functions instead.
+
+    NOTE that the formerly separate header sokol_cimgui.h has been
+    merged into sokol_imgui.h
 
     The following defines are used by the implementation to select the
     platform-specific embedded shader code (these are the same defines as
@@ -24,186 +32,243 @@
     SOKOL_METAL
     SOKOL_WGPU
 
-    Optionally provide the following configuration defines before including the
-    implementation:
+    Optionally provide the following configuration define both before including the
+    the declaration and implementation:
 
-    SOKOL_NUKLEAR_NO_SOKOL_APP    - don't depend on sokol_app.h (see below for details)
+    SOKOL_IMGUI_NO_SOKOL_APP    - don't depend on sokol_app.h (see below for details)
 
     Optionally provide the following macros before including the implementation
     to override defaults:
 
     SOKOL_ASSERT(c)     - your own assert macro (default: assert(c))
-    SOKOL_NUKLEAR_API_DECL- public function declaration prefix (default: extern)
-    SOKOL_API_DECL      - same as SOKOL_NUKLEAR_API_DECL
+    SOKOL_IMGUI_API_DECL- public function declaration prefix (default: extern)
+    SOKOL_API_DECL      - same as SOKOL_IMGUI_API_DECL
     SOKOL_API_IMPL      - public function implementation prefix (default: -)
 
-    If sokol_nuklear.h is compiled as a DLL, define the following before
+    If sokol_imgui.h is compiled as a DLL, define the following before
     including the declaration or implementation:
 
     SOKOL_DLL
 
-    On Windows, SOKOL_DLL will define SOKOL_NUKLEAR_API_DECL as __declspec(dllexport)
+    On Windows, SOKOL_DLL will define SOKOL_IMGUI_API_DECL as __declspec(dllexport)
     or __declspec(dllimport) as needed.
 
-    Include the following headers before sokol_nuklear.h (both before including
+    Include the following headers before sokol_imgui.h (both before including
     the declaration and implementation):
 
         sokol_gfx.h
-        sokol_app.h     (except SOKOL_NUKLEAR_NO_SOKOL_APP)
-        nuklear.h
+        sokol_app.h     (except SOKOL_IMGUI_NO_SOKOL_APP)
 
-    NOTE: Unlike most other sokol-headers, the implementation must be compiled
-    as C, compiling as C++ isn't supported. The interface is callable
-    from C++ of course.
+    Additionally, include the following headers before including the
+    implementation:
+
+    If the implementation is compiled as C++:
+        imgui.h
+
+    If the implementation is compiled as C:
+        cimgui.h
 
 
     FEATURE OVERVIEW:
     =================
-    sokol_nuklear.h implements the initialization, rendering and event-handling
-    code for Nuklear (https://github.com/Immediate-Mode-UI/Nuklear) on top of
+    sokol_imgui.h implements the initialization, rendering and event-handling
+    code for Dear ImGui (https://github.com/ocornut/imgui) on top of
     sokol_gfx.h and (optionally) sokol_app.h.
 
     The sokol_app.h dependency is optional and used for input event handling.
     If you only use sokol_gfx.h but not sokol_app.h in your application,
-    define SOKOL_NUKLEAR_NO_SOKOL_APP before including the implementation
-    of sokol_nuklear.h, this will remove any dependency to sokol_app.h, but
-    you must feed input events into Nuklear yourself.
+    define SOKOL_IMGUI_NO_SOKOL_APP before including the implementation
+    of sokol_imgui.h, this will remove any dependency to sokol_app.h, but
+    you must feed input events into Dear ImGui yourself.
 
-    sokol_nuklear.h is not thread-safe, all calls must be made from the
+    sokol_imgui.h is not thread-safe, all calls must be made from the
     same thread where sokol_gfx.h is running.
 
     HOWTO:
     ======
 
-    --- To initialize sokol-nuklear, call:
+    --- To initialize sokol-imgui, call:
 
-        snk_setup(const snk_desc_t* desc)
+        simgui_setup(const simgui_desc_t* desc)
 
-        This will initialize Nuklear and create sokol-gfx resources
+        This will initialize Dear ImGui and create sokol-gfx resources
         (two buffers for vertices and indices, a font texture and a pipeline-
         state-object).
 
-        Use the following snk_desc_t members to configure behaviour:
+        Use the following simgui_desc_t members to configure behaviour:
 
             int max_vertices
                 The maximum number of vertices used for UI rendering, default is 65536.
-                sokol-nuklear will use this to compute the size of the vertex-
+                sokol-imgui will use this to compute the size of the vertex-
                 and index-buffers allocated via sokol_gfx.h
 
             int image_pool_size
-                Number of snk_image_t objects which can be alive at the same time.
+                Number of simgui_image_t objects which can be alive at the same time.
                 The default is 256.
 
             sg_pixel_format color_format
                 The color pixel format of the render pass where the UI
-                will be rendered. The default is SG_PIXELFORMAT_RGBA8
+                will be rendered. The default (0) matches sokoL_gfx.h's
+                default pass.
 
             sg_pixel_format depth_format
                 The depth-buffer pixel format of the render pass where
-                the UI will be rendered. The default is SG_PIXELFORMAT_DEPTHSTENCIL.
+                the UI will be rendered. The default (0) matches
+                sokol_gfx.h's default pass depth format.
 
             int sample_count
                 The MSAA sample-count of the render pass where the UI
-                will be rendered. The default is 1.
+                will be rendered. The default (0) matches sokol_gfx.h's
+                default pass sample count.
 
-            float dpi_scale
-                DPI scaling factor. Set this to the result of sapp_dpi_scale().
-                To render in high resolution on a Retina Mac this would
-                typically be 2.0. The default value is 1.0
+            const char* ini_filename
+                Sets this path as ImGui::GetIO().IniFilename where ImGui will store
+                and load UI persistency data. By default this is 0, so that Dear ImGui
+                will not preserve state between sessions (and also won't do
+                any filesystem calls). Also see the ImGui functions:
+                    - LoadIniSettingsFromMemory()
+                    - SaveIniSettingsFromMemory()
+                These functions give you explicit control over loading and saving
+                UI state while using your own filesystem wrapper functions (in this
+                case keep simgui_desc.ini_filename zero)
 
             bool no_default_font
-                Set this to true if you don't want to use Nuklear's default
+                Set this to true if you don't want to use ImGui's default
                 font. In this case you need to initialize the font
-                yourself after snk_setup() is called.
+                yourself after simgui_setup() is called.
+
+            bool disable_paste_override
+                If set to true, sokol_imgui.h will not 'emulate' a Dear Imgui
+                clipboard paste action on SAPP_EVENTTYPE_CLIPBOARD_PASTED event.
+                This is mainly a hack/workaround to allow external workarounds
+                for making copy/paste work on the web platform. In general,
+                copy/paste support isn't properly fleshed out in sokol_imgui.h yet.
+
+            bool disable_set_mouse_cursor
+                If true, sokol_imgui.h will not control the mouse cursor type
+                by calling sapp_set_mouse_cursor().
+
+            bool disable_windows_resize_from_edges
+                If true, windows can only be resized from the bottom right corner.
+                The default is false, meaning windows can be resized from edges.
+
+            bool write_alpha_channel
+                Set this to true if you want alpha values written to the
+                framebuffer. By default this behavior is disabled to prevent
+                undesired behavior on platforms like the web where the canvas is
+                always alpha-blended with the background.
+
+            simgui_allocator_t allocator
+                Used to override memory allocation functions. See further below
+                for details.
+
+            simgui_logger_t logger
+                A user-provided logging callback. Note that without logging
+                callback, sokol-imgui will be completely silent!
+                See the section about ERROR REPORTING AND LOGGING below
+                for more details.
 
     --- At the start of a frame, call:
 
-        struct nk_context *snk_new_frame()
+        simgui_new_frame(&(simgui_frame_desc_t){
+            .width = ...,
+            .height = ...,
+            .delta_time = ...,
+            .dpi_scale = ...
+        });
 
-        This updates Nuklear's event handling state and then returns
-        a Nuklear context pointer which you use to build the UI. For
-        example:
+        'width' and 'height' are the dimensions of the rendering surface,
+        passed to ImGui::GetIO().DisplaySize.
 
-        struct nk_context *ctx = snk_new_frame();
-        if (nk_begin(ctx, "Demo", nk_rect(50, 50, 200, 200), ...
+        'delta_time' is the frame duration passed to ImGui::GetIO().DeltaTime.
 
+        'dpi_scale' is the current DPI scale factor, if this is left zero-initialized,
+        1.0f will be used instead. Typical values for dpi_scale are >= 1.0f.
+
+        For example, if you're using sokol_app.h and render to the default framebuffer:
+
+        simgui_new_frame(&(simgui_frame_desc_t){
+            .width = sapp_width(),
+            .height = sapp_height(),
+            .delta_time = sapp_frame_duration(),
+            .dpi_scale = sapp_dpi_scale()
+        });
 
     --- at the end of the frame, before the sg_end_pass() where you
         want to render the UI, call:
 
-        snk_render(int width, int height)
+        simgui_render()
 
-        where 'width' and 'height' are the dimensions of the rendering surface.
-        For example, if you're using sokol_app.h and render to the default
-        framebuffer:
-
-        snk_render(sapp_width(), sapp_height());
-
-        This will convert Nuklear's command list into a vertex and index buffer,
-        and then render that through sokol_gfx.h
+        This will first call ImGui::Render(), and then render ImGui's draw list
+        through sokol_gfx.h
 
     --- if you're using sokol_app.h, from inside the sokol_app.h event callback,
         call:
 
-        void snk_handle_event(const sapp_event* ev);
+        bool simgui_handle_event(const sapp_event* ev);
+
+        The return value is the value of ImGui::GetIO().WantCaptureKeyboard,
+        if this is true, you might want to skip keyboard input handling
+        in your own event handler.
+
+        If you want to use the ImGui functions for checking if a key is pressed
+        (e.g. ImGui::IsKeyPressed()) the following helper function to map
+        an sapp_keycode to an ImGuiKey value may be useful:
+
+        int simgui_map_keycode(sapp_keycode c);
+
+        Note that simgui_map_keycode() can be called outside simgui_setup()/simgui_shutdown().
 
     --- finally, on application shutdown, call
 
-        snk_shutdown()
-
-    --- Note that for touch-based systems, like iOS, there is a wrapper around
-        nk_edit_string(...), called snk_edit_string(...) which will show
-        and hide the onscreen keyboard as required.
+        simgui_shutdown()
 
 
     ON USER-PROVIDED IMAGES AND SAMPLERS
     ====================================
-    To render your own images via nk_image(), first create an snk_image_t
+    To render your own images via ImGui::Image(), first create an simgui_image_t
     object from a sokol-gfx image and sampler object.
 
-        // create a sokol-nuklear image object which associates an sg_image with an sg_sampler
-        snk_image_t snk_img = snk_make_image(&(snk_image_desc_t){
+        // create a sokol-imgui image object which associates an sg_image with an sg_sampler
+        simgui_image_t simgui_img = simgui_make_image(&(simgui_image_desc_t){
             .image = sg_make_image(...),
             .sampler = sg_make_sampler(...),
         });
 
-        // convert the returned image handle into an nk_handle object
-        struct nk_handle nk_hnd = snk_nkhandle(snk_img);
+        // convert the returned image handle into a ImTextureID handle
+        ImTextureID tex_id = simgui_imtextureid(simgui_img);
 
-        // create a nuklear image from the generic handle (note that there a different helper functions for this)
-        struct nk_image nk_img = nk_image_handle(nk_hnd);
+        // use the ImTextureID handle in Dear ImGui calls:
+        ImGui::Image(tex_id, ...);
 
-        // finally specify a Nuklear image UI object
-        nk_image(ctx, nk_img);
-
-    snk_image_t objects are small and cheap (literally just the image and sampler
+    simgui_image_t objects are small and cheap (literally just the image and sampler
     handle).
 
-    You can omit the sampler handle in the snk_make_image() call, in this case a
+    You can omit the sampler handle in the simgui_make_image() call, in this case a
     default sampler will be used with nearest-filtering and clamp-to-edge.
 
-    Trying to render with an invalid snk_image_t handle will render a small 8x8
+    Trying to render with an invalid simgui_image_t handle will render a small 8x8
     white default texture instead.
 
-    To destroy a sokol-nuklear image object, call
+    To destroy a sokol-imgui image object, call
 
-        snk_destroy_image(snk_img);
+        simgui_destroy_image(simgui_img);
 
-    But please be aware that the image object needs to be around until snk_render() is called
+    But please be aware that the image object needs to be around until simgui_render() is called
     in a frame (if this turns out to be too much of a hassle we could introduce some sort
-    of garbage collection where destroyed snk_image_t objects are kept around until
-    the snk_render() call).
+    of garbage collection where destroyed simgui_image_t objects are kept around until
+    the simgui_render() call).
 
     You can call:
 
-        snk_image_desc_t desc = snk_query_image_desc(img)
+        simgui_image_desc_t desc = simgui_query_image_desc(img)
 
     ...to get the original desc struct, useful if you need to get the sokol-gfx image
-    and sampler handle of the snk_image_t object.
+    and sampler handle of the simgui_image_t object.
 
-    You can convert an nk_handle back into an snk_image_t handle:
+    You can convert an ImTextureID back into an simgui_image_t handle:
 
-        snk_image_t img = snk_image_from_nkhandle(nk_hnd);
+        simgui_image_t img = simgui_image_from_imtextureid(tex_id);
 
 
     MEMORY ALLOCATION OVERRIDE
@@ -220,7 +285,7 @@
         }
 
         ...
-            snk_setup(&(snk_desc_t){
+            simgui_setup(&(simgui_desc_t){
                 // ...
                 .allocator = {
                     .alloc_fn = my_alloc,
@@ -232,8 +297,8 @@
 
     If no overrides are provided, malloc and free will be used.
 
-    This only affects memory allocation calls done by sokol_nuklear.h
-    itself though, not any allocations in Nuklear.
+    This only affects memory allocation calls done by sokol_imgui.h
+    itself though, not any allocations in Dear ImGui.
 
 
     ERROR REPORTING AND LOGGING
@@ -243,26 +308,26 @@
 
         #include "sokol_log.h"
 
-        snk_setup(&(snk_desc_t){
+        simgui_setup(&(simgui_desc_t){
             .logger.func = slog_func
         });
 
     To override logging with your own callback, first write a logging function like this:
 
-        void my_log(const char* tag,                // e.g. 'snk'
+        void my_log(const char* tag,                // e.g. 'simgui'
                     uint32_t log_level,             // 0=panic, 1=error, 2=warn, 3=info
-                    uint32_t log_item_id,           // SNK_LOGITEM_*
+                    uint32_t log_item_id,           // SIMGUI_LOGITEM_*
                     const char* message_or_null,    // a message string, may be nullptr in release mode
-                    uint32_t line_nr,               // line number in sokol_nuklear.h
+                    uint32_t line_nr,               // line number in sokol_imgui.h
                     const char* filename_or_null,   // source filename, may be nullptr in release mode
                     void* user_data)
         {
             ...
         }
 
-    ...and then setup sokol-nuklear like this:
+    ...and then setup sokol-imgui like this:
 
-        snk_setup(&(snk_desc_t){
+        simgui_setup(&(simgui_desc_t){
             .logger = {
                 .func = my_log,
                 .user_data = my_user_data,
@@ -277,12 +342,33 @@
     errors.
 
 
+    IMGUI EVENT HANDLING
+    ====================
+    You can call these functions from your platform's events to handle ImGui events
+    when SOKOL_IMGUI_NO_SOKOL_APP is defined.
+
+    E.g. mouse position events can be dispatched like this:
+
+        simgui_add_mouse_pos_event(100, 200);
+
+    Key events require a mapping function to convert your platform's key values to ImGuiKey's:
+
+        int map_keycode(int keycode) {
+            // Your mapping logic here...
+        }
+        simgui_add_key_event(map_keycode, keycode, true);
+
+    Take note that modifiers (shift, ctrl, etc.) must be updated manually.
+
+    If sokol_app is being used, ImGui events are handled for you.
+
+
     LICENSE
     =======
 
     zlib/libpng license
 
-    Copyright (c) 2020 Warren Merrifield
+    Copyright (c) 2018 Andre Weissflog
 
     This software is provided 'as-is', without any express or implied warranty.
     In no event will the authors be held liable for any damages arising from the
@@ -303,31 +389,28 @@
         3. This notice may not be removed or altered from any source
         distribution.
 */
-#define SOKOL_NUKLEAR_INCLUDED (1)
+#define SOKOL_IMGUI_INCLUDED (1)
 #include <stdint.h>
 #include <stdbool.h>
-#include <stddef.h>
+#include <stddef.h> // size_t
 
 #if !defined(SOKOL_GFX_INCLUDED)
-#error "Please include sokol_gfx.h before sokol_nuklear.h"
+#error "Please include sokol_gfx.h before sokol_imgui.h"
 #endif
-#if !defined(SOKOL_NUKLEAR_NO_SOKOL_APP) && !defined(SOKOL_APP_INCLUDED)
-#error "Please include sokol_app.h before sokol_nuklear.h"
-#endif
-#if !defined(NK_UNDEFINED)
-#error "Please include nuklear.h before sokol_nuklear.h"
+#if !defined(SOKOL_IMGUI_NO_SOKOL_APP) && !defined(SOKOL_APP_INCLUDED)
+#error "Please include sokol_app.h before sokol_imgui.h"
 #endif
 
-#if defined(SOKOL_API_DECL) && !defined(SOKOL_NUKLEAR_API_DECL)
-#define SOKOL_NUKLEAR_API_DECL SOKOL_API_DECL
+#if defined(SOKOL_API_DECL) && !defined(SOKOL_IMGUI_API_DECL)
+#define SOKOL_IMGUI_API_DECL SOKOL_API_DECL
 #endif
-#ifndef SOKOL_NUKLEAR_API_DECL
-#if defined(_WIN32) && defined(SOKOL_DLL) && defined(SOKOL_NUKLEAR_IMPL)
-#define SOKOL_NUKLEAR_API_DECL __declspec(dllexport)
+#ifndef SOKOL_IMGUI_API_DECL
+#if defined(_WIN32) && defined(SOKOL_DLL) && defined(SOKOL_IMGUI_IMPL)
+#define SOKOL_IMGUI_API_DECL __declspec(dllexport)
 #elif defined(_WIN32) && defined(SOKOL_DLL)
-#define SOKOL_NUKLEAR_API_DECL __declspec(dllimport)
+#define SOKOL_IMGUI_API_DECL __declspec(dllimport)
 #else
-#define SOKOL_NUKLEAR_API_DECL extern
+#define SOKOL_IMGUI_API_DECL extern
 #endif
 #endif
 
@@ -336,137 +419,164 @@ extern "C" {
 #endif
 
 enum {
-    SNK_INVALID_ID = 0,
+    SIMGUI_INVALID_ID = 0,
 };
 
 /*
-    snk_image_t
+    simgui_image_t
 
-    A combined image-sampler pair used to inject custom images and samplers into Nuklear
+    A combined image-sampler pair used to inject custom images and samplers into Dear ImGui.
 
-    Create with snk_make_image(), and convert to an nk_handle via snk_nkhandle().
+    Create with simgui_make_image(), and convert to an ImTextureID handle via
+    simgui_imtextureid().
 */
-typedef struct snk_image_t { uint32_t id; } snk_image_t;
+typedef struct simgui_image_t { uint32_t id; } simgui_image_t;
 
 /*
-    snk_image_desc_t
+    simgui_image_desc_t
 
-    Descriptor struct for snk_make_image(). You must provide
+    Descriptor struct for simgui_make_image(). You must provide
     at least an sg_image handle. Keeping the sg_sampler handle
     zero-initialized will select the builtin default sampler
     which uses linear filtering.
 */
-typedef struct snk_image_desc_t {
+typedef struct simgui_image_desc_t {
     sg_image image;
     sg_sampler sampler;
-} snk_image_desc_t;
+} simgui_image_desc_t;
 
 /*
-    snk_log_item
+    simgui_log_item
 
     An enum with a unique item for each log message, warning, error
     and validation layer message.
 */
-#define _SNK_LOG_ITEMS \
-    _SNK_LOGITEM_XMACRO(OK, "Ok") \
-    _SNK_LOGITEM_XMACRO(MALLOC_FAILED, "memory allocation failed") \
-    _SNK_LOGITEM_XMACRO(IMAGE_POOL_EXHAUSTED, "image pool exhausted") \
+#define _SIMGUI_LOG_ITEMS \
+    _SIMGUI_LOGITEM_XMACRO(OK, "Ok") \
+    _SIMGUI_LOGITEM_XMACRO(MALLOC_FAILED, "memory allocation failed") \
+    _SIMGUI_LOGITEM_XMACRO(IMAGE_POOL_EXHAUSTED, "image pool exhausted") \
 
-#define _SNK_LOGITEM_XMACRO(item,msg) SNK_LOGITEM_##item,
-typedef enum snk_log_item_t {
-    _SNK_LOG_ITEMS
-} snk_log_item_t;
-#undef _SNK_LOGITEM_XMACRO
+#define _SIMGUI_LOGITEM_XMACRO(item,msg) SIMGUI_LOGITEM_##item,
+typedef enum simgui_log_item_t {
+    _SIMGUI_LOG_ITEMS
+} simgui_log_item_t;
+#undef _SIMGUI_LOGITEM_XMACRO
 
 /*
-    snk_allocator_t
+    simgui_allocator_t
 
-    Used in snk_desc_t to provide custom memory-alloc and -free functions
-    to sokol_nuklear.h. If memory management should be overridden, both the
+    Used in simgui_desc_t to provide custom memory-alloc and -free functions
+    to sokol_imgui.h. If memory management should be overridden, both the
     alloc_fn and free_fn function must be provided (e.g. it's not valid to
     override one function but not the other).
 */
-typedef struct snk_allocator_t {
+typedef struct simgui_allocator_t {
     void* (*alloc_fn)(size_t size, void* user_data);
     void (*free_fn)(void* ptr, void* user_data);
     void* user_data;
-} snk_allocator_t;
+} simgui_allocator_t;
 
 /*
-    snk_logger
+    simgui_logger
 
-    Used in snk_desc_t to provide a logging function. Please be aware
-    that without logging function, sokol-nuklear will be completely
+    Used in simgui_desc_t to provide a logging function. Please be aware
+    that without logging function, sokol-imgui will be completely
     silent, e.g. it will not report errors, warnings and
     validation layer messages. For maximum error verbosity,
     compile in debug mode (e.g. NDEBUG *not* defined) and install
     a logger (for instance the standard logging function from sokol_log.h).
 */
-typedef struct snk_logger_t {
+typedef struct simgui_logger_t {
     void (*func)(
-        const char* tag,                // always "snk"
+        const char* tag,                // always "simgui"
         uint32_t log_level,             // 0=panic, 1=error, 2=warning, 3=info
-        uint32_t log_item_id,           // SNK_LOGITEM_*
+        uint32_t log_item_id,           // SIMGUI_LOGITEM_*
         const char* message_or_null,    // a message string, may be nullptr in release mode
         uint32_t line_nr,               // line number in sokol_imgui.h
         const char* filename_or_null,   // source filename, may be nullptr in release mode
         void* user_data);
     void* user_data;
-} snk_logger_t;
+} simgui_logger_t;
 
-
-typedef struct snk_desc_t {
-    int max_vertices;                   // default: 65536
-    int image_pool_size;                // default: 256
+typedef struct simgui_desc_t {
+    int max_vertices;               // default: 65536
+    int image_pool_size;            // default: 256
     sg_pixel_format color_format;
     sg_pixel_format depth_format;
     int sample_count;
-    float dpi_scale;
+    const char* ini_filename;
     bool no_default_font;
-    snk_allocator_t allocator;          // optional memory allocation overrides (default: malloc/free)
-    snk_logger_t logger;                // optional log function override
-} snk_desc_t;
+    bool disable_paste_override;    // if true, don't send Ctrl-V on EVENTTYPE_CLIPBOARD_PASTED
+    bool disable_set_mouse_cursor;  // if true, don't control the mouse cursor type via sapp_set_mouse_cursor()
+    bool disable_windows_resize_from_edges; // if true, only resize edges from the bottom right corner
+    bool write_alpha_channel;       // if true, alpha values get written into the framebuffer
+    simgui_allocator_t allocator;   // optional memory allocation overrides (default: malloc/free)
+    simgui_logger_t logger;         // optional log function override
+} simgui_desc_t;
 
-SOKOL_NUKLEAR_API_DECL void snk_setup(const snk_desc_t* desc);
-SOKOL_NUKLEAR_API_DECL struct nk_context* snk_new_frame(void);
-SOKOL_NUKLEAR_API_DECL void snk_render(int width, int height);
-SOKOL_NUKLEAR_API_DECL snk_image_t snk_make_image(const snk_image_desc_t* desc);
-SOKOL_NUKLEAR_API_DECL void snk_destroy_image(snk_image_t img);
-SOKOL_NUKLEAR_API_DECL snk_image_desc_t snk_query_image_desc(snk_image_t img);
-SOKOL_NUKLEAR_API_DECL nk_handle snk_nkhandle(snk_image_t img);
-SOKOL_NUKLEAR_API_DECL snk_image_t snk_image_from_nkhandle(nk_handle handle);
-#if !defined(SOKOL_NUKLEAR_NO_SOKOL_APP)
-SOKOL_NUKLEAR_API_DECL void snk_handle_event(const sapp_event* ev);
-SOKOL_NUKLEAR_API_DECL nk_flags snk_edit_string(struct nk_context *ctx, nk_flags flags, char *memory, int *len, int max, nk_plugin_filter filter);
+typedef struct simgui_frame_desc_t {
+    int width;
+    int height;
+    double delta_time;
+    float dpi_scale;
+} simgui_frame_desc_t;
+
+SOKOL_IMGUI_API_DECL void simgui_setup(const simgui_desc_t* desc);
+SOKOL_IMGUI_API_DECL void simgui_new_frame(const simgui_frame_desc_t* desc);
+SOKOL_IMGUI_API_DECL void simgui_render(void);
+SOKOL_IMGUI_API_DECL simgui_image_t simgui_make_image(const simgui_image_desc_t* desc);
+SOKOL_IMGUI_API_DECL void simgui_destroy_image(simgui_image_t img);
+SOKOL_IMGUI_API_DECL simgui_image_desc_t simgui_query_image_desc(simgui_image_t img);
+SOKOL_IMGUI_API_DECL void* simgui_imtextureid(simgui_image_t img);
+SOKOL_IMGUI_API_DECL simgui_image_t simgui_image_from_imtextureid(void* imtextureid);
+SOKOL_IMGUI_API_DECL void simgui_add_focus_event(bool focus);
+SOKOL_IMGUI_API_DECL void simgui_add_mouse_pos_event(float x, float y);
+SOKOL_IMGUI_API_DECL void simgui_add_touch_pos_event(float x, float y);
+SOKOL_IMGUI_API_DECL void simgui_add_mouse_button_event(int mouse_button, bool down);
+SOKOL_IMGUI_API_DECL void simgui_add_mouse_wheel_event(float wheel_x, float wheel_y);
+SOKOL_IMGUI_API_DECL void simgui_add_key_event(int (*map_keycode)(int), int keycode, bool down);
+SOKOL_IMGUI_API_DECL void simgui_add_input_character(uint32_t c);
+SOKOL_IMGUI_API_DECL void simgui_add_input_characters_utf8(const char* c);
+SOKOL_IMGUI_API_DECL void simgui_add_touch_button_event(int mouse_button, bool down);
+#if !defined(SOKOL_IMGUI_NO_SOKOL_APP)
+SOKOL_IMGUI_API_DECL bool simgui_handle_event(const sapp_event* ev);
+SOKOL_IMGUI_API_DECL int simgui_map_keycode(sapp_keycode keycode);  // returns ImGuiKey_*
 #endif
-SOKOL_NUKLEAR_API_DECL void snk_shutdown(void);
+SOKOL_IMGUI_API_DECL void simgui_shutdown(void);
 
 #ifdef __cplusplus
-} /* extern "C" */
+} // extern "C"
 
-/* reference-based equivalents for C++ */
-inline void snk_setup(const snk_desc_t& desc) { return snk_setup(&desc); }
-inline snk_image_t snk_make_image(const snk_image_desc_t& desc) { return snk_make_image(&desc); }
+// reference-based equivalents for C++
+inline void simgui_setup(const simgui_desc_t& desc) { return simgui_setup(&desc); }
+inline simgui_image_t simgui_make_image(const simgui_image_desc_t& desc) { return simgui_make_image(&desc); }
+inline void simgui_new_frame(const simgui_frame_desc_t& desc) { return simgui_new_frame(&desc); }
 
 #endif
-#endif /* SOKOL_NUKLEAR_INCLUDED */
+#endif /* SOKOL_IMGUI_INCLUDED */
 
-/*-- IMPLEMENTATION ----------------------------------------------------------*/
-#ifdef SOKOL_NUKLEAR_IMPL
-#define SOKOL_NUKLEAR_IMPL_INCLUDED (1)
+//-- IMPLEMENTATION ------------------------------------------------------------
+#ifdef SOKOL_IMGUI_IMPL
+#define SOKOL_IMGUI_IMPL_INCLUDED (1)
 
-#if !defined(NK_INCLUDE_VERTEX_BUFFER_OUTPUT)
-#error "Please ensure that NK_INCLUDE_VERTEX_BUFFER_OUTPUT is #defined before including nuklear.h"
+#if defined(SOKOL_MALLOC) || defined(SOKOL_CALLOC) || defined(SOKOL_FREE)
+#error "SOKOL_MALLOC/CALLOC/FREE macros are no longer supported, please use simgui_desc_t.allocator to override memory allocation functions"
 #endif
 
-#ifdef __cplusplus
-#error "The sokol_nuklear.h implementation must be compiled as C."
+#if defined(__cplusplus)
+    #if !defined(IMGUI_VERSION)
+    #error "Please include imgui.h before the sokol_imgui.h implementation"
+    #endif
+#else
+    #if !defined(CIMGUI_INCLUDED)
+    #error "Please include cimgui.h before the sokol_imgui.h implementation"
+    #endif
 #endif
 
-#include <stdlib.h>
 #include <string.h> // memset
+#include <stdlib.h> // malloc/free
 
-#if defined(__EMSCRIPTEN__) && !defined(SOKOL_NUKLEAR_NO_SOKOL_APP) && !defined(SOKOL_DUMMY_BACKEND)
+#if defined(__EMSCRIPTEN__) && !defined(SOKOL_DUMMY_BACKEND)
 #include <emscripten.h>
 #endif
 
@@ -490,95 +600,80 @@ inline snk_image_t snk_make_image(const snk_image_desc_t& desc) { return snk_mak
     #endif
 #endif
 
-#define _SNK_INIT_COOKIE (0xBABEBABE)
-#define _SNK_INVALID_SLOT_INDEX (0)
-#define _SNK_SLOT_SHIFT (16)
-#define _SNK_MAX_POOL_SIZE (1<<_SNK_SLOT_SHIFT)
-#define _SNK_SLOT_MASK (_SNK_MAX_POOL_SIZE-1)
+#define _SIMGUI_INIT_COOKIE (0xBABEBABE)
+#define _SIMGUI_INVALID_SLOT_INDEX (0)
+#define _SIMGUI_SLOT_SHIFT (16)
+#define _SIMGUI_MAX_POOL_SIZE (1<<_SIMGUI_SLOT_SHIFT)
+#define _SIMGUI_SLOT_MASK (_SIMGUI_MAX_POOL_SIZE-1)
 
-// helper macros
-#define _snk_def(val, def) (((val) == 0) ? (def) : (val))
+// helper macros and constants
+#define _simgui_def(val, def) (((val) == 0) ? (def) : (val))
 
-typedef struct _snk_vertex_t {
-    float pos[2];
-    float uv[2];
-    uint8_t col[4];
-} _snk_vertex_t;
-
-typedef struct _snk_vs_params_t {
-    float   disp_size[2];
+typedef struct {
+    ImVec2 disp_size;
     uint8_t _pad_8[8];
-} _snk_vs_params_t;
+} _simgui_vs_params_t;
 
 typedef enum {
-    _SNK_RESOURCESTATE_INITIAL,
-    _SNK_RESOURCESTATE_ALLOC,
-    _SNK_RESOURCESTATE_VALID,
-    _SNK_RESOURCESTATE_FAILED,
-    _SNK_RESOURCESTATE_INVALID,
-    _SNK_RESOURCESTATE_FORCE_U32 = 0x7FFFFFFF
-} _snk_resource_state;
+    _SIMGUI_RESOURCESTATE_INITIAL,
+    _SIMGUI_RESOURCESTATE_ALLOC,
+    _SIMGUI_RESOURCESTATE_VALID,
+    _SIMGUI_RESOURCESTATE_FAILED,
+    _SIMGUI_RESOURCESTATE_INVALID,
+    _SIMGUI_RESOURCESTATE_FORCE_U32 = 0x7FFFFFFF
+} _simgui_resource_state;
 
 typedef struct {
     uint32_t id;
-    _snk_resource_state state;
-} _snk_slot_t;
+    _simgui_resource_state state;
+} _simgui_slot_t;
 
 typedef struct {
     int size;
     int queue_top;
     uint32_t* gen_ctrs;
     int* free_queue;
-} _snk_pool_t;
+} _simgui_pool_t;
 
 typedef struct {
-    _snk_slot_t slot;
+    _simgui_slot_t slot;
     sg_image image;
     sg_sampler sampler;
-} _snk_image_t;
+    sg_pipeline pip;    // this will either be _simgui.def_pip or _simgui.pip_unfilterable
+} _simgui_image_t;
 
 typedef struct {
-    _snk_pool_t pool;
-    _snk_image_t* items;
-} _snk_image_pool_t;
+    _simgui_pool_t pool;
+    _simgui_image_t* items;
+} _simgui_image_pool_t;
 
 typedef struct {
     uint32_t init_cookie;
-    snk_desc_t desc;
-    struct nk_context ctx;
-    struct nk_font_atlas atlas;
-    _snk_vs_params_t vs_params;
-    size_t vertex_buffer_size;
-    size_t index_buffer_size;
+    simgui_desc_t desc;
+    float cur_dpi_scale;
     sg_buffer vbuf;
     sg_buffer ibuf;
     sg_image font_img;
     sg_sampler font_smp;
-    snk_image_t default_font;
-    sg_image def_img;
-    sg_sampler def_smp;
-    sg_shader shd;
-    sg_pipeline pip;
-    bool is_osx;    // true if running on OSX (or HTML5 OSX), needed for copy/paste
-    _snk_image_pool_t image_pool;
-    #if !defined(SOKOL_NUKLEAR_NO_SOKOL_APP)
-    int mouse_pos[2];
-    float mouse_scroll[2];
-    bool mouse_did_move;
-    bool mouse_did_scroll;
-    bool btn_down[NK_BUTTON_MAX];
-    bool btn_up[NK_BUTTON_MAX];
-    char char_buffer[NK_INPUT_MAX];
-    bool keys_down[NK_KEY_MAX];
-    bool keys_up[NK_KEY_MAX];
-    #endif
-} _snk_state_t;
-static _snk_state_t _snuklear;
+    simgui_image_t default_font;
+    sg_image def_img;       // used as default image for user images
+    sg_sampler def_smp;     // used as default sampler for user images
+    sg_shader def_shd;
+    sg_pipeline def_pip;
+    // separate shader and pipeline for unfilterable user images
+    sg_shader shd_unfilterable;
+    sg_pipeline pip_unfilterable;
+    sg_range vertices;
+    sg_range indices;
+    bool is_osx;
+    _simgui_image_pool_t image_pool;
+} _simgui_state_t;
+static _simgui_state_t _simgui;
 
 /*
     Embedded source code compiled with:
 
-    sokol-shdc -i snuk.glsl -o snuk.h -l glsl330:glsl300es:hlsl4:metal_macos:metal_ios:metal_sim:wgsl -b
+    sokol-shdc -i simgui.glsl -o simgui.h -l glsl330:glsl300es:hlsl4:metal_macos:metal_ios:metal_sim:wgpu -b
 
     (not that for Metal and D3D11 byte code, sokol-shdc must be run
     on macOS and Windows)
@@ -610,10 +705,10 @@ static _snk_state_t _snuklear;
     }
     @end
 
-    @program snuk vs fs
+    @program simgui vs fs
 */
 #if defined(SOKOL_GLCORE33)
-static const char _snk_vs_source_glsl330[341] = {
+static const char _simgui_vs_source_glsl330[341] = {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x33,0x30,0x0a,0x0a,0x75,0x6e,
     0x69,0x66,0x6f,0x72,0x6d,0x20,0x76,0x65,0x63,0x34,0x20,0x76,0x73,0x5f,0x70,0x61,
     0x72,0x61,0x6d,0x73,0x5b,0x31,0x5d,0x3b,0x0a,0x6c,0x61,0x79,0x6f,0x75,0x74,0x28,
@@ -637,7 +732,7 @@ static const char _snk_vs_source_glsl330[341] = {
     0x20,0x63,0x6f,0x6c,0x6f,0x72,0x20,0x3d,0x20,0x63,0x6f,0x6c,0x6f,0x72,0x30,0x3b,
     0x0a,0x7d,0x0a,0x0a,0x00,
 };
-static const char _snk_fs_source_glsl330[177] = {
+static const char _simgui_fs_source_glsl330[177] = {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x33,0x30,0x0a,0x0a,0x75,0x6e,
     0x69,0x66,0x6f,0x72,0x6d,0x20,0x73,0x61,0x6d,0x70,0x6c,0x65,0x72,0x32,0x44,0x20,
     0x74,0x65,0x78,0x5f,0x73,0x6d,0x70,0x3b,0x0a,0x0a,0x6c,0x61,0x79,0x6f,0x75,0x74,
@@ -652,7 +747,7 @@ static const char _snk_fs_source_glsl330[177] = {
     0x00,
 };
 #elif defined(SOKOL_GLES3)
-static const char _snk_vs_source_glsl300es[344] = {
+static const char _simgui_vs_source_glsl300es[344] = {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x0a,0x75,0x6e,0x69,0x66,0x6f,0x72,0x6d,0x20,0x76,0x65,0x63,0x34,0x20,0x76,0x73,
     0x5f,0x70,0x61,0x72,0x61,0x6d,0x73,0x5b,0x31,0x5d,0x3b,0x0a,0x6c,0x61,0x79,0x6f,
@@ -676,7 +771,7 @@ static const char _snk_vs_source_glsl300es[344] = {
     0x20,0x20,0x20,0x20,0x63,0x6f,0x6c,0x6f,0x72,0x20,0x3d,0x20,0x63,0x6f,0x6c,0x6f,
     0x72,0x30,0x3b,0x0a,0x7d,0x0a,0x0a,0x00,
 };
-static const char _snk_fs_source_glsl300es[250] = {
+static const char _simgui_fs_source_glsl300es[250] = {
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x30,0x30,0x20,0x65,0x73,0x0a,
     0x70,0x72,0x65,0x63,0x69,0x73,0x69,0x6f,0x6e,0x20,0x6d,0x65,0x64,0x69,0x75,0x6d,
     0x70,0x20,0x66,0x6c,0x6f,0x61,0x74,0x3b,0x0a,0x70,0x72,0x65,0x63,0x69,0x73,0x69,
@@ -695,7 +790,7 @@ static const char _snk_fs_source_glsl300es[250] = {
     0x6f,0x6c,0x6f,0x72,0x3b,0x0a,0x7d,0x0a,0x0a,0x00,
 };
 #elif defined(SOKOL_METAL)
-static const uint8_t _snk_vs_bytecode_metal_macos[3052] = {
+static const uint8_t _simgui_vs_bytecode_metal_macos[3052] = {
     0x4d,0x54,0x4c,0x42,0x01,0x80,0x02,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0xec,0x0b,0x00,0x00,0x00,0x00,0x00,0x00,0x58,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x6d,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xc9,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -888,7 +983,7 @@ static const uint8_t _snk_vs_bytecode_metal_macos[3052] = {
     0x0c,0x00,0x00,0x00,0x02,0x00,0x00,0x00,0x5b,0x86,0x20,0xc0,0x03,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 };
-static const uint8_t _snk_fs_bytecode_metal_macos[2809] = {
+static const uint8_t _simgui_fs_bytecode_metal_macos[2809] = {
     0x4d,0x54,0x4c,0x42,0x01,0x80,0x02,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0xf9,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,0x58,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x6d,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xc9,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -1066,7 +1161,7 @@ static const uint8_t _snk_fs_bytecode_metal_macos[2809] = {
     0x00,0x23,0x06,0x8a,0x10,0x44,0x87,0x91,0x0c,0x05,0x11,0x58,0x90,0xc8,0x67,0xb6,
     0x81,0x08,0x80,0x0c,0x00,0x00,0x00,0x00,0x00,
 };
-static const uint8_t _snk_vs_bytecode_metal_ios[3052] = {
+static const uint8_t _simgui_vs_bytecode_metal_ios[3052] = {
     0x4d,0x54,0x4c,0x42,0x01,0x00,0x02,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0xec,0x0b,0x00,0x00,0x00,0x00,0x00,0x00,0x58,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x6d,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xc9,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -1259,7 +1354,7 @@ static const uint8_t _snk_vs_bytecode_metal_ios[3052] = {
     0x5b,0x86,0x20,0xc0,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 };
-static const uint8_t _snk_fs_bytecode_metal_ios[2809] = {
+static const uint8_t _simgui_fs_bytecode_metal_ios[2809] = {
     0x4d,0x54,0x4c,0x42,0x01,0x00,0x02,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0xf9,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,0x58,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x6d,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xc9,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -1437,7 +1532,7 @@ static const uint8_t _snk_fs_bytecode_metal_ios[2809] = {
     0x0c,0x05,0x11,0x58,0x90,0xc8,0x67,0xb6,0x81,0x08,0x80,0x0c,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 };
-static const char _snk_vs_source_metal_sim[672] = {
+static const char _simgui_vs_source_metal_sim[672] = {
     0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,0x20,0x3c,0x6d,0x65,0x74,0x61,0x6c,0x5f,
     0x73,0x74,0x64,0x6c,0x69,0x62,0x3e,0x0a,0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,
     0x20,0x3c,0x73,0x69,0x6d,0x64,0x2f,0x73,0x69,0x6d,0x64,0x2e,0x68,0x3e,0x0a,0x0a,
@@ -1482,7 +1577,7 @@ static const char _snk_vs_source_metal_sim[672] = {
     0x72,0x65,0x74,0x75,0x72,0x6e,0x20,0x6f,0x75,0x74,0x3b,0x0a,0x7d,0x0a,0x0a,0x00,
 
 };
-static const char _snk_fs_source_metal_sim[436] = {
+static const char _simgui_fs_source_metal_sim[436] = {
     0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,0x20,0x3c,0x6d,0x65,0x74,0x61,0x6c,0x5f,
     0x73,0x74,0x64,0x6c,0x69,0x62,0x3e,0x0a,0x23,0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,
     0x20,0x3c,0x73,0x69,0x6d,0x64,0x2f,0x73,0x69,0x6d,0x64,0x2e,0x68,0x3e,0x0a,0x0a,
@@ -1513,7 +1608,7 @@ static const char _snk_fs_source_metal_sim[436] = {
     0x7d,0x0a,0x0a,0x00,
 };
 #elif defined(SOKOL_D3D11)
-static const uint8_t _snk_vs_bytecode_hlsl4[892] = {
+static const uint8_t _simgui_vs_bytecode_hlsl4[892] = {
     0x44,0x58,0x42,0x43,0x0d,0xbd,0x9e,0x9e,0x7d,0xc0,0x2b,0x54,0x88,0xf9,0xca,0x89,
     0x32,0xe4,0x0c,0x59,0x01,0x00,0x00,0x00,0x7c,0x03,0x00,0x00,0x05,0x00,0x00,0x00,
     0x34,0x00,0x00,0x00,0xfc,0x00,0x00,0x00,0x60,0x01,0x00,0x00,0xd0,0x01,0x00,0x00,
@@ -1571,7 +1666,7 @@ static const uint8_t _snk_vs_bytecode_hlsl4[892] = {
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 };
-static const uint8_t _snk_fs_bytecode_hlsl4[608] = {
+static const uint8_t _simgui_fs_bytecode_hlsl4[608] = {
     0x44,0x58,0x42,0x43,0x3a,0xa7,0x41,0x21,0xb4,0x2d,0xa7,0x6e,0xfe,0x31,0xb0,0xe0,
     0x14,0xe0,0xdf,0x5a,0x01,0x00,0x00,0x00,0x60,0x02,0x00,0x00,0x05,0x00,0x00,0x00,
     0x34,0x00,0x00,0x00,0xc8,0x00,0x00,0x00,0x14,0x01,0x00,0x00,0x48,0x01,0x00,0x00,
@@ -1610,9 +1705,10 @@ static const uint8_t _snk_fs_bytecode_hlsl4[608] = {
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+
 };
 #elif defined(SOKOL_WGPU)
-static const char _snk_vs_source_wgsl[1083] = {
+static const char _simgui_vs_source_wgsl[1083] = {
     0x64,0x69,0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x28,0x6f,0x66,0x66,0x2c,0x20,
     0x64,0x65,0x72,0x69,0x76,0x61,0x74,0x69,0x76,0x65,0x5f,0x75,0x6e,0x69,0x66,0x6f,
     0x72,0x6d,0x69,0x74,0x79,0x29,0x3b,0x0a,0x0a,0x73,0x74,0x72,0x75,0x63,0x74,0x20,
@@ -1682,7 +1778,7 @@ static const char _snk_vs_source_wgsl[1083] = {
     0x5f,0x50,0x6f,0x73,0x69,0x74,0x69,0x6f,0x6e,0x2c,0x20,0x75,0x76,0x2c,0x20,0x63,
     0x6f,0x6c,0x6f,0x72,0x29,0x3b,0x0a,0x7d,0x0a,0x0a,0x00,
 };
-static const char _snk_fs_source_wgsl[630] = {
+static const char _simgui_fs_source_wgsl[630] = {
     0x64,0x69,0x61,0x67,0x6e,0x6f,0x73,0x74,0x69,0x63,0x28,0x6f,0x66,0x66,0x2c,0x20,
     0x64,0x65,0x72,0x69,0x76,0x61,0x74,0x69,0x76,0x65,0x5f,0x75,0x6e,0x69,0x66,0x6f,
     0x72,0x6d,0x69,0x74,0x79,0x29,0x3b,0x0a,0x0a,0x76,0x61,0x72,0x3c,0x70,0x72,0x69,
@@ -1725,31 +1821,26 @@ static const char _snk_fs_source_wgsl[630] = {
     0x3b,0x0a,0x7d,0x0a,0x0a,0x00,
 };
 #elif defined(SOKOL_DUMMY_BACKEND)
-static const char* _snk_vs_source_dummy = "";
-static const char* _snk_fs_source_dummy = "";
+static const char* _simgui_vs_source_dummy = "";
+static const char* _simgui_fs_source_dummy = "";
 #else
 #error "Please define one of SOKOL_GLCORE33, SOKOL_GLES3, SOKOL_D3D11, SOKOL_METAL, SOKOL_WGPU or SOKOL_DUMMY_BACKEND!"
 #endif
 
-#if !defined(SOKOL_NUKLEAR_NO_SOKOL_APP)
-static void _snk_clipboard_copy(nk_handle usr, const char *text, int len) {
-    (void)usr;
-    if (len == 0) {
-        return;
-    }
+#if !defined(SOKOL_IMGUI_NO_SOKOL_APP)
+static void _simgui_set_clipboard(void* user_data, const char* text) {
+    (void)user_data;
     sapp_set_clipboard_string(text);
 }
 
-static void _snk_clipboard_paste(nk_handle usr, struct nk_text_edit *edit) {
-    const char *text = sapp_get_clipboard_string();
-    if (text) {
-        nk_textedit_paste(edit, text, nk_strlen(text));
-    }
-    (void)usr;
+static const char* _simgui_get_clipboard(void* user_data) {
+    (void)user_data;
+    return sapp_get_clipboard_string();
 }
+#endif
 
 #if defined(__EMSCRIPTEN__) && !defined(SOKOL_DUMMY_BACKEND)
-EM_JS(int, snk_js_is_osx, (void), {
+EM_JS(int, simgui_js_is_osx, (void), {
     if (navigator.userAgent.includes('Macintosh')) {
         return 1;
     } else {
@@ -1757,19 +1848,6 @@ EM_JS(int, snk_js_is_osx, (void), {
     }
 });
 #endif
-
-static bool _snk_is_osx(void) {
-    #if defined(SOKOL_DUMMY_BACKEND)
-        return false;
-    #elif defined(__EMSCRIPTEN__)
-        return snk_js_is_osx();
-    #elif defined(__APPLE__)
-        return true;
-    #else
-        return false;
-    #endif
-}
-#endif // !SOKOL_NUKLEAR_NO_SOKOL_APP
 
 // ██       ██████   ██████   ██████  ██ ███    ██  ██████
 // ██      ██    ██ ██       ██       ██ ████   ██ ██
@@ -1779,29 +1857,29 @@ static bool _snk_is_osx(void) {
 //
 // >>logging
 #if defined(SOKOL_DEBUG)
-#define _SNK_LOGITEM_XMACRO(item,msg) #item ": " msg,
-static const char* _snk_log_messages[] = {
-    _SNK_LOG_ITEMS
+#define _SIMGUI_LOGITEM_XMACRO(item,msg) #item ": " msg,
+static const char* _simgui_log_messages[] = {
+    _SIMGUI_LOG_ITEMS
 };
-#undef _SNK_LOGITEM_XMACRO
+#undef _SIMGUI_LOGITEM_XMACRO
 #endif // SOKOL_DEBUG
 
-#define _SNK_PANIC(code) _snk_log(SNK_LOGITEM_ ##code, 0, 0, __LINE__)
-#define _SNK_ERROR(code) _snk_log(SNK_LOGITEM_ ##code, 1, 0, __LINE__)
-#define _SNK_WARN(code) _snk_log(SNK_LOGITEM_ ##code, 2, 0, __LINE__)
-#define _SNK_INFO(code) _snk_log(SNK_LOGITEM_ ##code, 3, 0, __LINE__)
-#define _SNK_LOGMSG(code,msg) _snk_log(SNK_LOGITEM_ ##code, 3, msg, __LINE__)
+#define _SIMGUI_PANIC(code) _simgui_log(SIMGUI_LOGITEM_ ##code, 0, 0, __LINE__)
+#define _SIMGUI_ERROR(code) _simgui_log(SIMGUI_LOGITEM_ ##code, 1, 0, __LINE__)
+#define _SIMGUI_WARN(code) _simgui_log(SIMGUI_LOGITEM_ ##code, 2, 0, __LINE__)
+#define _SIMGUI_INFO(code) _simgui_log(SIMGUI_LOGITEM_ ##code, 3, 0, __LINE__)
+#define _SIMGUI_LOGMSG(code,msg) _simgui_log(SIMGUI_LOGITEM_ ##code, 3, msg, __LINE__)
 
-static void _snk_log(snk_log_item_t log_item, uint32_t log_level, const char* msg, uint32_t line_nr) {
-    if (_snuklear.desc.logger.func) {
+static void _simgui_log(simgui_log_item_t log_item, uint32_t log_level, const char* msg, uint32_t line_nr) {
+    if (_simgui.desc.logger.func) {
         const char* filename = 0;
         #if defined(SOKOL_DEBUG)
             filename = __FILE__;
             if (0 == msg) {
-                msg = _snk_log_messages[log_item];
+                msg = _simgui_log_messages[log_item];
             }
         #endif
-        _snuklear.desc.logger.func("snk", log_level, log_item, msg, line_nr, filename, _snuklear.desc.logger.user_data);
+        _simgui.desc.logger.func("simgui", log_level, log_item, msg, line_nr, filename, _simgui.desc.logger.user_data);
     } else {
         // for log level PANIC it would be 'undefined behaviour' to continue
         if (log_level == 0) {
@@ -1817,34 +1895,34 @@ static void _snk_log(snk_log_item_t log_item, uint32_t log_level, const char* ms
 // ██      ██ ███████ ██      ██  ██████  ██   ██    ██
 //
 // >>memory
-static void _snk_clear(void* ptr, size_t size) {
+static void _simgui_clear(void* ptr, size_t size) {
     SOKOL_ASSERT(ptr && (size > 0));
     memset(ptr, 0, size);
 }
 
-static void* _snk_malloc(size_t size) {
+static void* _simgui_malloc(size_t size) {
     SOKOL_ASSERT(size > 0);
     void* ptr;
-    if (_snuklear.desc.allocator.alloc_fn) {
-        ptr = _snuklear.desc.allocator.alloc_fn(size, _snuklear.desc.allocator.user_data);
+    if (_simgui.desc.allocator.alloc_fn) {
+        ptr = _simgui.desc.allocator.alloc_fn(size, _simgui.desc.allocator.user_data);
     } else {
         ptr = malloc(size);
     }
     if (0 == ptr) {
-        _SNK_PANIC(MALLOC_FAILED);
+        _SIMGUI_PANIC(MALLOC_FAILED);
     }
     return ptr;
 }
 
-static void* _snk_malloc_clear(size_t size) {
-    void* ptr = _snk_malloc(size);
-    _snk_clear(ptr, size);
+static void* _simgui_malloc_clear(size_t size) {
+    void* ptr = _simgui_malloc(size);
+    _simgui_clear(ptr, size);
     return ptr;
 }
 
-static void _snk_free(void* ptr) {
-    if (_snuklear.desc.allocator.free_fn) {
-        _snuklear.desc.allocator.free_fn(ptr, _snuklear.desc.allocator.user_data);
+static void _simgui_free(void* ptr) {
+    if (_simgui.desc.allocator.free_fn) {
+        _simgui.desc.allocator.free_fn(ptr, _simgui.desc.allocator.user_data);
     } else {
         free(ptr);
     }
@@ -1857,35 +1935,35 @@ static void _snk_free(void* ptr) {
 // ██       ██████   ██████  ███████
 //
 // >>pool
-static void _snk_init_pool(_snk_pool_t* pool, int num) {
+static void _simgui_init_pool(_simgui_pool_t* pool, int num) {
     SOKOL_ASSERT(pool && (num >= 1));
     // slot 0 is reserved for the 'invalid id', so bump the pool size by 1
     pool->size = num + 1;
     pool->queue_top = 0;
     // generation counters indexable by pool slot index, slot 0 is reserved
     size_t gen_ctrs_size = sizeof(uint32_t) * (size_t)pool->size;
-    pool->gen_ctrs = (uint32_t*) _snk_malloc_clear(gen_ctrs_size);
+    pool->gen_ctrs = (uint32_t*) _simgui_malloc_clear(gen_ctrs_size);
     // it's not a bug to only reserve 'num' here
-    pool->free_queue = (int*) _snk_malloc_clear(sizeof(int) * (size_t)num);
+    pool->free_queue = (int*) _simgui_malloc_clear(sizeof(int) * (size_t)num);
     // never allocate the zero-th pool item since the invalid id is 0
     for (int i = pool->size-1; i >= 1; i--) {
         pool->free_queue[pool->queue_top++] = i;
     }
 }
 
-static void _snk_discard_pool(_snk_pool_t* pool) {
+static void _simgui_discard_pool(_simgui_pool_t* pool) {
     SOKOL_ASSERT(pool);
     SOKOL_ASSERT(pool->free_queue);
-    _snk_free(pool->free_queue);
+    _simgui_free(pool->free_queue);
     pool->free_queue = 0;
     SOKOL_ASSERT(pool->gen_ctrs);
-    _snk_free(pool->gen_ctrs);
+    _simgui_free(pool->gen_ctrs);
     pool->gen_ctrs = 0;
     pool->size = 0;
     pool->queue_top = 0;
 }
 
-static int _snk_pool_alloc_index(_snk_pool_t* pool) {
+static int _simgui_pool_alloc_index(_simgui_pool_t* pool) {
     SOKOL_ASSERT(pool);
     SOKOL_ASSERT(pool->free_queue);
     if (pool->queue_top > 0) {
@@ -1894,12 +1972,12 @@ static int _snk_pool_alloc_index(_snk_pool_t* pool) {
         return slot_index;
     } else {
         // pool exhausted
-        return _SNK_INVALID_SLOT_INDEX;
+        return _SIMGUI_INVALID_SLOT_INDEX;
     }
 }
 
-static void _snk_pool_free_index(_snk_pool_t* pool, int slot_index) {
-    SOKOL_ASSERT((slot_index > _SNK_INVALID_SLOT_INDEX) && (slot_index < pool->size));
+static void _simgui_pool_free_index(_simgui_pool_t* pool, int slot_index) {
+    SOKOL_ASSERT((slot_index > _SIMGUI_INVALID_SLOT_INDEX) && (slot_index < pool->size));
     SOKOL_ASSERT(pool);
     SOKOL_ASSERT(pool->free_queue);
     SOKOL_ASSERT(pool->queue_top < pool->size);
@@ -1920,71 +1998,71 @@ static void _snk_pool_free_index(_snk_pool_t* pool, int slot_index) {
     - set the slot's state to ALLOC
     - return the handle id
 */
-static uint32_t _snk_slot_init(_snk_pool_t* pool, _snk_slot_t* slot, int slot_index) {
+static uint32_t _simgui_slot_init(_simgui_pool_t* pool, _simgui_slot_t* slot, int slot_index) {
     /* FIXME: add handling for an overflowing generation counter,
        for now, just overflow (another option is to disable
        the slot)
     */
     SOKOL_ASSERT(pool && pool->gen_ctrs);
-    SOKOL_ASSERT((slot_index > _SNK_INVALID_SLOT_INDEX) && (slot_index < pool->size));
-    SOKOL_ASSERT((slot->state == _SNK_RESOURCESTATE_INITIAL) && (slot->id == SNK_INVALID_ID));
+    SOKOL_ASSERT((slot_index > _SIMGUI_INVALID_SLOT_INDEX) && (slot_index < pool->size));
+    SOKOL_ASSERT((slot->state == _SIMGUI_RESOURCESTATE_INITIAL) && (slot->id == SIMGUI_INVALID_ID));
     uint32_t ctr = ++pool->gen_ctrs[slot_index];
-    slot->id = (ctr<<_SNK_SLOT_SHIFT)|(slot_index & _SNK_SLOT_MASK);
-    slot->state = _SNK_RESOURCESTATE_ALLOC;
+    slot->id = (ctr<<_SIMGUI_SLOT_SHIFT)|(slot_index & _SIMGUI_SLOT_MASK);
+    slot->state = _SIMGUI_RESOURCESTATE_ALLOC;
     return slot->id;
 }
 
 // extract slot index from id
-static int _snk_slot_index(uint32_t id) {
-    int slot_index = (int) (id & _SNK_SLOT_MASK);
-    SOKOL_ASSERT(_SNK_INVALID_SLOT_INDEX != slot_index);
+static int _simgui_slot_index(uint32_t id) {
+    int slot_index = (int) (id & _SIMGUI_SLOT_MASK);
+    SOKOL_ASSERT(_SIMGUI_INVALID_SLOT_INDEX != slot_index);
     return slot_index;
 }
 
-static void _snk_init_item_pool(_snk_pool_t* pool, int pool_size, void** items_ptr, size_t item_size_bytes) {
+static void _simgui_init_item_pool(_simgui_pool_t* pool, int pool_size, void** items_ptr, size_t item_size_bytes) {
     // NOTE: the pools will have an additional item, since slot 0 is reserved
     SOKOL_ASSERT(pool && (pool->size == 0));
-    SOKOL_ASSERT((pool_size > 0) && (pool_size < _SNK_MAX_POOL_SIZE));
+    SOKOL_ASSERT((pool_size > 0) && (pool_size < _SIMGUI_MAX_POOL_SIZE));
     SOKOL_ASSERT(items_ptr && (*items_ptr == 0));
     SOKOL_ASSERT(item_size_bytes > 0);
-    _snk_init_pool(pool, pool_size);
+    _simgui_init_pool(pool, pool_size);
     const size_t pool_size_bytes = item_size_bytes * (size_t)pool->size;
-    *items_ptr = _snk_malloc_clear(pool_size_bytes);
+    *items_ptr = _simgui_malloc_clear(pool_size_bytes);
 }
 
-static void _snk_discard_item_pool(_snk_pool_t* pool, void** items_ptr) {
+static void _simgui_discard_item_pool(_simgui_pool_t* pool, void** items_ptr) {
     SOKOL_ASSERT(pool && (pool->size != 0));
     SOKOL_ASSERT(items_ptr && (*items_ptr != 0));
-    _snk_free(*items_ptr); *items_ptr = 0;
-    _snk_discard_pool(pool);
+    _simgui_free(*items_ptr); *items_ptr = 0;
+    _simgui_discard_pool(pool);
 }
 
-static void _snk_setup_image_pool(int pool_size) {
-    _snk_image_pool_t* p = &_snuklear.image_pool;
-    _snk_init_item_pool(&p->pool, pool_size, (void**)&p->items, sizeof(_snk_image_t));
+static void _simgui_setup_image_pool(int pool_size) {
+    _simgui_image_pool_t* p = &_simgui.image_pool;
+    _simgui_init_item_pool(&p->pool, pool_size, (void**)&p->items, sizeof(_simgui_image_t));
 }
 
-static void _snk_discard_image_pool(void) {
-    _snk_image_pool_t* p = &_snuklear.image_pool;
-    _snk_discard_item_pool(&p->pool, (void**)&p->items);
+static void _simgui_discard_image_pool(void) {
+    _simgui_image_pool_t* p = &_simgui.image_pool;
+    _simgui_discard_item_pool(&p->pool, (void**)&p->items);
 }
 
-static snk_image_t _snk_make_image_handle(uint32_t id) {
-    snk_image_t handle = { id };
+static simgui_image_t _simgui_make_image_handle(uint32_t id) {
+    simgui_image_t handle = { id };
     return handle;
 }
 
-static _snk_image_t* _snk_image_at(uint32_t id) {
-    SOKOL_ASSERT(SNK_INVALID_ID != id);
-    const _snk_image_pool_t* p = &_snuklear.image_pool;
-    int slot_index = _snk_slot_index(id);
-    SOKOL_ASSERT((slot_index > _SNK_INVALID_SLOT_INDEX) && (slot_index < p->pool.size));
+static _simgui_image_t* _simgui_image_at(uint32_t id) {
+    SOKOL_ASSERT(SIMGUI_INVALID_ID != id);
+    const _simgui_image_pool_t* p = &_simgui.image_pool;
+    int slot_index = _simgui_slot_index(id);
+    SOKOL_ASSERT((slot_index > _SIMGUI_INVALID_SLOT_INDEX) && (slot_index < p->pool.size));
     return &p->items[slot_index];
 }
 
-static _snk_image_t* _snk_lookup_image(uint32_t id) {
-    if (SNK_INVALID_ID != id) {
-        _snk_image_t* img = _snk_image_at(id);
+static _simgui_image_t* _simgui_lookup_image(uint32_t id) {
+    if (SIMGUI_INVALID_ID != id) {
+        _simgui_image_t* img = _simgui_image_at(id);
         if (img->slot.id == id) {
             return img;
         }
@@ -1992,64 +2070,83 @@ static _snk_image_t* _snk_lookup_image(uint32_t id) {
     return 0;
 }
 
-static snk_image_t _snk_alloc_image(void) {
-    _snk_image_pool_t* p = &_snuklear.image_pool;
-    int slot_index = _snk_pool_alloc_index(&p->pool);
-    if (_SNK_INVALID_SLOT_INDEX != slot_index) {
-        uint32_t id = _snk_slot_init(&p->pool, &p->items[slot_index].slot, slot_index);
-        return _snk_make_image_handle(id);
+static simgui_image_t _simgui_alloc_image(void) {
+    _simgui_image_pool_t* p = &_simgui.image_pool;
+    int slot_index = _simgui_pool_alloc_index(&p->pool);
+    if (_SIMGUI_INVALID_SLOT_INDEX != slot_index) {
+        uint32_t id = _simgui_slot_init(&p->pool, &p->items[slot_index].slot, slot_index);
+        return _simgui_make_image_handle(id);
     } else {
         // pool exhausted
-        return _snk_make_image_handle(SNK_INVALID_ID);
+        return _simgui_make_image_handle(SIMGUI_INVALID_ID);
     }
 }
 
-static _snk_resource_state _snk_init_image(_snk_image_t* img, const snk_image_desc_t* desc) {
-    SOKOL_ASSERT(img && (img->slot.state == _SNK_RESOURCESTATE_ALLOC));
+static _simgui_resource_state _simgui_init_image(_simgui_image_t* img, const simgui_image_desc_t* desc) {
+    SOKOL_ASSERT(img && (img->slot.state == _SIMGUI_RESOURCESTATE_ALLOC));
     SOKOL_ASSERT(desc);
+    SOKOL_ASSERT(_simgui.def_pip.id != SIMGUI_INVALID_ID);
+    SOKOL_ASSERT(_simgui.pip_unfilterable.id != SIMGUI_INVALID_ID);
     img->image = desc->image;
     img->sampler = desc->sampler;
-    return _SNK_RESOURCESTATE_VALID;
+    if (sg_query_pixelformat(sg_query_image_desc(desc->image).pixel_format).filter) {
+        img->pip = _simgui.def_pip;
+    } else {
+        img->pip = _simgui.pip_unfilterable;
+    }
+    return _SIMGUI_RESOURCESTATE_VALID;
 }
 
-static void _snk_deinit_image(_snk_image_t* img) {
+static void _simgui_deinit_image(_simgui_image_t* img) {
     SOKOL_ASSERT(img);
-    img->image.id = SNK_INVALID_ID;
-    img->sampler.id = SNK_INVALID_ID;
+    img->image.id = SIMGUI_INVALID_ID;
+    img->sampler.id = SIMGUI_INVALID_ID;
+    img->pip.id = SIMGUI_INVALID_ID;
 }
 
-static void _snk_destroy_image(snk_image_t img_id) {
-    _snk_image_t* img = _snk_lookup_image(img_id.id);
+static void _simgui_destroy_image(simgui_image_t img_id) {
+    _simgui_image_t* img = _simgui_lookup_image(img_id.id);
     if (img) {
-        _snk_deinit_image(img);
-        _snk_image_pool_t* p = &_snuklear.image_pool;
-        _snk_clear(img, sizeof(_snk_image_t));
-        _snk_pool_free_index(&p->pool, _snk_slot_index(img_id.id));
+        _simgui_deinit_image(img);
+        _simgui_image_pool_t* p = &_simgui.image_pool;
+        _simgui_clear(img, sizeof(_simgui_image_t));
+        _simgui_pool_free_index(&p->pool, _simgui_slot_index(img_id.id));
     }
 }
 
-static void _snk_destroy_all_images(void) {
-    _snk_image_pool_t* p = &_snuklear.image_pool;
+static void _simgui_destroy_all_images(void) {
+    _simgui_image_pool_t* p = &_simgui.image_pool;
     for (int i = 0; i < p->pool.size; i++) {
-        _snk_image_t* img = &p->items[i];
-        _snk_destroy_image(_snk_make_image_handle(img->slot.id));
+        _simgui_image_t* img = &p->items[i];
+        _simgui_destroy_image(_simgui_make_image_handle(img->slot.id));
     }
 }
 
-static snk_image_desc_t _snk_image_desc_defaults(const snk_image_desc_t* desc) {
+static simgui_image_desc_t _simgui_image_desc_defaults(const simgui_image_desc_t* desc) {
     SOKOL_ASSERT(desc);
-    snk_image_desc_t res = *desc;
-    res.image.id = _snk_def(res.image.id, _snuklear.def_img.id);
-    res.sampler.id = _snk_def(res.sampler.id, _snuklear.def_smp.id);
+    simgui_image_desc_t res = *desc;
+    res.image.id = _simgui_def(res.image.id, _simgui.def_img.id);
+    res.sampler.id = _simgui_def(res.sampler.id, _simgui.def_smp.id);
     return res;
 }
 
-static snk_desc_t _snk_desc_defaults(const snk_desc_t* desc) {
-    SOKOL_ASSERT(desc);
-    snk_desc_t res = *desc;
-    res.max_vertices = _snk_def(res.max_vertices, 65536);
-    res.dpi_scale = _snk_def(res.dpi_scale, 1.0f);
-    res.image_pool_size = _snk_def(res.image_pool_size, 256);
+static bool _simgui_is_osx(void) {
+    #if defined(SOKOL_DUMMY_BACKEND)
+        return false;
+    #elif defined(__EMSCRIPTEN__)
+        return simgui_js_is_osx();
+    #elif defined(__APPLE__)
+        return true;
+    #else
+        return false;
+    #endif
+}
+
+static simgui_desc_t _simgui_desc_defaults(const simgui_desc_t* desc) {
+    SOKOL_ASSERT((desc->allocator.alloc_fn && desc->allocator.free_fn) || (!desc->allocator.alloc_fn && !desc->allocator.free_fn));
+    simgui_desc_t res = *desc;
+    res.max_vertices = _simgui_def(res.max_vertices, 65536);
+    res.image_pool_size = _simgui_def(res.image_pool_size, 256);
     return res;
 }
 
@@ -2060,603 +2157,945 @@ static snk_desc_t _snk_desc_defaults(const snk_desc_t* desc) {
 // ██       ██████  ██████  ███████ ██  ██████
 //
 // >>public
-SOKOL_API_IMPL void snk_setup(const snk_desc_t* desc) {
+SOKOL_API_IMPL void simgui_setup(const simgui_desc_t* desc) {
     SOKOL_ASSERT(desc);
-    _snk_clear(&_snuklear, sizeof(_snuklear));
-    _snuklear.init_cookie = _SNK_INIT_COOKIE;
-    _snuklear.desc = _snk_desc_defaults(desc);
-    #if !defined(SOKOL_NUKLEAR_NO_SOKOL_APP)
-    _snuklear.is_osx = _snk_is_osx();
+    _simgui_clear(&_simgui, sizeof(_simgui));
+    _simgui.init_cookie = _SIMGUI_INIT_COOKIE;
+    _simgui.desc = _simgui_desc_defaults(desc);
+    _simgui.cur_dpi_scale = 1.0f;
+    #if !defined(SOKOL_IMGUI_NO_SOKOL_APP)
+    _simgui.is_osx = _simgui_is_osx();
     #endif
     // can keep color_format, depth_format and sample_count as is,
     // since sokol_gfx.h will do its own default-value handling
 
-    _snk_setup_image_pool(_snuklear.desc.image_pool_size);
+    // setup image pool
+    _simgui_setup_image_pool(_simgui.desc.image_pool_size);
 
-    // initialize Nuklear
-    nk_bool init_res = nk_init_default(&_snuklear.ctx, 0);
-    SOKOL_ASSERT(1 == init_res); (void)init_res;    // silence unused warning in release mode
-#if !defined(SOKOL_NUKLEAR_NO_SOKOL_APP)
-    _snuklear.ctx.clip.copy = _snk_clipboard_copy;
-    _snuklear.ctx.clip.paste = _snk_clipboard_paste;
-#endif
+    // allocate an intermediate vertex- and index-buffer
+    SOKOL_ASSERT(_simgui.desc.max_vertices > 0);
+    _simgui.vertices.size = (size_t)_simgui.desc.max_vertices * sizeof(ImDrawVert);
+    _simgui.vertices.ptr = _simgui_malloc(_simgui.vertices.size);
+    _simgui.indices.size = (size_t)_simgui.desc.max_vertices * 3 * sizeof(ImDrawIdx);
+    _simgui.indices.ptr = _simgui_malloc(_simgui.indices.size);
+
+    // initialize Dear ImGui
+    #if defined(__cplusplus)
+        ImGui::CreateContext();
+        ImGui::StyleColorsDark();
+        ImGuiIO* io = &ImGui::GetIO();
+        if (!_simgui.desc.no_default_font) {
+            io->Fonts->AddFontDefault();
+        }
+    #else
+        igCreateContext(NULL);
+        igStyleColorsDark(igGetStyle());
+        ImGuiIO* io = igGetIO();
+        if (!_simgui.desc.no_default_font) {
+            ImFontAtlas_AddFontDefault(io->Fonts, NULL);
+        }
+    #endif
+    io->IniFilename = _simgui.desc.ini_filename;
+    io->ConfigMacOSXBehaviors = _simgui_is_osx();
+    io->BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+    #if !defined(SOKOL_IMGUI_NO_SOKOL_APP)
+        if (!_simgui.desc.disable_set_mouse_cursor) {
+            io->BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
+        }
+        io->SetClipboardTextFn = _simgui_set_clipboard;
+        io->GetClipboardTextFn = _simgui_get_clipboard;
+    #endif
+    io->ConfigWindowsResizeFromEdges = !_simgui.desc.disable_windows_resize_from_edges;
 
     // create sokol-gfx resources
-    sg_push_debug_group("sokol-nuklear");
+    sg_push_debug_group("sokol-imgui");
 
-    // vertex buffer
-    _snuklear.vertex_buffer_size = (size_t)_snuklear.desc.max_vertices * sizeof(_snk_vertex_t);
-    _snuklear.vbuf = sg_make_buffer(&(sg_buffer_desc){
-        .usage = SG_USAGE_STREAM,
-        .size = _snuklear.vertex_buffer_size,
-        .label = "sokol-nuklear-vertices"
-    });
-
-    // index buffer
-    _snuklear.index_buffer_size = (size_t)_snuklear.desc.max_vertices * 3 * sizeof(uint16_t);
-    _snuklear.ibuf = sg_make_buffer(&(sg_buffer_desc){
-        .type = SG_BUFFERTYPE_INDEXBUFFER,
-        .usage = SG_USAGE_STREAM,
-        .size = _snuklear.index_buffer_size,
-        .label = "sokol-nuklear-indices"
-    });
-
-    // default font sampler
-    _snuklear.font_smp = sg_make_sampler(&(sg_sampler_desc){
-        .min_filter = SG_FILTER_LINEAR,
-        .mag_filter = SG_FILTER_LINEAR,
-        .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
-        .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
-        .label = "sokol-nuklear-font-sampler",
-    });
-
-    // default user-image sampler
-    _snuklear.def_smp = sg_make_sampler(&(sg_sampler_desc){
-        .min_filter = SG_FILTER_NEAREST,
-        .mag_filter = SG_FILTER_NEAREST,
-        .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
-        .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
-        .label = "sokol-nuklear-default-sampler",
-    });
-
-    // default font texture
-    if (!_snuklear.desc.no_default_font) {
-        nk_font_atlas_init_default(&_snuklear.atlas);
-        nk_font_atlas_begin(&_snuklear.atlas);
-        int font_width = 0, font_height = 0;
-        const void* pixels = nk_font_atlas_bake(&_snuklear.atlas, &font_width, &font_height, NK_FONT_ATLAS_RGBA32);
-        SOKOL_ASSERT((font_width > 0) && (font_height > 0));
-        _snuklear.font_img = sg_make_image(&(sg_image_desc){
-            .width = font_width,
-            .height = font_height,
-            .pixel_format = SG_PIXELFORMAT_RGBA8,
-            .data.subimage[0][0] = {
-                .ptr = pixels,
-                .size = (size_t)(font_width * font_height) * sizeof(uint32_t)
-            },
-            .label = "sokol-nuklear-font"
-        });
-        _snuklear.default_font = snk_make_image(&(snk_image_desc_t){
-            .image = _snuklear.font_img,
-            .sampler = _snuklear.font_smp,
-        });
-        nk_font_atlas_end(&_snuklear.atlas, snk_nkhandle(_snuklear.default_font), 0);
-        nk_font_atlas_cleanup(&_snuklear.atlas);
-        if (_snuklear.atlas.default_font) {
-            nk_style_set_font(&_snuklear.ctx, &_snuklear.atlas.default_font->handle);
-        }
-    }
-
-    // default user image
-    static uint32_t def_pixels[64];
-    memset(def_pixels, 0xFF, sizeof(def_pixels));
-    _snuklear.def_img = sg_make_image(&(sg_image_desc){
-        .width = 8,
-        .height = 8,
-        .pixel_format = SG_PIXELFORMAT_RGBA8,
-        .data.subimage[0][0] = SG_RANGE(def_pixels),
-        .label = "sokol-nuklear-default-image",
-    });
-
-    // shader
-    #if defined SOKOL_METAL
-        const char* vs_entry = "main0";
-        const char* fs_entry = "main0";
-    #else
-        const char* vs_entry = "main";
-        const char* fs_entry = "main";
-    #endif
-    sg_range vs_bytecode = { .ptr = 0, .size = 0 };
-    sg_range fs_bytecode = { .ptr = 0, .size = 0 };
-    const char* vs_source = 0;
-    const char* fs_source = 0;
+    // shader object for using the embedded shader source (or bytecode)
+    sg_shader_desc shd_desc;
+    _simgui_clear(&shd_desc, sizeof(shd_desc));
+    shd_desc.attrs[0].name = "position";
+    shd_desc.attrs[1].name = "texcoord0";
+    shd_desc.attrs[2].name = "color0";
+    shd_desc.attrs[0].sem_name = "TEXCOORD";
+    shd_desc.attrs[0].sem_index = 0;
+    shd_desc.attrs[1].sem_name = "TEXCOORD";
+    shd_desc.attrs[1].sem_index = 1;
+    shd_desc.attrs[2].sem_name = "TEXCOORD";
+    shd_desc.attrs[2].sem_index = 2;
+    sg_shader_uniform_block_desc* ub = &shd_desc.vs.uniform_blocks[0];
+    ub->size = sizeof(_simgui_vs_params_t);
+    ub->uniforms[0].name = "vs_params";
+    ub->uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
+    ub->uniforms[0].array_count = 1;
+    shd_desc.fs.images[0].used = true;
+    shd_desc.fs.images[0].image_type = SG_IMAGETYPE_2D;
+    shd_desc.fs.images[0].sample_type = SG_IMAGESAMPLETYPE_FLOAT;
+    shd_desc.fs.samplers[0].used = true;
+    shd_desc.fs.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
+    shd_desc.fs.image_sampler_pairs[0].used = true;
+    shd_desc.fs.image_sampler_pairs[0].image_slot = 0;
+    shd_desc.fs.image_sampler_pairs[0].sampler_slot = 0;
+    shd_desc.fs.image_sampler_pairs[0].glsl_name = "tex_smp";
+    shd_desc.label = "sokol-imgui-shader";
     #if defined(SOKOL_GLCORE33)
-        vs_source = _snk_vs_source_glsl330;
-        fs_source = _snk_fs_source_glsl330;
+        shd_desc.vs.source = _simgui_vs_source_glsl330;
+        shd_desc.fs.source = _simgui_fs_source_glsl330;
     #elif defined(SOKOL_GLES3)
-        vs_source = _snk_vs_source_glsl300es;
-        fs_source = _snk_fs_source_glsl300es;
+        shd_desc.vs.source = _simgui_vs_source_glsl300es;
+        shd_desc.fs.source = _simgui_fs_source_glsl300es;
     #elif defined(SOKOL_METAL)
+        shd_desc.vs.entry = "main0";
+        shd_desc.fs.entry = "main0";
         switch (sg_query_backend()) {
             case SG_BACKEND_METAL_MACOS:
-                vs_bytecode = SG_RANGE(_snk_vs_bytecode_metal_macos);
-                fs_bytecode = SG_RANGE(_snk_fs_bytecode_metal_macos);
+                shd_desc.vs.bytecode = SG_RANGE(_simgui_vs_bytecode_metal_macos);
+                shd_desc.fs.bytecode = SG_RANGE(_simgui_fs_bytecode_metal_macos);
                 break;
             case SG_BACKEND_METAL_IOS:
-                vs_bytecode = SG_RANGE(_snk_vs_bytecode_metal_ios);
-                fs_bytecode = SG_RANGE(_snk_fs_bytecode_metal_ios);
+                shd_desc.vs.bytecode = SG_RANGE(_simgui_vs_bytecode_metal_ios);
+                shd_desc.fs.bytecode = SG_RANGE(_simgui_fs_bytecode_metal_ios);
                 break;
             default:
-                vs_source = _snk_vs_source_metal_sim;
-                fs_source = _snk_fs_source_metal_sim;
+                shd_desc.vs.source = _simgui_vs_source_metal_sim;
+                shd_desc.fs.source = _simgui_fs_source_metal_sim;
                 break;
         }
     #elif defined(SOKOL_D3D11)
-        vs_bytecode = SG_RANGE(_snk_vs_bytecode_hlsl4);
-        fs_bytecode = SG_RANGE(_snk_fs_bytecode_hlsl4);
+        shd_desc.vs.bytecode = SG_RANGE(_simgui_vs_bytecode_hlsl4);
+        shd_desc.fs.bytecode = SG_RANGE(_simgui_fs_bytecode_hlsl4);
     #elif defined(SOKOL_WGPU)
-        vs_source = _snk_vs_source_wgsl;
-        fs_source = _snk_fs_source_wgsl;
+        shd_desc.vs.source = _simgui_vs_source_wgsl;
+        shd_desc.fs.source = _simgui_fs_source_wgsl;
     #else
-        vs_source = _snk_vs_source_dummy;
-        fs_source = _snk_fs_source_dummy;
+        shd_desc.vs.source = _simgui_vs_source_dummy;
+        shd_desc.fs.source = _simgui_fs_source_dummy;
     #endif
-    _snuklear.shd = sg_make_shader(&(sg_shader_desc){
-        .attrs = {
-            [0] = { .name = "position", .sem_name = "TEXCOORD", .sem_index = 0 },
-            [1] = { .name = "texcoord0", .sem_name = "TEXCOORD", .sem_index = 1 },
-            [2] = { .name = "color0", .sem_name = "TEXCOORD", .sem_index = 2 },
-        },
-        .vs = {
-            .source = vs_source,
-            .bytecode = vs_bytecode,
-            .entry = vs_entry,
-            .d3d11_target = "vs_4_0",
-            .uniform_blocks[0] = {
-                .size = sizeof(_snk_vs_params_t),
-                .uniforms[0] = {
-                    .name = "vs_params",
-                    .type = SG_UNIFORMTYPE_FLOAT4,
-                    .array_count = 1,
-                }
-            },
-        },
-        .fs = {
-            .source = fs_source,
-            .bytecode = fs_bytecode,
-            .entry = fs_entry,
-            .d3d11_target = "ps_4_0",
-            .images[0] = { .used = true, .image_type = SG_IMAGETYPE_2D, .sample_type = SG_IMAGESAMPLETYPE_FLOAT },
-            .samplers[0] = { .used = true, .sampler_type = SG_SAMPLERTYPE_FILTERING },
-            .image_sampler_pairs[0] = { .used = true, .glsl_name = "tex_smp", .image_slot = 0, .sampler_slot = 0 },
-        },
-        .label = "sokol-nuklear-shader"
-    });
+    _simgui.def_shd = sg_make_shader(&shd_desc);
 
-    // pipeline object
-    _snuklear.pip = sg_make_pipeline(&(sg_pipeline_desc){
-        .layout = {
-            .attrs = {
-                [0] = { .offset = offsetof(_snk_vertex_t, pos), .format=SG_VERTEXFORMAT_FLOAT2 },
-                [1] = { .offset = offsetof(_snk_vertex_t, uv), .format=SG_VERTEXFORMAT_FLOAT2 },
-                [2] = { .offset = offsetof(_snk_vertex_t, col), .format=SG_VERTEXFORMAT_UBYTE4N }
-            }
-        },
-        .shader = _snuklear.shd,
-        .index_type = SG_INDEXTYPE_UINT16,
-        .sample_count = _snuklear.desc.sample_count,
-        .depth.pixel_format = _snuklear.desc.depth_format,
-        .colors[0] = {
-            .pixel_format = _snuklear.desc.color_format,
-            .write_mask = SG_COLORMASK_RGB,
-            .blend = {
-                .enabled = true,
-                .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
-                .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            }
-        },
-        .label = "sokol-nuklear-pipeline"
-    });
+    // pipeline object for imgui rendering
+    sg_pipeline_desc pip_desc;
+    _simgui_clear(&pip_desc, sizeof(pip_desc));
+    pip_desc.layout.buffers[0].stride = sizeof(ImDrawVert);
+    {
+        sg_vertex_attr_state* attr = &pip_desc.layout.attrs[0];
+        attr->offset = offsetof(ImDrawVert, pos);
+        attr->format = SG_VERTEXFORMAT_FLOAT2;
+    }
+    {
+        sg_vertex_attr_state* attr = &pip_desc.layout.attrs[1];
+        attr->offset = offsetof(ImDrawVert, uv);
+        attr->format = SG_VERTEXFORMAT_FLOAT2;
+    }
+    {
+        sg_vertex_attr_state* attr = &pip_desc.layout.attrs[2];
+        attr->offset = offsetof(ImDrawVert, col);
+        attr->format = SG_VERTEXFORMAT_UBYTE4N;
+    }
+    pip_desc.shader = _simgui.def_shd;
+    pip_desc.index_type = SG_INDEXTYPE_UINT16;
+    pip_desc.sample_count = _simgui.desc.sample_count;
+    pip_desc.depth.pixel_format = _simgui.desc.depth_format;
+    pip_desc.colors[0].pixel_format = _simgui.desc.color_format;
+    pip_desc.colors[0].write_mask = _simgui.desc.write_alpha_channel ? SG_COLORMASK_RGBA : SG_COLORMASK_RGB;
+    pip_desc.colors[0].blend.enabled = true;
+    pip_desc.colors[0].blend.src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA;
+    pip_desc.colors[0].blend.dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+    if (_simgui.desc.write_alpha_channel) {
+        pip_desc.colors[0].blend.src_factor_alpha = SG_BLENDFACTOR_ONE;
+        pip_desc.colors[0].blend.dst_factor_alpha = SG_BLENDFACTOR_ONE;
+    }
+    pip_desc.label = "sokol-imgui-pipeline";
+    _simgui.def_pip = sg_make_pipeline(&pip_desc);
+
+    // create a unfilterable/nonfiltering variants of the shader and pipeline
+    shd_desc.fs.images[0].sample_type = SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT;
+    shd_desc.fs.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
+    shd_desc.label = "sokol-imgui-shader-unfilterable";
+    _simgui.shd_unfilterable = sg_make_shader(&shd_desc);
+    pip_desc.shader = _simgui.shd_unfilterable;
+    pip_desc.label = "sokol-imgui-pipeline-unfilterable";
+    _simgui.pip_unfilterable = sg_make_pipeline(&pip_desc);
+
+    // NOTE: since we're in C++ mode here we can't use C99 designated init
+    sg_buffer_desc vb_desc;
+    _simgui_clear(&vb_desc, sizeof(vb_desc));
+    vb_desc.usage = SG_USAGE_STREAM;
+    vb_desc.size = _simgui.vertices.size;
+    vb_desc.label = "sokol-imgui-vertices";
+    _simgui.vbuf = sg_make_buffer(&vb_desc);
+
+    sg_buffer_desc ib_desc;
+    _simgui_clear(&ib_desc, sizeof(ib_desc));
+    ib_desc.type = SG_BUFFERTYPE_INDEXBUFFER;
+    ib_desc.usage = SG_USAGE_STREAM;
+    ib_desc.size = _simgui.indices.size;
+    ib_desc.label = "sokol-imgui-indices";
+    _simgui.ibuf = sg_make_buffer(&ib_desc);
+
+    // a default font sampler
+    sg_sampler_desc font_smp_desc;
+    _simgui_clear(&font_smp_desc, sizeof(font_smp_desc));
+    font_smp_desc.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+    font_smp_desc.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+    font_smp_desc.min_filter = SG_FILTER_LINEAR;
+    font_smp_desc.mag_filter = SG_FILTER_LINEAR;
+    font_smp_desc.mipmap_filter = SG_FILTER_NONE;
+    font_smp_desc.label = "sokol-imgui-font-sampler";
+    _simgui.font_smp = sg_make_sampler(&font_smp_desc);
+
+    // a default user-image sampler
+    sg_sampler_desc def_sampler_desc;
+    _simgui_clear(&def_sampler_desc, sizeof(def_sampler_desc));
+    def_sampler_desc.min_filter = SG_FILTER_NEAREST;
+    def_sampler_desc.mag_filter = SG_FILTER_NEAREST;
+    def_sampler_desc.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+    def_sampler_desc.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+    def_sampler_desc.label = "sokol-imgui-default-sampler";
+    _simgui.def_smp = sg_make_sampler(&def_sampler_desc);
+
+    // a default user image
+    static uint32_t def_pixels[64];
+    memset(def_pixels, 0xFF, sizeof(def_pixels));
+    sg_image_desc def_image_desc;
+    _simgui_clear(&def_image_desc, sizeof(def_image_desc));
+    def_image_desc.width = 8;
+    def_image_desc.height = 8;
+    def_image_desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+    def_image_desc.data.subimage[0][0].ptr = def_pixels;
+    def_image_desc.data.subimage[0][0].size = sizeof(def_pixels);
+    def_image_desc.label = "sokol-imgui-default-image";
+    _simgui.def_img = sg_make_image(&def_image_desc);
+
+    // default font texture
+    if (!_simgui.desc.no_default_font) {
+        unsigned char* font_pixels;
+        int font_width, font_height;
+        #if defined(__cplusplus)
+            io->Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height);
+        #else
+            int bytes_per_pixel;
+            ImFontAtlas_GetTexDataAsRGBA32(io->Fonts, &font_pixels, &font_width, &font_height, &bytes_per_pixel);
+        #endif
+        sg_image_desc font_img_desc;
+        _simgui_clear(&font_img_desc, sizeof(font_img_desc));
+        font_img_desc.width = font_width;
+        font_img_desc.height = font_height;
+        font_img_desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+        font_img_desc.data.subimage[0][0].ptr = font_pixels;
+        font_img_desc.data.subimage[0][0].size = (size_t)(font_width * font_height) * sizeof(uint32_t);
+        font_img_desc.label = "sokol-imgui-font-image";
+        _simgui.font_img = sg_make_image(&font_img_desc);
+
+        simgui_image_desc_t img_desc;
+        _simgui_clear(&img_desc, sizeof(img_desc));
+        img_desc.image = _simgui.font_img;
+        img_desc.sampler = _simgui.font_smp;
+        _simgui.default_font = simgui_make_image(&img_desc);
+        io->Fonts->TexID = simgui_imtextureid(_simgui.default_font);
+    }
 
     sg_pop_debug_group();
 }
 
-SOKOL_API_IMPL void snk_shutdown(void) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    nk_free(&_snuklear.ctx);
-    nk_font_atlas_clear(&_snuklear.atlas);
-
+SOKOL_API_IMPL void simgui_shutdown(void) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGui::DestroyContext();
+    #else
+        igDestroyContext(0);
+    #endif
     // NOTE: it's valid to call the destroy funcs with SG_INVALID_ID
-    sg_push_debug_group("sokol-nuklear");
-    sg_destroy_pipeline(_snuklear.pip);
-    sg_destroy_shader(_snuklear.shd);
-    sg_destroy_sampler(_snuklear.font_smp);
-    sg_destroy_image(_snuklear.font_img);
-    sg_destroy_sampler(_snuklear.def_smp);
-    sg_destroy_image(_snuklear.def_img);
-    sg_destroy_buffer(_snuklear.ibuf);
-    sg_destroy_buffer(_snuklear.vbuf);
+    sg_destroy_pipeline(_simgui.pip_unfilterable);
+    sg_destroy_shader(_simgui.shd_unfilterable);
+    sg_destroy_pipeline(_simgui.def_pip);
+    sg_destroy_shader(_simgui.def_shd);
+    sg_destroy_sampler(_simgui.font_smp);
+    sg_destroy_image(_simgui.font_img);
+    sg_destroy_sampler(_simgui.def_smp);
+    sg_destroy_image(_simgui.def_img);
+    sg_destroy_buffer(_simgui.ibuf);
+    sg_destroy_buffer(_simgui.vbuf);
     sg_pop_debug_group();
-    _snk_destroy_all_images();
-    _snk_discard_image_pool();
-    _snuklear.init_cookie = 0;
+    sg_push_debug_group("sokol-imgui");
+    _simgui_destroy_all_images();
+    _simgui_discard_image_pool();
+    SOKOL_ASSERT(_simgui.vertices.ptr);
+    _simgui_free((void*)_simgui.vertices.ptr);
+    SOKOL_ASSERT(_simgui.indices.ptr);
+    _simgui_free((void*)_simgui.indices.ptr);
+    _simgui.init_cookie = 0;
 }
 
-SOKOL_API_IMPL struct nk_context* snk_new_frame(void) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    #if !defined(SOKOL_NUKLEAR_NO_SOKOL_APP)
-    nk_input_begin(&_snuklear.ctx);
-    if (_snuklear.mouse_did_move) {
-        nk_input_motion(&_snuklear.ctx, _snuklear.mouse_pos[0], _snuklear.mouse_pos[1]);
-        _snuklear.mouse_did_move = false;
-    }
-    if (_snuklear.mouse_did_scroll) {
-        nk_input_scroll(&_snuklear.ctx, nk_vec2(_snuklear.mouse_scroll[0], _snuklear.mouse_scroll[1]));
-        _snuklear.mouse_did_scroll = false;
-    }
-    for (int i = 0; i < NK_BUTTON_MAX; i++) {
-        if (_snuklear.btn_down[i]) {
-            _snuklear.btn_down[i] = false;
-            nk_input_button(&_snuklear.ctx, (enum nk_buttons)i, _snuklear.mouse_pos[0], _snuklear.mouse_pos[1], 1);
-        } else if (_snuklear.btn_up[i]) {
-            _snuklear.btn_up[i] = false;
-            nk_input_button(&_snuklear.ctx, (enum nk_buttons)i, _snuklear.mouse_pos[0], _snuklear.mouse_pos[1], 0);
-        }
-    }
-    const size_t char_buffer_len = strlen(_snuklear.char_buffer);
-    if (char_buffer_len > 0) {
-        for (size_t i = 0; i < char_buffer_len; i++) {
-            nk_input_char(&_snuklear.ctx, _snuklear.char_buffer[i]);
-        }
-        _snk_clear(_snuklear.char_buffer, NK_INPUT_MAX);
-    }
-    for (int i = 0; i < NK_KEY_MAX; i++) {
-        if (_snuklear.keys_down[i]) {
-            nk_input_key(&_snuklear.ctx, (enum nk_keys)i, true);
-            _snuklear.keys_down[i] = 0;
-        }
-        if (_snuklear.keys_up[i]) {
-            nk_input_key(&_snuklear.ctx, (enum nk_keys)i, false);
-            _snuklear.keys_up[i] = 0;
-        }
-    }
-    nk_input_end(&_snuklear.ctx);
-    #endif
-
-    nk_clear(&_snuklear.ctx);
-    return &_snuklear.ctx;
-}
-
-SOKOL_API_IMPL snk_image_t snk_make_image(const snk_image_desc_t* desc) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
+SOKOL_API_IMPL simgui_image_t simgui_make_image(const simgui_image_desc_t* desc) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
     SOKOL_ASSERT(desc);
-    const snk_image_desc_t desc_def = _snk_image_desc_defaults(desc);
-    snk_image_t img_id = _snk_alloc_image();
-    _snk_image_t* img = _snk_lookup_image(img_id.id);
+    const simgui_image_desc_t desc_def = _simgui_image_desc_defaults(desc);
+    simgui_image_t img_id = _simgui_alloc_image();
+    _simgui_image_t* img = _simgui_lookup_image(img_id.id);
     if (img) {
-        img->slot.state = _snk_init_image(img, &desc_def);
-        SOKOL_ASSERT((img->slot.state == _SNK_RESOURCESTATE_VALID) || (img->slot.state == _SNK_RESOURCESTATE_FAILED));
+        img->slot.state = _simgui_init_image(img, &desc_def);
+        SOKOL_ASSERT((img->slot.state == _SIMGUI_RESOURCESTATE_VALID) || (img->slot.state == _SIMGUI_RESOURCESTATE_FAILED));
     } else {
-        _SNK_ERROR(IMAGE_POOL_EXHAUSTED);
+        _SIMGUI_ERROR(IMAGE_POOL_EXHAUSTED);
     }
     return img_id;
 }
 
-SOKOL_API_IMPL void snk_destroy_image(snk_image_t img_id) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    _snk_destroy_image(img_id);
+SOKOL_API_IMPL void simgui_destroy_image(simgui_image_t img_id) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    _simgui_destroy_image(img_id);
 }
 
-SOKOL_API_IMPL snk_image_desc_t snk_query_image_desc(snk_image_t img_id) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    _snk_image_t* img = _snk_lookup_image(img_id.id);
+SOKOL_API_IMPL simgui_image_desc_t simgui_query_image_desc(simgui_image_t img_id) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    _simgui_image_t* img = _simgui_lookup_image(img_id.id);
+    simgui_image_desc_t desc;
+    _simgui_clear(&desc, sizeof(desc));
     if (img) {
-        return (snk_image_desc_t){
-            .image = img->image,
-            .sampler = img->sampler,
-        };
-    } else {
-        return (snk_image_desc_t){0};
+        desc.image = img->image;
+        desc.sampler = img->sampler;
     }
+    return desc;
 }
 
-SOKOL_API_IMPL nk_handle snk_nkhandle(snk_image_t img) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    return (nk_handle) { .id = (int)img.id };
+SOKOL_API_IMPL void* simgui_imtextureid(simgui_image_t img) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    return (void*)(uintptr_t)img.id;
 }
 
-SOKOL_API_IMPL snk_image_t snk_image_from_nkhandle(nk_handle h) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    return (snk_image_t){ .id = (uint32_t) h.id };
+SOKOL_API_IMPL simgui_image_t simgui_image_from_imtextureid(void* imtextureid) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    simgui_image_t img = { (uint32_t)(uintptr_t) imtextureid };
+    return img;
 }
 
-static void _snk_bind_image_sampler(sg_bindings* bindings, nk_handle h) {
-    _snk_image_t* img = _snk_lookup_image((uint32_t)h.id);
+SOKOL_API_IMPL void simgui_new_frame(const simgui_frame_desc_t* desc) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    SOKOL_ASSERT(desc);
+    SOKOL_ASSERT(desc->width > 0);
+    SOKOL_ASSERT(desc->height > 0);
+    _simgui.cur_dpi_scale = _simgui_def(desc->dpi_scale, 1.0f);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+    #else
+        ImGuiIO* io = igGetIO();
+    #endif
+    io->DisplaySize.x = ((float)desc->width) / _simgui.cur_dpi_scale;
+    io->DisplaySize.y = ((float)desc->height) / _simgui.cur_dpi_scale;
+    io->DeltaTime = (float)desc->delta_time;
+    #if !defined(SOKOL_IMGUI_NO_SOKOL_APP)
+        if (io->WantTextInput && !sapp_keyboard_shown()) {
+            sapp_show_keyboard(true);
+        }
+        if (!io->WantTextInput && sapp_keyboard_shown()) {
+            sapp_show_keyboard(false);
+        }
+        if (!_simgui.desc.disable_set_mouse_cursor) {
+            #if defined(__cplusplus)
+                ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
+            #else
+                ImGuiMouseCursor imgui_cursor = igGetMouseCursor();
+            #endif
+            sapp_mouse_cursor cursor = sapp_get_mouse_cursor();
+            switch (imgui_cursor) {
+                case ImGuiMouseCursor_Arrow:        cursor = SAPP_MOUSECURSOR_ARROW; break;
+                case ImGuiMouseCursor_TextInput:    cursor = SAPP_MOUSECURSOR_IBEAM; break;
+                case ImGuiMouseCursor_ResizeAll:    cursor = SAPP_MOUSECURSOR_RESIZE_ALL; break;
+                case ImGuiMouseCursor_ResizeNS:     cursor = SAPP_MOUSECURSOR_RESIZE_NS; break;
+                case ImGuiMouseCursor_ResizeEW:     cursor = SAPP_MOUSECURSOR_RESIZE_EW; break;
+                case ImGuiMouseCursor_ResizeNESW:   cursor = SAPP_MOUSECURSOR_RESIZE_NESW; break;
+                case ImGuiMouseCursor_ResizeNWSE:   cursor = SAPP_MOUSECURSOR_RESIZE_NWSE; break;
+                case ImGuiMouseCursor_Hand:         cursor = SAPP_MOUSECURSOR_POINTING_HAND; break;
+                case ImGuiMouseCursor_NotAllowed:   cursor = SAPP_MOUSECURSOR_NOT_ALLOWED; break;
+                default: break;
+            }
+            sapp_set_mouse_cursor(cursor);
+        }
+    #endif
+    #if defined(__cplusplus)
+        ImGui::NewFrame();
+    #else
+        igNewFrame();
+    #endif
+}
+
+static const _simgui_image_t* _simgui_bind_image_sampler(sg_bindings* bindings, ImTextureID tex_id) {
+    const _simgui_image_t* img = _simgui_lookup_image((uint32_t)(uintptr_t)tex_id);
     if (img) {
         bindings->fs.images[0] = img->image;
         bindings->fs.samplers[0] = img->sampler;
     } else {
-        bindings->fs.images[0] = _snuklear.def_img;
-        bindings->fs.samplers[0] = _snuklear.def_smp;
+        bindings->fs.images[0] = _simgui.def_img;
+        bindings->fs.samplers[0] = _simgui.def_smp;
     }
+    return img;
 }
 
-SOKOL_API_IMPL void snk_render(int width, int height) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    static const struct nk_draw_vertex_layout_element vertex_layout[] = {
-        {NK_VERTEX_POSITION, NK_FORMAT_FLOAT, NK_OFFSETOF(struct _snk_vertex_t, pos)},
-        {NK_VERTEX_TEXCOORD, NK_FORMAT_FLOAT, NK_OFFSETOF(struct _snk_vertex_t, uv)},
-        {NK_VERTEX_COLOR, NK_FORMAT_R8G8B8A8, NK_OFFSETOF(struct _snk_vertex_t, col)},
-        {NK_VERTEX_LAYOUT_END}
-    };
-    struct nk_convert_config cfg = {
-        .shape_AA = NK_ANTI_ALIASING_ON,
-        .line_AA = NK_ANTI_ALIASING_ON,
-        .vertex_layout = vertex_layout,
-        .vertex_size = sizeof(_snk_vertex_t),
-        .vertex_alignment = 4,
-        .circle_segment_count = 22,
-        .curve_segment_count = 22,
-        .arc_segment_count = 22,
-        .global_alpha = 1.0f
-    };
+static ImDrawList* _simgui_imdrawlist_at(ImDrawData* draw_data, int cl_index) {
+    #if defined(__cplusplus)
+        return draw_data->CmdLists[cl_index];
+    #else
+        return draw_data->CmdLists.Data[cl_index];
+    #endif
+}
 
-    _snuklear.vs_params.disp_size[0] = (float)width;
-    _snuklear.vs_params.disp_size[1] = (float)height;
+SOKOL_API_IMPL void simgui_render(void) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGui::Render();
+        ImDrawData* draw_data = ImGui::GetDrawData();
+        ImGuiIO* io = &ImGui::GetIO();
+    #else
+        igRender();
+        ImDrawData* draw_data = igGetDrawData();
+        ImGuiIO* io = igGetIO();
+    #endif
+    if (0 == draw_data) {
+        return;
+    }
+    if (draw_data->CmdListsCount == 0) {
+        return;
+    }
+    /* copy vertices and indices into an intermediate buffer so that
+       they can be updated with a single sg_update_buffer() call each
+       (sg_append_buffer() has performance problems on some GL platforms),
+       also keep track of valid number of command lists in case of a
+       buffer overflow
+    */
+    size_t all_vtx_size = 0;
+    size_t all_idx_size = 0;
+    int cmd_list_count = 0;
+    for (int cl_index = 0; cl_index < draw_data->CmdListsCount; cl_index++, cmd_list_count++) {
+        ImDrawList* cl = _simgui_imdrawlist_at(draw_data, cl_index);
+        const size_t vtx_size = (size_t)cl->VtxBuffer.Size * sizeof(ImDrawVert);
+        const size_t idx_size = (size_t)cl->IdxBuffer.Size * sizeof(ImDrawIdx);
 
-    // Setup vert/index buffers and convert
-    struct nk_buffer cmds, verts, idx;
-    nk_buffer_init_default(&cmds);
-    nk_buffer_init_default(&verts);
-    nk_buffer_init_default(&idx);
-    nk_convert(&_snuklear.ctx, &cmds, &verts, &idx, &cfg);
+        // check for buffer overflow
+        if (((all_vtx_size + vtx_size) > _simgui.vertices.size) ||
+            ((all_idx_size + idx_size) > _simgui.indices.size))
+        {
+            break;
+        }
 
-    // Check for vertex- and index-buffer overflow, assert in debug-mode,
-    // otherwise silently skip rendering
-    const bool vertex_buffer_overflow = nk_buffer_total(&verts) > _snuklear.vertex_buffer_size;
-    const bool index_buffer_overflow = nk_buffer_total(&idx) > _snuklear.index_buffer_size;
-    SOKOL_ASSERT(!vertex_buffer_overflow && !index_buffer_overflow);
-    if (!vertex_buffer_overflow && !index_buffer_overflow) {
+        // copy vertices and indices into common buffers
+        if (vtx_size > 0) {
+            const ImDrawVert* src_vtx_ptr = cl->VtxBuffer.Data;
+            void* dst_vtx_ptr = (void*) (((uint8_t*)_simgui.vertices.ptr) + all_vtx_size);
+            memcpy(dst_vtx_ptr, src_vtx_ptr, vtx_size);
+        }
+        if (idx_size > 0) {
+            const ImDrawIdx* src_idx_ptr = cl->IdxBuffer.Data;
+            void* dst_idx_ptr = (void*) (((uint8_t*)_simgui.indices.ptr) + all_idx_size);
+            memcpy(dst_idx_ptr, src_idx_ptr, idx_size);
+        }
+        all_vtx_size += vtx_size;
+        all_idx_size += idx_size;
+    }
+    if (0 == cmd_list_count) {
+        return;
+    }
 
-        // Setup rendering
-        sg_update_buffer(_snuklear.vbuf, &(sg_range){ nk_buffer_memory_const(&verts), nk_buffer_total(&verts) });
-        sg_update_buffer(_snuklear.ibuf, &(sg_range){ nk_buffer_memory_const(&idx), nk_buffer_total(&idx) });
-        const float dpi_scale = _snuklear.desc.dpi_scale;
-        const int fb_width = (int)(_snuklear.vs_params.disp_size[0] * dpi_scale);
-        const int fb_height = (int)(_snuklear.vs_params.disp_size[1] * dpi_scale);
-        sg_apply_viewport(0, 0, fb_width, fb_height, true);
-        sg_apply_scissor_rect(0, 0, fb_width, fb_height, true);
-        sg_apply_pipeline(_snuklear.pip);
-        sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, &SG_RANGE(_snuklear.vs_params));
+    // update the sokol-gfx vertex- and index-buffer
+    sg_push_debug_group("sokol-imgui");
+    if (all_vtx_size > 0) {
+        sg_range vtx_data = _simgui.vertices;
+        vtx_data.size = all_vtx_size;
+        sg_update_buffer(_simgui.vbuf, &vtx_data);
+    }
+    if (all_idx_size > 0) {
+        sg_range idx_data = _simgui.indices;
+        idx_data.size = all_idx_size;
+        sg_update_buffer(_simgui.ibuf, &idx_data);
+    }
 
-        // Iterate through the command list, rendering each one
-        const struct nk_draw_command* cmd = NULL;
-        int idx_offset = 0;
-        sg_bindings bindings = {
-            .vertex_buffers[0] = _snuklear.vbuf,
-            .index_buffer = _snuklear.ibuf,
-            .index_buffer_offset = idx_offset
-        };
-        nk_draw_foreach(cmd, &_snuklear.ctx, &cmds) {
-            if (cmd->elem_count > 0) {
-                _snk_bind_image_sampler(&bindings, cmd->texture);
-                sg_apply_bindings(&bindings);
-                sg_apply_scissor_rectf(cmd->clip_rect.x * dpi_scale,
-                                       cmd->clip_rect.y * dpi_scale,
-                                       cmd->clip_rect.w * dpi_scale,
-                                       cmd->clip_rect.h * dpi_scale,
-                                       true);
-                sg_draw(0, (int)cmd->elem_count, 1);
-                bindings.index_buffer_offset += (int)cmd->elem_count * (int)sizeof(uint16_t);
+    // render the ImGui command list
+    const float dpi_scale = _simgui.cur_dpi_scale;
+    const int fb_width = (int) (io->DisplaySize.x * dpi_scale);
+    const int fb_height = (int) (io->DisplaySize.y * dpi_scale);
+    sg_apply_viewport(0, 0, fb_width, fb_height, true);
+    sg_apply_scissor_rect(0, 0, fb_width, fb_height, true);
+
+    sg_apply_pipeline(_simgui.def_pip);
+    _simgui_vs_params_t vs_params;
+    _simgui_clear((void*)&vs_params, sizeof(vs_params));
+    vs_params.disp_size.x = io->DisplaySize.x;
+    vs_params.disp_size.y = io->DisplaySize.y;
+    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(vs_params));
+    sg_bindings bind;
+    _simgui_clear((void*)&bind, sizeof(bind));
+    bind.vertex_buffers[0] = _simgui.vbuf;
+    bind.index_buffer = _simgui.ibuf;
+    ImTextureID tex_id = io->Fonts->TexID;
+    _simgui_bind_image_sampler(&bind, tex_id);
+    int vb_offset = 0;
+    int ib_offset = 0;
+    for (int cl_index = 0; cl_index < cmd_list_count; cl_index++) {
+        ImDrawList* cl = _simgui_imdrawlist_at(draw_data, cl_index);
+
+        bind.vertex_buffer_offsets[0] = vb_offset;
+        bind.index_buffer_offset = ib_offset;
+        sg_apply_bindings(&bind);
+
+        #if defined(__cplusplus)
+            const int num_cmds = cl->CmdBuffer.size();
+        #else
+            const int num_cmds = cl->CmdBuffer.Size;
+        #endif
+        uint32_t vtx_offset = 0;
+        for (int cmd_index = 0; cmd_index < num_cmds; cmd_index++) {
+            ImDrawCmd* pcmd = &cl->CmdBuffer.Data[cmd_index];
+            if (pcmd->UserCallback) {
+                pcmd->UserCallback(cl, pcmd);
+                // need to re-apply all state after calling a user callback
+                sg_apply_viewport(0, 0, fb_width, fb_height, true);
+                sg_apply_pipeline(_simgui.def_pip);
+                sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(vs_params));
+                sg_apply_bindings(&bind);
+            } else {
+                if ((tex_id != pcmd->TextureId) || (vtx_offset != pcmd->VtxOffset)) {
+                    tex_id = pcmd->TextureId;
+                    vtx_offset = pcmd->VtxOffset;
+                    const _simgui_image_t* img = _simgui_bind_image_sampler(&bind, tex_id);
+                    if (img) {
+                        sg_apply_pipeline(img->pip);
+                    } else {
+                        sg_apply_pipeline(_simgui.def_pip);
+                    }
+                    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(vs_params));
+                    bind.vertex_buffer_offsets[0] = vb_offset + (int)(pcmd->VtxOffset * sizeof(ImDrawVert));
+                    sg_apply_bindings(&bind);
+                }
+                const int scissor_x = (int) (pcmd->ClipRect.x * dpi_scale);
+                const int scissor_y = (int) (pcmd->ClipRect.y * dpi_scale);
+                const int scissor_w = (int) ((pcmd->ClipRect.z - pcmd->ClipRect.x) * dpi_scale);
+                const int scissor_h = (int) ((pcmd->ClipRect.w - pcmd->ClipRect.y) * dpi_scale);
+                sg_apply_scissor_rect(scissor_x, scissor_y, scissor_w, scissor_h, true);
+                sg_draw((int)pcmd->IdxOffset, (int)pcmd->ElemCount, 1);
             }
         }
-        sg_apply_scissor_rect(0, 0, fb_width, fb_height, true);
+        #if defined(__cplusplus)
+            const size_t vtx_size = (size_t)cl->VtxBuffer.size() * sizeof(ImDrawVert);
+            const size_t idx_size = (size_t)cl->IdxBuffer.size() * sizeof(ImDrawIdx);
+        #else
+            const size_t vtx_size = (size_t)cl->VtxBuffer.Size * sizeof(ImDrawVert);
+            const size_t idx_size = (size_t)cl->IdxBuffer.Size * sizeof(ImDrawIdx);
+        #endif
+        vb_offset += (int)vtx_size;
+        ib_offset += (int)idx_size;
     }
-
-    // Cleanup
-    nk_buffer_free(&cmds);
-    nk_buffer_free(&verts);
-    nk_buffer_free(&idx);
+    sg_apply_viewport(0, 0, fb_width, fb_height, true);
+    sg_apply_scissor_rect(0, 0, fb_width, fb_height, true);
+    sg_pop_debug_group();
 }
 
-#if !defined(SOKOL_NUKLEAR_NO_SOKOL_APP)
-_SOKOL_PRIVATE bool _snk_is_ctrl(uint32_t modifiers) {
-    if (_snuklear.is_osx) {
+SOKOL_API_IMPL void simgui_add_focus_event(bool focus) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        io->AddFocusEvent(focus);
+    #else
+        ImGuiIO* io = igGetIO();
+        ImGuiIO_AddFocusEvent(io, focus);
+    #endif
+}
+
+SOKOL_API_IMPL void simgui_add_mouse_pos_event(float x, float y) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        io->AddMouseSourceEvent(ImGuiMouseSource_Mouse);
+        #endif
+        io->AddMousePosEvent(x, y);
+    #else
+        ImGuiIO* io = igGetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        ImGuiIO_AddMouseSourceEvent(io, ImGuiMouseSource_Mouse);
+        #endif
+        ImGuiIO_AddMousePosEvent(io, x, y);
+    #endif
+}
+
+SOKOL_API_IMPL void simgui_add_touch_pos_event(float x, float y) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        io->AddMouseSourceEvent(ImGuiMouseSource_TouchScreen);
+        #endif
+        io->AddMousePosEvent(x, y);
+    #else
+        ImGuiIO* io = igGetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        ImGuiIO_AddMouseSourceEvent(io, ImGuiMouseSource_TouchScreen);
+        #endif
+        ImGuiIO_AddMousePosEvent(io, x, y);
+    #endif
+}
+
+SOKOL_API_IMPL void simgui_add_mouse_button_event(int mouse_button, bool down) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        io->AddMouseSourceEvent(ImGuiMouseSource_Mouse);
+        #endif
+        io->AddMouseButtonEvent(mouse_button, down);
+    #else
+        ImGuiIO* io = igGetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        ImGuiIO_AddMouseSourceEvent(io, ImGuiMouseSource_Mouse);
+        #endif
+        ImGuiIO_AddMouseButtonEvent(io, mouse_button, down);
+    #endif
+}
+
+SOKOL_API_IMPL void simgui_add_touch_button_event(int mouse_button, bool down) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        io->AddMouseSourceEvent(ImGuiMouseSource_TouchScreen);
+        #endif
+        io->AddMouseButtonEvent(mouse_button, down);
+    #else
+        ImGuiIO* io = igGetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        ImGuiIO_AddMouseSourceEvent(io, ImGuiMouseSource_TouchScreen);
+        #endif
+        ImGuiIO_AddMouseButtonEvent(io, mouse_button, down);
+    #endif
+}
+
+SOKOL_API_IMPL void simgui_add_mouse_wheel_event(float wheel_x, float wheel_y) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        io->AddMouseSourceEvent(ImGuiMouseSource_Mouse);
+        #endif
+        io->AddMouseWheelEvent(wheel_x, wheel_y);
+    #else
+        ImGuiIO* io = igGetIO();
+        #if (IMGUI_VERSION_NUM >= 18950)
+        ImGuiIO_AddMouseSourceEvent(io, ImGuiMouseSource_Mouse);
+        #endif
+        ImGuiIO_AddMouseWheelEvent(io, wheel_x, wheel_y);
+    #endif
+}
+
+SOKOL_API_IMPL void simgui_add_key_event(int (*map_keycode)(int), int keycode, bool down) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    const ImGuiKey imgui_key = (ImGuiKey)map_keycode(keycode);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        io->AddKeyEvent(imgui_key, down);
+        io->SetKeyEventNativeData(imgui_key, keycode, 0, -1);
+    #else
+        ImGuiIO* io = igGetIO();
+        ImGuiIO_AddKeyEvent(io, imgui_key, down);
+        ImGuiIO_SetKeyEventNativeData(io, imgui_key, keycode, 0, -1);
+    #endif
+}
+
+SOKOL_API_IMPL void simgui_add_input_character(uint32_t c) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        io->AddInputCharacter(c);
+    #else
+        ImGuiIO* io = igGetIO();
+        ImGuiIO_AddInputCharacter(io, c);
+    #endif
+}
+
+SOKOL_API_IMPL void simgui_add_input_characters_utf8(const char* c) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+        io->AddInputCharactersUTF8(c);
+    #else
+        ImGuiIO* io = igGetIO();
+        ImGuiIO_AddInputCharactersUTF8(io, c);
+    #endif
+}
+
+#if !defined(SOKOL_IMGUI_NO_SOKOL_APP)
+_SOKOL_PRIVATE bool _simgui_is_ctrl(uint32_t modifiers) {
+    if (_simgui.is_osx) {
         return 0 != (modifiers & SAPP_MODIFIER_SUPER);
     } else {
         return 0 != (modifiers & SAPP_MODIFIER_CTRL);
     }
 }
 
-_SOKOL_PRIVATE void _snk_append_char(uint32_t char_code) {
-    size_t idx = strlen(_snuklear.char_buffer);
-    if (idx<NK_INPUT_MAX) {
-        _snuklear.char_buffer[idx] = (char)char_code;
+_SOKOL_PRIVATE ImGuiKey _simgui_map_keycode(sapp_keycode key) {
+    switch (key) {
+        case SAPP_KEYCODE_SPACE:        return ImGuiKey_Space;
+        case SAPP_KEYCODE_APOSTROPHE:   return ImGuiKey_Apostrophe;
+        case SAPP_KEYCODE_COMMA:        return ImGuiKey_Comma;
+        case SAPP_KEYCODE_MINUS:        return ImGuiKey_Minus;
+        case SAPP_KEYCODE_PERIOD:       return ImGuiKey_Apostrophe;
+        case SAPP_KEYCODE_SLASH:        return ImGuiKey_Slash;
+        case SAPP_KEYCODE_0:            return ImGuiKey_0;
+        case SAPP_KEYCODE_1:            return ImGuiKey_1;
+        case SAPP_KEYCODE_2:            return ImGuiKey_2;
+        case SAPP_KEYCODE_3:            return ImGuiKey_3;
+        case SAPP_KEYCODE_4:            return ImGuiKey_4;
+        case SAPP_KEYCODE_5:            return ImGuiKey_5;
+        case SAPP_KEYCODE_6:            return ImGuiKey_6;
+        case SAPP_KEYCODE_7:            return ImGuiKey_7;
+        case SAPP_KEYCODE_8:            return ImGuiKey_8;
+        case SAPP_KEYCODE_9:            return ImGuiKey_9;
+        case SAPP_KEYCODE_SEMICOLON:    return ImGuiKey_Semicolon;
+        case SAPP_KEYCODE_EQUAL:        return ImGuiKey_Equal;
+        case SAPP_KEYCODE_A:            return ImGuiKey_A;
+        case SAPP_KEYCODE_B:            return ImGuiKey_B;
+        case SAPP_KEYCODE_C:            return ImGuiKey_C;
+        case SAPP_KEYCODE_D:            return ImGuiKey_D;
+        case SAPP_KEYCODE_E:            return ImGuiKey_E;
+        case SAPP_KEYCODE_F:            return ImGuiKey_F;
+        case SAPP_KEYCODE_G:            return ImGuiKey_G;
+        case SAPP_KEYCODE_H:            return ImGuiKey_H;
+        case SAPP_KEYCODE_I:            return ImGuiKey_I;
+        case SAPP_KEYCODE_J:            return ImGuiKey_J;
+        case SAPP_KEYCODE_K:            return ImGuiKey_K;
+        case SAPP_KEYCODE_L:            return ImGuiKey_L;
+        case SAPP_KEYCODE_M:            return ImGuiKey_M;
+        case SAPP_KEYCODE_N:            return ImGuiKey_N;
+        case SAPP_KEYCODE_O:            return ImGuiKey_O;
+        case SAPP_KEYCODE_P:            return ImGuiKey_P;
+        case SAPP_KEYCODE_Q:            return ImGuiKey_Q;
+        case SAPP_KEYCODE_R:            return ImGuiKey_R;
+        case SAPP_KEYCODE_S:            return ImGuiKey_S;
+        case SAPP_KEYCODE_T:            return ImGuiKey_T;
+        case SAPP_KEYCODE_U:            return ImGuiKey_U;
+        case SAPP_KEYCODE_V:            return ImGuiKey_V;
+        case SAPP_KEYCODE_W:            return ImGuiKey_W;
+        case SAPP_KEYCODE_X:            return ImGuiKey_X;
+        case SAPP_KEYCODE_Y:            return ImGuiKey_Y;
+        case SAPP_KEYCODE_Z:            return ImGuiKey_Z;
+        case SAPP_KEYCODE_LEFT_BRACKET: return ImGuiKey_LeftBracket;
+        case SAPP_KEYCODE_BACKSLASH:    return ImGuiKey_Backslash;
+        case SAPP_KEYCODE_RIGHT_BRACKET:return ImGuiKey_RightBracket;
+        case SAPP_KEYCODE_GRAVE_ACCENT: return ImGuiKey_GraveAccent;
+        case SAPP_KEYCODE_ESCAPE:       return ImGuiKey_Escape;
+        case SAPP_KEYCODE_ENTER:        return ImGuiKey_Enter;
+        case SAPP_KEYCODE_TAB:          return ImGuiKey_Tab;
+        case SAPP_KEYCODE_BACKSPACE:    return ImGuiKey_Backspace;
+        case SAPP_KEYCODE_INSERT:       return ImGuiKey_Insert;
+        case SAPP_KEYCODE_DELETE:       return ImGuiKey_Delete;
+        case SAPP_KEYCODE_RIGHT:        return ImGuiKey_RightArrow;
+        case SAPP_KEYCODE_LEFT:         return ImGuiKey_LeftArrow;
+        case SAPP_KEYCODE_DOWN:         return ImGuiKey_DownArrow;
+        case SAPP_KEYCODE_UP:           return ImGuiKey_UpArrow;
+        case SAPP_KEYCODE_PAGE_UP:      return ImGuiKey_PageUp;
+        case SAPP_KEYCODE_PAGE_DOWN:    return ImGuiKey_PageDown;
+        case SAPP_KEYCODE_HOME:         return ImGuiKey_Home;
+        case SAPP_KEYCODE_END:          return ImGuiKey_End;
+        case SAPP_KEYCODE_CAPS_LOCK:    return ImGuiKey_CapsLock;
+        case SAPP_KEYCODE_SCROLL_LOCK:  return ImGuiKey_ScrollLock;
+        case SAPP_KEYCODE_NUM_LOCK:     return ImGuiKey_NumLock;
+        case SAPP_KEYCODE_PRINT_SCREEN: return ImGuiKey_PrintScreen;
+        case SAPP_KEYCODE_PAUSE:        return ImGuiKey_Pause;
+        case SAPP_KEYCODE_F1:           return ImGuiKey_F1;
+        case SAPP_KEYCODE_F2:           return ImGuiKey_F2;
+        case SAPP_KEYCODE_F3:           return ImGuiKey_F3;
+        case SAPP_KEYCODE_F4:           return ImGuiKey_F4;
+        case SAPP_KEYCODE_F5:           return ImGuiKey_F5;
+        case SAPP_KEYCODE_F6:           return ImGuiKey_F6;
+        case SAPP_KEYCODE_F7:           return ImGuiKey_F7;
+        case SAPP_KEYCODE_F8:           return ImGuiKey_F8;
+        case SAPP_KEYCODE_F9:           return ImGuiKey_F9;
+        case SAPP_KEYCODE_F10:          return ImGuiKey_F10;
+        case SAPP_KEYCODE_F11:          return ImGuiKey_F11;
+        case SAPP_KEYCODE_F12:          return ImGuiKey_F12;
+        case SAPP_KEYCODE_KP_0:         return ImGuiKey_Keypad0;
+        case SAPP_KEYCODE_KP_1:         return ImGuiKey_Keypad1;
+        case SAPP_KEYCODE_KP_2:         return ImGuiKey_Keypad2;
+        case SAPP_KEYCODE_KP_3:         return ImGuiKey_Keypad3;
+        case SAPP_KEYCODE_KP_4:         return ImGuiKey_Keypad4;
+        case SAPP_KEYCODE_KP_5:         return ImGuiKey_Keypad5;
+        case SAPP_KEYCODE_KP_6:         return ImGuiKey_Keypad6;
+        case SAPP_KEYCODE_KP_7:         return ImGuiKey_Keypad7;
+        case SAPP_KEYCODE_KP_8:         return ImGuiKey_Keypad8;
+        case SAPP_KEYCODE_KP_9:         return ImGuiKey_Keypad9;
+        case SAPP_KEYCODE_KP_DECIMAL:   return ImGuiKey_KeypadDecimal;
+        case SAPP_KEYCODE_KP_DIVIDE:    return ImGuiKey_KeypadDivide;
+        case SAPP_KEYCODE_KP_MULTIPLY:  return ImGuiKey_KeypadMultiply;
+        case SAPP_KEYCODE_KP_SUBTRACT:  return ImGuiKey_KeypadSubtract;
+        case SAPP_KEYCODE_KP_ADD:       return ImGuiKey_KeypadAdd;
+        case SAPP_KEYCODE_KP_ENTER:     return ImGuiKey_KeypadEnter;
+        case SAPP_KEYCODE_KP_EQUAL:     return ImGuiKey_KeypadEqual;
+        case SAPP_KEYCODE_LEFT_SHIFT:   return ImGuiKey_LeftShift;
+        case SAPP_KEYCODE_LEFT_CONTROL: return ImGuiKey_LeftCtrl;
+        case SAPP_KEYCODE_LEFT_ALT:     return ImGuiKey_LeftAlt;
+        case SAPP_KEYCODE_LEFT_SUPER:   return ImGuiKey_LeftSuper;
+        case SAPP_KEYCODE_RIGHT_SHIFT:  return ImGuiKey_RightShift;
+        case SAPP_KEYCODE_RIGHT_CONTROL:return ImGuiKey_RightCtrl;
+        case SAPP_KEYCODE_RIGHT_ALT:    return ImGuiKey_RightAlt;
+        case SAPP_KEYCODE_RIGHT_SUPER:  return ImGuiKey_RightSuper;
+        case SAPP_KEYCODE_MENU:         return ImGuiKey_Menu;
+        default:                        return ImGuiKey_None;
     }
 }
 
-_SOKOL_PRIVATE enum nk_keys _snk_event_to_nuklearkey(const sapp_event* ev) {
-    switch (ev->key_code) {
-        case SAPP_KEYCODE_C:
-            if (_snk_is_ctrl(ev->modifiers)) {
-                return NK_KEY_COPY;
-            } else {
-                return NK_KEY_NONE;
-            }
-            break;
-        case SAPP_KEYCODE_X:
-            if (_snk_is_ctrl(ev->modifiers)) {
-                return NK_KEY_CUT;
-            } else {
-                return NK_KEY_NONE;
-            }
-            break;
-        case SAPP_KEYCODE_A:
-            if (_snk_is_ctrl(ev->modifiers)) {
-                return NK_KEY_TEXT_SELECT_ALL;
-            } else {
-                return NK_KEY_NONE;
-            }
-            break;
-        case SAPP_KEYCODE_Z:
-            if (_snk_is_ctrl(ev->modifiers)) {
-                if (ev->modifiers & SAPP_MODIFIER_SHIFT) {
-                    return NK_KEY_TEXT_REDO;
-                } else {
-                    return NK_KEY_TEXT_UNDO;
-                }
-            } else {
-                return NK_KEY_NONE;
-            }
-            break;
-        case SAPP_KEYCODE_DELETE: return NK_KEY_DEL;
-        case SAPP_KEYCODE_ENTER: return NK_KEY_ENTER;
-        case SAPP_KEYCODE_TAB: return NK_KEY_TAB;
-        case SAPP_KEYCODE_BACKSPACE: return NK_KEY_BACKSPACE;
-        case SAPP_KEYCODE_UP: return NK_KEY_UP;
-        case SAPP_KEYCODE_DOWN: return NK_KEY_DOWN;
-        case SAPP_KEYCODE_LEFT: return NK_KEY_LEFT;
-        case SAPP_KEYCODE_RIGHT: return NK_KEY_RIGHT;
-        case SAPP_KEYCODE_LEFT_SHIFT: return NK_KEY_SHIFT;
-        case SAPP_KEYCODE_RIGHT_SHIFT: return NK_KEY_SHIFT;
-        case SAPP_KEYCODE_LEFT_CONTROL: return NK_KEY_CTRL;
-        case SAPP_KEYCODE_RIGHT_CONTROL: return NK_KEY_CTRL;
-        default:
-            return NK_KEY_NONE;
-    }
+_SOKOL_PRIVATE void _simgui_add_sapp_key_event(ImGuiIO* io, sapp_keycode sapp_key, bool down) {
+    const ImGuiKey imgui_key = _simgui_map_keycode(sapp_key);
+    #if defined(__cplusplus)
+        io->AddKeyEvent(imgui_key, down);
+        io->SetKeyEventNativeData(imgui_key, (int)sapp_key, 0, -1);
+    #else
+        ImGuiIO_AddKeyEvent(io, imgui_key, down);
+        ImGuiIO_SetKeyEventNativeData(io, imgui_key, (int)sapp_key, 0, -1);
+    #endif
 }
 
-SOKOL_API_IMPL void snk_handle_event(const sapp_event* ev) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    const float dpi_scale = _snuklear.desc.dpi_scale;
+_SOKOL_PRIVATE void _simgui_add_imgui_key_event(ImGuiIO* io, ImGuiKey imgui_key, bool down) {
+    #if defined(__cplusplus)
+        io->AddKeyEvent(imgui_key, down);
+    #else
+        ImGuiIO_AddKeyEvent(io, imgui_key, down);
+    #endif
+}
+
+_SOKOL_PRIVATE void _simgui_update_modifiers(ImGuiIO* io, uint32_t mods) {
+    _simgui_add_imgui_key_event(io, ImGuiMod_Ctrl, (mods & SAPP_MODIFIER_CTRL) != 0);
+    _simgui_add_imgui_key_event(io, ImGuiMod_Shift, (mods & SAPP_MODIFIER_SHIFT) != 0);
+    _simgui_add_imgui_key_event(io, ImGuiMod_Alt, (mods & SAPP_MODIFIER_ALT) != 0);
+    _simgui_add_imgui_key_event(io, ImGuiMod_Super, (mods & SAPP_MODIFIER_SUPER) != 0);
+}
+
+// returns Ctrl or Super, depending on platform
+_SOKOL_PRIVATE ImGuiKey _simgui_copypaste_modifier(void) {
+    return _simgui.is_osx ? ImGuiMod_Super : ImGuiMod_Ctrl;
+}
+
+SOKOL_API_IMPL int simgui_map_keycode(sapp_keycode keycode) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    return (int)_simgui_map_keycode(keycode);
+}
+
+SOKOL_API_IMPL bool simgui_handle_event(const sapp_event* ev) {
+    SOKOL_ASSERT(_SIMGUI_INIT_COOKIE == _simgui.init_cookie);
+    const float dpi_scale = _simgui.cur_dpi_scale;
+    #if defined(__cplusplus)
+        ImGuiIO* io = &ImGui::GetIO();
+    #else
+        ImGuiIO* io = igGetIO();
+    #endif
     switch (ev->type) {
+        case SAPP_EVENTTYPE_FOCUSED:
+            simgui_add_focus_event(true);
+            break;
+        case SAPP_EVENTTYPE_UNFOCUSED:
+            simgui_add_focus_event(false);
+            break;
         case SAPP_EVENTTYPE_MOUSE_DOWN:
-            _snuklear.mouse_pos[0] = (int) (ev->mouse_x / dpi_scale);
-            _snuklear.mouse_pos[1] = (int) (ev->mouse_y / dpi_scale);
-            switch (ev->mouse_button) {
-                case SAPP_MOUSEBUTTON_LEFT:
-                    _snuklear.btn_down[NK_BUTTON_LEFT] = true;
-                    break;
-                case SAPP_MOUSEBUTTON_RIGHT:
-                    _snuklear.btn_down[NK_BUTTON_RIGHT] = true;
-                    break;
-                case SAPP_MOUSEBUTTON_MIDDLE:
-                    _snuklear.btn_down[NK_BUTTON_MIDDLE] = true;
-                    break;
-                default:
-                    break;
-            }
+            simgui_add_mouse_pos_event(ev->mouse_x / dpi_scale, ev->mouse_y / dpi_scale);
+            simgui_add_mouse_button_event((int)ev->mouse_button, true);
+            _simgui_update_modifiers(io, ev->modifiers);
             break;
         case SAPP_EVENTTYPE_MOUSE_UP:
-            _snuklear.mouse_pos[0] = (int) (ev->mouse_x / dpi_scale);
-            _snuklear.mouse_pos[1] = (int) (ev->mouse_y / dpi_scale);
-            switch (ev->mouse_button) {
-                case SAPP_MOUSEBUTTON_LEFT:
-                    _snuklear.btn_up[NK_BUTTON_LEFT] = true;
-                    break;
-                case SAPP_MOUSEBUTTON_RIGHT:
-                    _snuklear.btn_up[NK_BUTTON_RIGHT] = true;
-                    break;
-                case SAPP_MOUSEBUTTON_MIDDLE:
-                    _snuklear.btn_up[NK_BUTTON_MIDDLE] = true;
-                    break;
-                default:
-                    break;
-            }
+            simgui_add_mouse_pos_event(ev->mouse_x / dpi_scale, ev->mouse_y / dpi_scale);
+            simgui_add_mouse_button_event((int)ev->mouse_button, false);
+            _simgui_update_modifiers(io, ev->modifiers);
             break;
         case SAPP_EVENTTYPE_MOUSE_MOVE:
-            _snuklear.mouse_pos[0] = (int) (ev->mouse_x / dpi_scale);
-            _snuklear.mouse_pos[1] = (int) (ev->mouse_y / dpi_scale);
-            _snuklear.mouse_did_move = true;
+            simgui_add_mouse_pos_event(ev->mouse_x / dpi_scale, ev->mouse_y / dpi_scale);
             break;
         case SAPP_EVENTTYPE_MOUSE_ENTER:
         case SAPP_EVENTTYPE_MOUSE_LEAVE:
-            for (int i = 0; i < NK_BUTTON_MAX; i++) {
-                _snuklear.btn_down[i] = false;
-                _snuklear.btn_up[i] = false;
+            // FIXME: since the sokol_app.h emscripten backend doesn't support
+            // mouse capture, mouse buttons must be released when the mouse leaves the
+            // browser window, so that they don't "stick" when released outside the window.
+            // A cleaner solution would be a new sokol_app.h function to query
+            // "platform behaviour flags".
+            #if defined(__EMSCRIPTEN__)
+            for (int i = 0; i < SAPP_MAX_MOUSEBUTTONS; i++) {
+                simgui_add_mouse_button_event(i, false);
             }
+            #endif
             break;
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
-            _snuklear.mouse_scroll[0] = ev->scroll_x;
-            _snuklear.mouse_scroll[1] = ev->scroll_y;
-            _snuklear.mouse_did_scroll = true;
+            simgui_add_mouse_wheel_event(ev->scroll_x, ev->scroll_y);
             break;
         case SAPP_EVENTTYPE_TOUCHES_BEGAN:
-            _snuklear.btn_down[NK_BUTTON_LEFT] = true;
-            _snuklear.mouse_pos[0] = (int) (ev->touches[0].pos_x / dpi_scale);
-            _snuklear.mouse_pos[1] = (int) (ev->touches[0].pos_y / dpi_scale);
-            _snuklear.mouse_did_move = true;
+            simgui_add_touch_pos_event(ev->touches[0].pos_x / dpi_scale, ev->touches[0].pos_y / dpi_scale);
+            simgui_add_touch_button_event(0, true);
             break;
         case SAPP_EVENTTYPE_TOUCHES_MOVED:
-            _snuklear.mouse_pos[0] = (int) (ev->touches[0].pos_x / dpi_scale);
-            _snuklear.mouse_pos[1] = (int) (ev->touches[0].pos_y / dpi_scale);
-            _snuklear.mouse_did_move = true;
+            simgui_add_touch_pos_event(ev->touches[0].pos_x / dpi_scale, ev->touches[0].pos_y / dpi_scale);
             break;
         case SAPP_EVENTTYPE_TOUCHES_ENDED:
-            _snuklear.btn_up[NK_BUTTON_LEFT] = true;
-            _snuklear.mouse_pos[0] = (int) (ev->touches[0].pos_x / dpi_scale);
-            _snuklear.mouse_pos[1] = (int) (ev->touches[0].pos_y / dpi_scale);
-            _snuklear.mouse_did_move = true;
+            simgui_add_touch_pos_event(ev->touches[0].pos_x / dpi_scale, ev->touches[0].pos_y / dpi_scale);
+            simgui_add_touch_button_event(0, false);
             break;
         case SAPP_EVENTTYPE_TOUCHES_CANCELLED:
-            _snuklear.btn_up[NK_BUTTON_LEFT] = false;
-            _snuklear.btn_down[NK_BUTTON_LEFT] = false;
+            simgui_add_touch_button_event(0, false);
             break;
         case SAPP_EVENTTYPE_KEY_DOWN:
-            /* intercept Ctrl-V, this is handled via EVENTTYPE_CLIPBOARD_PASTED */
-            if (_snk_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_V)) {
-                break;
+            _simgui_update_modifiers(io, ev->modifiers);
+            // intercept Ctrl-V, this is handled via EVENTTYPE_CLIPBOARD_PASTED
+            if (!_simgui.desc.disable_paste_override) {
+                if (_simgui_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_V)) {
+                    break;
+                }
             }
-            /* on web platform, don't forward Ctrl-X, Ctrl-V to the browser */
-            if (_snk_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_X)) {
+            // on web platform, don't forward Ctrl-X, Ctrl-V to the browser
+            if (_simgui_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_X)) {
                 sapp_consume_event();
             }
-            if (_snk_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_C)) {
+            if (_simgui_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_C)) {
                 sapp_consume_event();
             }
-            _snuklear.keys_down[_snk_event_to_nuklearkey(ev)] = true;
+            // it's ok to add ImGuiKey_None key events
+            _simgui_add_sapp_key_event(io, ev->key_code, true);
             break;
         case SAPP_EVENTTYPE_KEY_UP:
-            /* intercept Ctrl-V, this is handled via EVENTTYPE_CLIPBOARD_PASTED */
-            if (_snk_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_V)) {
+            _simgui_update_modifiers(io, ev->modifiers);
+            // intercept Ctrl-V, this is handled via EVENTTYPE_CLIPBOARD_PASTED
+            if (_simgui_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_V)) {
                 break;
             }
-            /* on web platform, don't forward Ctrl-X, Ctrl-V to the browser */
-            if (_snk_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_X)) {
+            // on web platform, don't forward Ctrl-X, Ctrl-V to the browser
+            if (_simgui_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_X)) {
                 sapp_consume_event();
             }
-            if (_snk_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_C)) {
+            if (_simgui_is_ctrl(ev->modifiers) && (ev->key_code == SAPP_KEYCODE_C)) {
                 sapp_consume_event();
             }
-            _snuklear.keys_up[_snk_event_to_nuklearkey(ev)] = true;
+            // it's ok to add ImGuiKey_None key events
+            _simgui_add_sapp_key_event(io, ev->key_code, false);
             break;
         case SAPP_EVENTTYPE_CHAR:
+            /* on some platforms, special keys may be reported as
+               characters, which may confuse some ImGui widgets,
+               drop those, also don't forward characters if some
+               modifiers have been pressed
+            */
+            _simgui_update_modifiers(io, ev->modifiers);
             if ((ev->char_code >= 32) &&
                 (ev->char_code != 127) &&
                 (0 == (ev->modifiers & (SAPP_MODIFIER_ALT|SAPP_MODIFIER_CTRL|SAPP_MODIFIER_SUPER))))
             {
-                _snk_append_char(ev->char_code);
+                simgui_add_input_character(ev->char_code);
             }
             break;
         case SAPP_EVENTTYPE_CLIPBOARD_PASTED:
-            _snuklear.keys_down[NK_KEY_PASTE] = _snuklear.keys_up[NK_KEY_PASTE] = true;
+            // simulate a Ctrl-V key down/up
+            if (!_simgui.desc.disable_paste_override) {
+                _simgui_add_imgui_key_event(io, _simgui_copypaste_modifier(), true);
+                _simgui_add_imgui_key_event(io, ImGuiKey_V, true);
+                _simgui_add_imgui_key_event(io, ImGuiKey_V, false);
+                _simgui_add_imgui_key_event(io, _simgui_copypaste_modifier(), false);
+            }
             break;
         default:
             break;
     }
+    return io->WantCaptureKeyboard || io->WantCaptureMouse;
 }
-
-SOKOL_API_IMPL nk_flags snk_edit_string(struct nk_context *ctx, nk_flags flags, char *memory, int *len, int max, nk_plugin_filter filter) {
-    SOKOL_ASSERT(_SNK_INIT_COOKIE == _snuklear.init_cookie);
-    nk_flags event = nk_edit_string(ctx, flags, memory, len, max, filter);
-    if ((event & NK_EDIT_ACTIVATED) && !sapp_keyboard_shown()) {
-        sapp_show_keyboard(true);
-    }
-    if ((event & NK_EDIT_DEACTIVATED) && sapp_keyboard_shown()) {
-        sapp_show_keyboard(false);
-    }
-    return event;
-}
-#endif // SOKOL_NUKLEAR_NO_SOKOL_APP
+#endif // SOKOL_IMGUI_NO_SOKOL_APP
 
 #endif // SOKOL_IMPL

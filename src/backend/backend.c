@@ -26,17 +26,22 @@ bool Backend_Init() {
   sg_image_desc imgDesc = {
     .width        = 320,
     .height       = 240,
-    .min_filter   = SG_FILTER_NEAREST,
-    .mag_filter   = SG_FILTER_NEAREST,
     // .min_filter   = SG_FILTER_LINEAR,
     // .mag_filter   = SG_FILTER_LINEAR,
     .usage        = SG_USAGE_DYNAMIC,
     .pixel_format = SG_PIXELFORMAT_RGBA8
   };
-  this.screenTextures[0] = sg_make_image(&imgDesc);
-  imgDesc.min_filter   = SG_FILTER_LINEAR,
-  imgDesc.mag_filter   = SG_FILTER_LINEAR,
-  this.screenTextures[1] = sg_make_image(&imgDesc);
+  this.screenTexture = sg_make_image(&imgDesc);
+
+  this.samplers[SCREENFILTER_NEAREST] = sg_make_sampler(&(sg_sampler_desc){
+    .min_filter = SG_FILTER_NEAREST,
+    .mag_filter = SG_FILTER_NEAREST,
+  });
+
+  this.samplers[SCREENFILTER_LINEAR] = sg_make_sampler(&(sg_sampler_desc){
+    .min_filter = SG_FILTER_LINEAR,
+    .mag_filter = SG_FILTER_LINEAR,
+  });
 
   // Create and load pipeline
   this.pipeline = sgl_make_pipeline(&(sg_pipeline_desc){
@@ -88,7 +93,7 @@ void Backend_Update() {
   sg_image_data imageData;
   imageData.subimage[0][0].ptr  = PPU_GetPixelBuffer();
   imageData.subimage[0][0].size = 320*240*sizeof(uint32_t);
-  sg_update_image(this.screenTextures[this.currScreenFilter], &imageData);
+  sg_update_image(this.screenTexture, &imageData);
 
   const int32_t width  = sapp_width();
   const int32_t height = sapp_height();
@@ -110,7 +115,7 @@ void Backend_Update() {
   sgl_defaults();
   sgl_load_pipeline(this.pipeline);
   sgl_enable_texture();
-  sgl_texture(this.screenTextures[this.currScreenFilter]);
+  sgl_texture(this.screenTexture, this.samplers[this.currScreenFilter]);
   sgl_matrix_mode_projection();
   sgl_push_matrix();
   sgl_ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);

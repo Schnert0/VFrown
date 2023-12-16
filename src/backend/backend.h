@@ -12,12 +12,14 @@
 enum {
   SCREENFILTER_NEAREST,
   SCREENFILTER_LINEAR,
+  NUM_SCREENFILTERS,
 };
 
 typedef struct {
   sgl_context  context;
   sgl_pipeline pipeline;
-  sg_image     screenTextures[2];
+  sg_image     screenTexture;
+  sg_sampler   samplers[NUM_SCREENFILTERS];
 
   float* sampleBuffer;
   int32_t* sampleCount;
