@@ -369,24 +369,31 @@ void Backend_AudioCallback(float* buffer, int numFrames, int numChannels) {
     return;
   }
 
-  for (int i = 0; i < numFrames; i++) {
-      // Left channel
-      if (!this.samplesEmpty) {
-        buffer[i<<1] = this.sampleBuffer[this.sampleTail++];
-        this.sampleTail %= MAX_SAMPLES;
-        this.samplesEmpty = (this.sampleHead == this.sampleTail);
-      } else {
-        this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
-      }
+  if (VSmile_GetPaused()) {
+    for (int i = 0; i < numFrames; i++) {
+      buffer[(i<<1)  ] = 0.0f;
+      buffer[(i<<1)+1] = 0.0f;
+    }
+  } else {
+    for (int i = 0; i < numFrames; i++) {
+        // Left channel
+        if (!this.samplesEmpty) {
+          buffer[i<<1] = this.sampleBuffer[this.sampleTail++];
+          this.sampleTail %= MAX_SAMPLES;
+          this.samplesEmpty = (this.sampleHead == this.sampleTail);
+        } else {
+          this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
+        }
 
-      // Right channel
-      if (!this.samplesEmpty) {
-        buffer[(i<<1) + 1] = this.sampleBuffer[this.sampleTail++];
-        this.sampleTail %= MAX_SAMPLES;
-        this.samplesEmpty = (this.sampleHead == this.sampleTail);
-      } else {
-        this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
-      }
+        // Right channel
+        if (!this.samplesEmpty) {
+          buffer[(i<<1) + 1] = this.sampleBuffer[this.sampleTail++];
+          this.sampleTail %= MAX_SAMPLES;
+          this.samplesEmpty = (this.sampleHead == this.sampleTail);
+        } else {
+          this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
+        }
+    }
   }
 }
 
