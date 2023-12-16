@@ -6,6 +6,8 @@ static Backend_t this;
 bool Backend_Init() {
   memset(&this, 0, sizeof(Backend_t));
 
+  this.samplesEmpty = true;
+
   // Sokol GFX
   sg_desc sgDesc = {
     .context = sapp_sgcontext()
@@ -58,14 +60,13 @@ bool Backend_Init() {
 
   // Sokol audio
   saudio_setup(&(saudio_desc){
-    .sample_rate  = 48000,
-    .num_channels = 2
+    .sample_rate  = 32768,
+    .num_channels = 2,
+    .stream_cb = Backend_AudioCallback,
   });
   saudio_sample_rate();
   saudio_channels();
 
-  this.sampleBuffer = NULL;
-  this.sampleCount = NULL;
   this.saveFile = NULL;
 
   this.emulationSpeed = 1.0f;
@@ -350,15 +351,43 @@ void Backend_ShowLeds(bool shouldShowLeds) {
 }
 
 
-void Backend_InitAudioDevice(float* buffer, int32_t* count) {
-  this.sampleBuffer = buffer;
-  this.sampleCount = count;
+void Backend_PushAudioSample(float leftSample, float rightSample) {
+  if (!this.samplesEmpty && this.sampleHead == this.sampleTail) { // Buffer is full
+    return;
+  }
+
+    this.sampleBuffer[this.sampleHead++] = leftSample;
+    this.sampleHead &= (MAX_SAMPLES-1);
+    this.sampleBuffer[this.sampleHead++] = rightSample;
+    this.sampleHead &= (MAX_SAMPLES-1);
+    this.samplesEmpty = false;
 }
 
-void Backend_PushBuffer() {
-  saudio_push(this.sampleBuffer, (*this.sampleCount)/2);
-  memset(this.sampleBuffer, 0, (*this.sampleCount)*sizeof(float));
-  (*this.sampleCount) = 0;
+void Backend_AudioCallback(float* buffer, int numFrames, int numChannels) {
+  if (numChannels != 2) {
+    VSmile_Error("Audio callback expects 2 channels, %d recieved", numChannels);
+    return;
+  }
+
+  for (int i = 0; i < numFrames; i++) {
+      // Left channel
+      if (!this.samplesEmpty) {
+        buffer[i<<1] = this.sampleBuffer[this.sampleTail++];
+        this.sampleTail &= (MAX_SAMPLES-1);
+        this.samplesEmpty = (this.sampleHead == this.sampleTail);
+      } else {
+        this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
+      }
+
+      // Right channel
+      if (!this.samplesEmpty) {
+        buffer[(i<<1) + 1] = this.sampleBuffer[this.sampleTail++];
+        this.sampleTail &= (MAX_SAMPLES-1);
+        this.samplesEmpty = (this.sampleHead == this.sampleTail);
+      } else {
+        this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
+      }
+  }
 }
 
 static const uint16_t channelColors[] = {

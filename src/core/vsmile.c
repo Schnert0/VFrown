@@ -48,7 +48,6 @@ void VSmile_RunFrame() {
     if (PPU_RenderLine())
       break;
   }
-  Backend_PushBuffer();
   this.step = false;
 }
 

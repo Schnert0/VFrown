@@ -2,9 +2,7 @@
 
 static SPU_t this;
 
-static const float rateCutoff = 48000.0f;
-static float sampleBuffer[MAX_SAMPLES];
-static int32_t sampleCount;
+static const float rateCutoff = 32768.0f;
 
 // static const char* registerNames0[] = {
 //   "wave address",          // 0x0
@@ -140,8 +138,6 @@ static const int32_t envelopeFrameCounts[] = {
 bool SPU_Init() {
   memset(&this, 0, sizeof(SPU_t));
 
-  Backend_InitAudioDevice((float*)&sampleBuffer, &sampleCount);
-
   this.sampleTimer = SPU_SAMPLE_TIMER;
 
   for (int32_t i = 0; i < 16; i++) {
@@ -240,9 +236,6 @@ void SPU_Tick(int32_t cycles) {
 
   }
 
-  if (sampleCount >= MAX_SAMPLES)
-    return;
-
   leftSample  *= (1.0f/32.0f);
   rightSample *= (1.0f/32.0f);
 
@@ -275,8 +268,7 @@ void SPU_Tick(int32_t cycles) {
   if (rightSample < -1.0f) rightSample = -1.0f;
 
   // Push to audio buffer
-  sampleBuffer[sampleCount++] = leftSample;
-  sampleBuffer[sampleCount++] = rightSample;
+  Backend_PushAudioSample(leftSample, rightSample);
 }
 
 

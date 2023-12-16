@@ -15,15 +15,20 @@ enum {
   NUM_SCREENFILTERS,
 };
 
+// Max SPU samples per frame (must be a power of two!)
+#define MAX_SAMPLES 32768
+
 typedef struct {
   sgl_context  context;
   sgl_pipeline pipeline;
   sg_image     screenTexture;
   sg_sampler   samplers[NUM_SCREENFILTERS];
 
-  float* sampleBuffer;
-  int32_t* sampleCount;
   FILE* saveFile;
+
+  float sampleBuffer[MAX_SAMPLES];
+  int32_t sampleHead, sampleTail;
+  bool samplesEmpty;
 
   float emulationSpeed;
   int32_t currSampleX[16];
@@ -42,6 +47,8 @@ typedef struct {
 bool Backend_Init();
 void Backend_Cleanup();
 void Backend_Update();
+
+void Backend_AudioCallback(float* buffer, int numFrames, int numChannels);
 
 // Save states
 void Backend_GetFileName(const char* path);
@@ -71,6 +78,7 @@ void Backend_RenderLeds();
 void Backend_ShowLeds(bool shouldShowLeds);
 
 // Audio
+void Backend_PushAudioSample(float leftSample, float rightSample);
 void Backend_InitAudioDevice(float* buffer, int32_t* count);
 void Backend_PushBuffer();
 void Backend_PushOscilloscopeSample(uint8_t ch, int16_t sample);
