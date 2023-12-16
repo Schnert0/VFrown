@@ -8,7 +8,7 @@
   #ifdef SOKOL_LOG
     #undef SOKOL_LOG
   #endif // SOKOL_LOG
-  #define SOKOL_LOG(msg) VSmile_Error(msg);
+  #define SOKOL_LOG(msg) VSmile_Log(msg);
 #endif // DNDEBUG
 
 // #include "lib/ini.h"
