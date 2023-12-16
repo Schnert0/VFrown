@@ -60,7 +60,7 @@ bool Backend_Init() {
 
   // Sokol audio
   saudio_setup(&(saudio_desc){
-    .sample_rate  = 32768,
+    .sample_rate  = MAX_SAMPLES,
     .num_channels = 2,
     .stream_cb = Backend_AudioCallback,
   });
@@ -357,9 +357,9 @@ void Backend_PushAudioSample(float leftSample, float rightSample) {
   }
 
     this.sampleBuffer[this.sampleHead++] = leftSample;
-    this.sampleHead &= (MAX_SAMPLES-1);
+    this.sampleHead %= MAX_SAMPLES;
     this.sampleBuffer[this.sampleHead++] = rightSample;
-    this.sampleHead &= (MAX_SAMPLES-1);
+    this.sampleHead %= MAX_SAMPLES;
     this.samplesEmpty = false;
 }
 
@@ -373,7 +373,7 @@ void Backend_AudioCallback(float* buffer, int numFrames, int numChannels) {
       // Left channel
       if (!this.samplesEmpty) {
         buffer[i<<1] = this.sampleBuffer[this.sampleTail++];
-        this.sampleTail &= (MAX_SAMPLES-1);
+        this.sampleTail %= MAX_SAMPLES;
         this.samplesEmpty = (this.sampleHead == this.sampleTail);
       } else {
         this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
@@ -382,7 +382,7 @@ void Backend_AudioCallback(float* buffer, int numFrames, int numChannels) {
       // Right channel
       if (!this.samplesEmpty) {
         buffer[(i<<1) + 1] = this.sampleBuffer[this.sampleTail++];
-        this.sampleTail &= (MAX_SAMPLES-1);
+        this.sampleTail %= MAX_SAMPLES;
         this.samplesEmpty = (this.sampleHead == this.sampleTail);
       } else {
         this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];

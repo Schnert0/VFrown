@@ -15,8 +15,8 @@ enum {
   NUM_SCREENFILTERS,
 };
 
-// Max SPU samples per frame (must be a power of two!)
-#define MAX_SAMPLES 32768
+// Max SPU samples per frame
+#define MAX_SAMPLES 48000
 
 typedef struct {
   sgl_context  context;

@@ -2,7 +2,7 @@
 
 static SPU_t this;
 
-static const float rateCutoff = 32768.0f;
+static const float rateCutoff = 48000.0f;
 
 // static const char* registerNames0[] = {
 //   "wave address",          // 0x0
