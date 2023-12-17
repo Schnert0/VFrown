@@ -352,15 +352,24 @@ void Backend_ShowLeds(bool shouldShowLeds) {
 
 
 void Backend_PushAudioSample(float leftSample, float rightSample) {
-  if (!this.samplesEmpty && this.sampleHead == this.sampleTail) { // Buffer is full
+  if (!this.samplesEmpty && this.sampleHead == this.sampleTail) // Buffer is full
     return;
-  }
 
-    this.sampleBuffer[this.sampleHead++] = leftSample;
-    this.sampleHead %= MAX_SAMPLES;
-    this.sampleBuffer[this.sampleHead++] = rightSample;
-    this.sampleHead %= MAX_SAMPLES;
-    this.samplesEmpty = false;
+  this.sampleBuffer[this.sampleHead++] = leftSample;
+  this.sampleHead %= MAX_SAMPLES;
+
+  this.sampleBuffer[this.sampleHead++] = rightSample;
+  this.sampleHead %= MAX_SAMPLES;
+
+  // this.prevL = (this.prevL+leftSample) * 0.5f;
+  // this.sampleBuffer[this.sampleHead++] = this.prevL;
+  // this.sampleHead %= MAX_SAMPLES;
+
+  // this.prevR = (this.prevR+rightSample)*0.5f;
+  // this.sampleBuffer[this.sampleHead++] = this.prevR;
+  // this.sampleHead %= MAX_SAMPLES;
+
+  this.samplesEmpty = false;
 }
 
 void Backend_AudioCallback(float* buffer, int numFrames, int numChannels) {
@@ -376,23 +385,27 @@ void Backend_AudioCallback(float* buffer, int numFrames, int numChannels) {
     }
   } else {
     for (int i = 0; i < numFrames; i++) {
-        // Left channel
-        if (!this.samplesEmpty) {
-          buffer[i<<1] = this.sampleBuffer[this.sampleTail++];
-          this.sampleTail %= MAX_SAMPLES;
-          this.samplesEmpty = (this.sampleHead == this.sampleTail);
-        } else {
-          this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
-        }
+      // Left channel
+      if (!this.samplesEmpty) {
+        this.filterL = (this.filterL + this.sampleBuffer[this.sampleTail++]) * 0.5f;
+        this.sampleTail %= MAX_SAMPLES;
+        this.samplesEmpty = (this.sampleHead == this.sampleTail);
+      } else {
+        this.filterL *= 0.5f;
+      }
 
-        // Right channel
-        if (!this.samplesEmpty) {
-          buffer[(i<<1) + 1] = this.sampleBuffer[this.sampleTail++];
-          this.sampleTail %= MAX_SAMPLES;
-          this.samplesEmpty = (this.sampleHead == this.sampleTail);
-        } else {
-          this.sampleBuffer[i<<1] = this.sampleBuffer[this.sampleTail];
-        }
+      // Right channel
+      if (!this.samplesEmpty) {
+        this.filterR = (this.filterR + this.sampleBuffer[this.sampleTail++]) * 0.5f;
+        this.sampleTail %= MAX_SAMPLES;
+        this.samplesEmpty = (this.sampleHead == this.sampleTail);
+      } else {
+        this.filterR *= 0.5f;
+      }
+
+      buffer[(i<<1)  ] = this.filterL;
+      buffer[(i<<1)+1] = this.filterR;
+
     }
   }
 }

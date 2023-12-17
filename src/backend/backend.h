@@ -27,6 +27,7 @@ typedef struct {
   FILE* saveFile;
 
   float sampleBuffer[MAX_SAMPLES];
+  float filterL, filterR;
   int32_t sampleHead, sampleTail;
   bool samplesEmpty;
 
