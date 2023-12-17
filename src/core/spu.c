@@ -408,8 +408,8 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
       channel->rampDownFrame--;
 
     if (channel->rampDownFrame == 0) {
-      uint8_t prevEnvData = channel->envData.envelopeData;
-      uint8_t currEnvData = prevEnvData - channel->envLoopCtrl.rampDownOffset;
+      uint16_t prevEnvData = channel->envData.envelopeData;
+      uint16_t currEnvData = prevEnvData - channel->envLoopCtrl.rampDownOffset;
       if (currEnvData > prevEnvData)
         currEnvData = 0;
 

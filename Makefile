@@ -1,5 +1,4 @@
-CFLAGS=-std=c99
-CFLAGS+=-Wall -ferror-limit=1
+CFLAGS=-Wall -std=c99
 DEFS=
 # CC=gcc
 INCS=-I.

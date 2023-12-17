@@ -403,8 +403,8 @@ void Backend_AudioCallback(float* buffer, int numFrames, int numChannels) {
         this.filterR *= 0.5f;
       }
 
-      buffer[(i<<1)  ] = this.filterL;
-      buffer[(i<<1)+1] = this.filterR;
+      buffer[(i<<1)  ] = this.filterL * 2.0f;
+      buffer[(i<<1)+1] = this.filterR * 2.0f;
 
     }
   }
