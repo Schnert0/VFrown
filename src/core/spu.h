@@ -5,7 +5,7 @@
 #include "vsmile.h"
 #include "timer.h"
 
-#define SPU_SAMPLE_TIMER (SYSCLOCK / 48000)
+#define SPU_SAMPLE_TIMER (SYSCLOCK / OUTPUT_FREQUENCY)
 
 struct Timer_t;
 

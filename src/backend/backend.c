@@ -60,7 +60,7 @@ bool Backend_Init() {
 
   // Sokol audio
   saudio_setup(&(saudio_desc){
-    .sample_rate  = MAX_SAMPLES,
+    .sample_rate  = OUTPUT_FREQUENCY,
     .num_channels = 2,
     .stream_cb = Backend_AudioCallback,
   });

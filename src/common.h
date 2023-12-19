@@ -27,6 +27,9 @@
 #define SYSCLOCK 27000000
 // #define SYSCLOCK (CYCLES_PER_LINE * LINES_PER_FIELD * 60)
 
+// Sound output frequency
+#define OUTPUT_FREQUENCY 48000
+
 #define IN_RANGE(addr, start, size) \
   (addr >= start && addr < start+size)
 

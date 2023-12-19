@@ -9,14 +9,13 @@
 
 #include "ui.h"
 
+#define MAX_SAMPLES 65536
+
 enum {
   SCREENFILTER_NEAREST,
   SCREENFILTER_LINEAR,
   NUM_SCREENFILTERS,
 };
-
-// Max SPU samples per frame
-#define MAX_SAMPLES 48000
 
 typedef struct {
   sgl_context  context;
