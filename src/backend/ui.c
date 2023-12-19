@@ -176,6 +176,8 @@ void UI_RunFrame() {
   const float width  = sapp_widthf();
   const float height = sapp_heightf();
 
+  char* romPath = NULL;
+
   // Toolbar //
   if (nk_begin(ctx, "Toolbar", nk_rect(0, 0, width, 32), NK_WINDOW_NO_SCROLLBAR)) {
     nk_menubar_begin(ctx);
@@ -185,6 +187,7 @@ void UI_RunFrame() {
     nk_layout_row_push(ctx, 48);
     if (nk_menu_begin_label(ctx, " Menu", NK_TEXT_LEFT, nk_vec2(165, 200))) {
       nk_layout_row_dynamic(ctx, 25, 1);
+      if (nk_menu_item_label(ctx, "    Open ROM...",       NK_TEXT_LEFT)) romPath = (char*)Backend_OpenFileDialog("Please Select a ROM...");
       if (nk_menu_item_label(ctx, "    Toggle Fullscreen", NK_TEXT_LEFT)) sapp_toggle_fullscreen();
       if (nk_menu_item_label(ctx, "(U) Toggle UI",         NK_TEXT_LEFT)) showUI = false;
       if (nk_menu_item_label(ctx, "    About",             NK_TEXT_LEFT)) showAbout = true;
@@ -219,6 +222,13 @@ void UI_RunFrame() {
     nk_menubar_end(ctx);
 
     nk_end(ctx);
+
+    if (romPath != NULL) {
+      VSmile_LoadROM(romPath);
+      VSmile_Reset();
+      VSmile_SetPause(false);
+    }
+
   }
 
 

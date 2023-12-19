@@ -178,6 +178,14 @@ void Backend_GetFileName(const char* path) {
 }
 
 
+const char* Backend_OpenFileDialog(const char* title) {
+  return tinyfd_openFileDialog(
+  	title,
+  	NULL, 0, 0, NULL, 0
+  );
+}
+
+
 void Backend_WriteSave(void* data, uint32_t size) {
   if (!this.saveFile)
     return;

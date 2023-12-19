@@ -11,6 +11,8 @@
   #define SOKOL_LOG(msg) VSmile_Log(msg);
 #endif // DNDEBUG
 
+#include "lib/tinyfiledialogs.h"
+
 // #include "lib/ini.h"
 #ifndef NK_NUKLEAR_H_
 #define NK_INCLUDE_FIXED_TYPES
