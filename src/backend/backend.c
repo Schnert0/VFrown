@@ -1,5 +1,6 @@
 #include "backend.h"
 #include "font.xpm" // TODO: remove
+#include "lib/tinyfiledialogs.h"
 
 static Backend_t this;
 
@@ -183,6 +184,11 @@ const char* Backend_OpenFileDialog(const char* title) {
   	title,
   	NULL, 0, 0, NULL, 0
   );
+}
+
+
+void Backend_OpenMessageBox(const char* title, const char* message) {
+  tinyfd_messageBox(title, message, NULL, NULL, 0);
 }
 
 

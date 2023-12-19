@@ -53,6 +53,7 @@ void Backend_AudioCallback(float* buffer, int numFrames, int numChannels);
 // Save states
 void Backend_GetFileName(const char* path);
 const char* Backend_OpenFileDialog(const char* title);
+void Backend_OpenMessageBox(const char* title, const char* message);
 void Backend_WriteSave(void* data, uint32_t size);
 void Backend_ReadSave(void* data, uint32_t size);
 void Backend_SaveState();
