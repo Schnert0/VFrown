@@ -12,7 +12,17 @@
 #endif // DNDEBUG
 
 // #include "lib/ini.h"
+#ifndef NK_NUKLEAR_H_
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_BOOL
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_INCLUDE_STANDARD_VARARGS
 #include "lib/nuklear.h"
+#endif // NK_NUKLEAR_H_
 
 #ifndef SOKOL_APP_INCLUDED
 #include "lib/sokol_app.h"
