@@ -97,8 +97,8 @@ void Backend_Update() {
   imageData.subimage[0][0].size = 320*240*sizeof(uint32_t);
   sg_update_image(this.screenTexture, &imageData);
 
-  const int32_t width  = sapp_width();
-  const int32_t height = sapp_height();
+  const float width  = sapp_widthf();
+  const float height = sapp_heightf();
 
   // Begin render pass
   const sg_pass_action defaultPass = {
@@ -124,10 +124,28 @@ void Backend_Update() {
   sgl_begin_quads();
 
   sgl_c1i(0xffffffff);
-  sgl_v2f_t2f(0,      0,      0.0f, 0.0f);
-  sgl_v2f_t2f(width,  0,      1.0f, 0.0f);
-  sgl_v2f_t2f(width,  height, 1.0f, 1.0f);
-  sgl_v2f_t2f(0,      height, 0.0f, 1.0f);
+
+  if (this.keepAspectRatio) {
+    float outWidth = width, outHeight = height;
+    if (height > (width*0.75f)) {
+      outWidth = width;
+      outHeight = width*0.75f;
+    }
+    else if ((width*0.75f) > height) {
+      outWidth = height;
+      outHeight = height*(0.75f);
+    }
+
+    sgl_v2f_t2f(width*0.5f-(outWidth*0.5f),  height*0.5f-(outHeight*0.5f), 0.0f, 0.0f);
+    sgl_v2f_t2f(width*0.5f+(outWidth*0.5f),  height*0.5f-(outHeight*0.5f), 1.0f, 0.0f);
+    sgl_v2f_t2f(width*0.5f+(outWidth*0.5f),  height*0.5f+(outHeight*0.5f), 1.0f, 1.0f);
+    sgl_v2f_t2f(width*0.5f-(outWidth*0.5f),  height*0.5f+(outHeight*0.5f), 0.0f, 1.0f);
+  } else {
+    sgl_v2f_t2f(0,      0,      0.0f, 0.0f);
+    sgl_v2f_t2f(width,  0,      1.0f, 0.0f);
+    sgl_v2f_t2f(width,  height, 1.0f, 1.0f);
+    sgl_v2f_t2f(0,      height, 0.0f, 1.0f);
+  }
 
   sgl_end();
   sgl_draw();
@@ -655,4 +673,9 @@ void Backend_DrawChar(int32_t x, int32_t y, char c) {
 
       Backend_SetPixel(x+i, y+j);
     }
+}
+
+
+void Backend_SetKeepAspectRatio(bool keepAR) {
+  this.keepAspectRatio = keepAR;
 }

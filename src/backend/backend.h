@@ -41,6 +41,7 @@ typedef struct {
   bool showLeds;
   bool oscilloscopeEnabled;
   bool controlsEnabled;
+  bool keepAspectRatio;
   uint8_t currScreenFilter;
 } Backend_t;
 
@@ -95,5 +96,7 @@ void Backend_SetPixel(int32_t x, int32_t y);
 void Backend_DrawCircle(int32_t x, int32_t y, uint32_t radius);
 void Backend_DrawText(int32_t x, int32_t y, const char* text, ...);
 void Backend_DrawChar(int32_t x, int32_t y, char c);
+
+void Backend_SetKeepAspectRatio(bool keepAR);
 
 #endif // BACKEND_H

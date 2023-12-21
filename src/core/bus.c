@@ -74,8 +74,7 @@ void Bus_LoadROM(const char* filePath) {
     free(this.romBuffer);
 
   this.romBuffer = malloc(BUS_SIZE*sizeof(uint16_t));
-  int r = fread(this.romBuffer, this.romSize, sizeof(uint8_t), file);
-  if (!r) VSmile_Error("error reading romfile");
+  fread(this.romBuffer, this.romSize, sizeof(uint8_t), file);
 
   fclose(file);
 }
@@ -97,10 +96,7 @@ void Bus_LoadSysRom(const char* filePath) {
     free(this.sysRomBuffer);
 
   this.sysRomBuffer = malloc(this.sysRomSize);
-  int32_t success = fread(this.sysRomBuffer, this.sysRomSize, sizeof(uint16_t), file);
-
-  if (!success)
-    VSmile_Error("error reading system rom");
+  fread(this.sysRomBuffer, this.sysRomSize, sizeof(uint16_t), file);
 
   fclose(file);
 }
@@ -127,11 +123,8 @@ uint16_t Bus_Load(uint32_t addr) {
     return 0x0000;
   }
   else if (addr < IO_START+IO_SIZE+DMA_SIZE) {
-    // if (addr != 0x3d21 && addr != 0x3d22)
-    //   VSmile_Log("Read from IO address %04x at %06x", addr, CPU_GetCSPC());
-
     switch (addr) {
-    case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):
+    case GPIO_START ... (GPIO_START+GPIO_SIZE-1):
       return GPIO_Read(addr);
 
     case TIMERS_START ... (TIMERS_START+TIMERS_SIZE-1):
@@ -188,11 +181,8 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     return;
   }
   else if (addr < IO_START+IO_SIZE+DMA_SIZE) {
-    // if (addr != 0x3d21 && addr != 0x3d22 && addr != 0x3d24)
-    //   VSmile_Log("Write to IO address %04x with %04x at %06x", addr, data, CPU_GetCSPC());
-
     switch (addr) {
-    case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):
+    case GPIO_START ... (GPIO_START+GPIO_SIZE-1):
       GPIO_Write(addr, data);
       return;
 

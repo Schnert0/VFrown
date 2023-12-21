@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "backend.h"
 
 // static UI_t this;
 
@@ -51,6 +52,7 @@ static nk_bool showIntro = true;
 static nk_bool showLeds  = false;
 static uint8_t currRegion = 0;
 static uint8_t filterMode = SCREENFILTER_NEAREST;
+static nk_bool keepAR;
 static nk_bool showLayer[3] = { true, true, true };
 static nk_bool showSpriteOutlines = false;
 static nk_bool showSpriteFlip = false;
@@ -234,7 +236,7 @@ void UI_RunFrame() {
 
   // Emulation Settings //
   if (showEmuSettings) {
-    if (nk_begin(ctx, "Emulation Settings", nk_rect(width/2 - 480/2, height/2 - 270/2, 480, 270), NK_WINDOW_CLOSABLE | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE)) {
+    if (nk_begin(ctx, "Emulation Settings", nk_rect(width*0.5f - 600*0.5f, height*0.5f - 400*0.5f, 600, 400), NK_WINDOW_CLOSABLE | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE)) {
 
       if (nk_tree_push(ctx, NK_TREE_NODE, "System", NK_MINIMIZED)) {
         nk_layout_row_dynamic(ctx, 25, 3);
@@ -271,6 +273,9 @@ void UI_RunFrame() {
         nk_label(ctx, "Screen Filter", NK_TEXT_LEFT);
         filterMode = nk_combo(ctx, filterText, NK_LEN(filterText), filterMode, 25, nk_vec2(200,200));
         Backend_SetScreenFilter(filterMode);
+
+        nk_checkbox_label(ctx, "Maintain Aspect Ratio", &keepAR);
+        Backend_SetKeepAspectRatio(keepAR);
 
         // Layer Visibility
         nk_label(ctx, "Layer Visibility", NK_TEXT_LEFT);
