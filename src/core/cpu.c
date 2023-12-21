@@ -1043,9 +1043,9 @@ void CPU_TestIRQ() {
   else if (ppuMaskedIRQ) { // PPU
     CPU_DoIRQ(0);
   }
-  // else if (spuChannelIRQ) { // SPU
-  //   CPU_DoIRQ(1);
-  // }
+  else if (spuChannelIRQ) { // SPU
+    CPU_DoIRQ(1);
+  }
   else if (maskedIRQ & 0x0c00) { // Timer A, Timer B
     CPU_DoIRQ(2);
   }
