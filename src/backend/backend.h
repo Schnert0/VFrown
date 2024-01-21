@@ -87,6 +87,7 @@ void Backend_PushBuffer();
 void Backend_PushOscilloscopeSample(uint8_t ch, int16_t sample);
 bool Backend_GetOscilloscopeEnabled();
 void Backend_SetOscilloscopeEnabled(bool shouldShow);
+
 void Backend_SetScreenFilter(uint8_t filterMode);
 
 // Drawing

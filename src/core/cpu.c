@@ -95,6 +95,7 @@ void CPU_Reset() {
 }
 
 // bool memDebug[BUS_SIZE];
+bool print = false;
 
 // Run one instruction and return the number of cycles it took to complete
 int32_t CPU_Tick() {
@@ -118,10 +119,19 @@ int32_t CPU_Tick() {
     this.cycles = 1;
   }
 
-  // uint32_t cspc = CPU_GetCSPC();
-  // if (!memDebug[cspc]) {
+  uint32_t cspc = CPU_GetCSPC();
+
+  // if (cspc == 0xa239)
+  //   print = true;
+
+  // if (print)
   //   printf("%06x\n", cspc);
+
+  // if (!memDebug[cspc]) {
+  //   // printf("%06x\n", cspc);
   //   memDebug[cspc] = true;
+  //   if (print)
+  //     printf("%06x\n", cspc);
   // }
 
   return this.cycles;

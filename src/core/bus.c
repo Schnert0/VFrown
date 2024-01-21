@@ -1,4 +1,6 @@
 #include "bus.h"
+#include "cpu.h"
+#include "hw/misc.h"
 #include "vsmile.h"
 
 static Bus_t this;
@@ -123,6 +125,7 @@ uint16_t Bus_Load(uint32_t addr) {
     return 0x0000;
   }
   else if (addr < IO_START+IO_SIZE+DMA_SIZE) {
+    // printf("read IO %04x (%04x)\n", addr, GPIO_Read(addr));
     switch (addr) {
     case GPIO_START ... (GPIO_START+GPIO_SIZE-1):
       return GPIO_Read(addr);
@@ -147,7 +150,7 @@ uint16_t Bus_Load(uint32_t addr) {
     return 0x0000;
   }
 
-  if ((this.romDecodeMode & 2) && this.sysRomBuffer && (addr >= SYSROM_START)) {
+  if ((this.romDecodeMode & 2) && this.sysRomBuffer && (addr >= SYSROM_START) && (addr < BUS_SIZE)) {
     return this.sysRomBuffer[addr - SYSROM_START];
   }
 
@@ -181,6 +184,7 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     return;
   }
   else if (addr < IO_START+IO_SIZE+DMA_SIZE) {
+    // printf("write IO %04x (%04x)\n", addr, data);
     switch (addr) {
     case GPIO_START ... (GPIO_START+GPIO_SIZE-1):
       GPIO_Write(addr, data);
@@ -203,7 +207,7 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       return;
     }
 
-    VSmile_Warning("write to unknown IO port %04x with %04x at %06x\n", addr, data, CPU_GetCSPC());
+    VSmile_Warning("write to unknown IO port %04x with %04x at %06x", addr, data, CPU_GetCSPC());
     return;
   }
   else if (addr < 0x4000) {
@@ -211,7 +215,8 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     return;
   }
 
-  VSmile_Error("attempt to write to out of bounds location %06x with %04x", addr, data);
+  // VSmile_Warning("attempt to write to out of bounds location %06x with %04x", addr, data);
+  // printf("%06x\n", CPU_GetCSPC());
 }
 
 

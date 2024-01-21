@@ -1,4 +1,5 @@
 #include "spu.h"
+#include "cpu.h"
 
 static SPU_t this;
 
@@ -270,6 +271,8 @@ void SPU_Tick(int32_t cycles) {
 
   // Push to audio buffer
   Backend_PushAudioSample(leftSample, rightSample);
+  this.leftOut = (int16_t)(leftSample*32767.0f);
+  this.rightOut = (int16_t)(rightSample*32767.0f);
 }
 
 
@@ -764,11 +767,11 @@ void SPU_StopChannel(uint8_t ch) {
 void SPU_WriteBeatCount(uint16_t data) {
   // printf("write to beat count with %04x\n", data);
 
-  this.regs4[0x5] &= ~(data & 0x4000);
-  this.regs4[0x5] &= 0x4000;
-  this.regs4[0x5] |= (data & ~0x4000);
+  this.beatCount.raw &= ~(data & 0x4000);
+  this.beatCount.raw &= 0x4000;
+  this.beatCount.raw |= (data & ~0x4000);
 
-  if ((this.regs4[0x5] & 0xc000) == 0xc000) {
+  if ((this.beatCount.raw & 0xc000) == 0xc000) {
     this.irq = true;
     CPU_ActivatePendingIRQs();
   } else {
