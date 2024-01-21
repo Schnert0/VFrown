@@ -1,23 +1,77 @@
-#define SOKOL_IMPL
 #include "backend.h"
+#include "font.xpm" // TODO: remove
+#include "lib/tinyfiledialogs.h"
 
 static Backend_t this;
 
 bool Backend_Init() {
   memset(&this, 0, sizeof(Backend_t));
 
+  this.samplesEmpty = true;
+
+  // Sokol GFX
+  sg_desc sgDesc = {
+    .context = sapp_sgcontext()
+  };
+  sg_setup(&sgDesc);
+  if (!sg_isvalid()) {
+    VSmile_Error("Failed to create Sokol GFX context\n");
+    return false;
+  }
+
+  // Sokol GL
+  sgl_setup(&(sgl_desc_t){
+    .face_winding = SG_FACEWINDING_CW,
+    .max_vertices = 4*64*1024,
+  });
+
+  // Create GPU-side textures for rendering emulated frame
+  sg_image_desc imgDesc = {
+    .width        = 320,
+    .height       = 240,
+    // .min_filter   = SG_FILTER_LINEAR,
+    // .mag_filter   = SG_FILTER_LINEAR,
+    .usage        = SG_USAGE_DYNAMIC,
+    .pixel_format = SG_PIXELFORMAT_RGBA8
+  };
+  this.screenTexture = sg_make_image(&imgDesc);
+
+  this.samplers[SCREENFILTER_NEAREST] = sg_make_sampler(&(sg_sampler_desc){
+    .min_filter = SG_FILTER_NEAREST,
+    .mag_filter = SG_FILTER_NEAREST,
+  });
+
+  this.samplers[SCREENFILTER_LINEAR] = sg_make_sampler(&(sg_sampler_desc){
+    .min_filter = SG_FILTER_LINEAR,
+    .mag_filter = SG_FILTER_LINEAR,
+  });
+
+  // Create and load pipeline
+  this.pipeline = sgl_make_pipeline(&(sg_pipeline_desc){
+    .colors[0].blend = {
+      .enabled          = true,
+      .src_factor_rgb   = SG_BLENDFACTOR_SRC_ALPHA,
+      .dst_factor_rgb   = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+      .op_rgb           = SG_BLENDOP_ADD,
+      .src_factor_alpha = SG_BLENDFACTOR_ONE,
+      .dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+      .op_alpha         = SG_BLENDOP_ADD
+    }
+  });
+
+  // Sokol audio
   saudio_setup(&(saudio_desc){
-    .sample_rate  = 48000,
-    .num_channels = 2
+    .sample_rate  = OUTPUT_FREQUENCY,
+    .num_channels = 2,
+    .stream_cb = Backend_AudioCallback,
   });
   saudio_sample_rate();
   saudio_channels();
 
-  this.sampleBuffer = NULL;
-  this.sampleCount = NULL;
   this.saveFile = NULL;
 
   this.emulationSpeed = 1.0f;
+  this.controlsEnabled = true;
   this.currButtons = 0;
   this.prevButtons = 0;
 
@@ -31,15 +85,84 @@ void Backend_Cleanup() {
 
 
 void Backend_Update() {
-  if (Backend_GetChangedButtons())
-    Controller_UpdateButtons(0, this.currButtons);
-  this.prevButtons = this.currButtons;
-
-  if (this.oscilloscopeEnabled) {
-    memset(this.pixelBuffer, 0, 320*240*sizeof(uint32_t));
-    for (int32_t i = 0; i < 16; i++)
-      this.currSampleX[i] = 0;
+  if (this.controlsEnabled) {
+    if (Backend_GetChangedButtons())
+      Controller_UpdateButtons(0, this.currButtons);
+    this.prevButtons = this.currButtons;
   }
+
+  // Update screen texture
+  sg_image_data imageData;
+  imageData.subimage[0][0].ptr  = PPU_GetPixelBuffer();
+  imageData.subimage[0][0].size = 320*240*sizeof(uint32_t);
+  sg_update_image(this.screenTexture, &imageData);
+
+  const float width  = sapp_widthf();
+  const float height = sapp_heightf();
+
+  // Begin render pass
+  const sg_pass_action defaultPass = {
+    .colors[0] = {
+      .load_action  = SG_LOADACTION_CLEAR,
+      .store_action = SG_STOREACTION_DONTCARE,
+      .clear_value  = { 0.0f, 0.0f, 0.0f, 1.0f }
+    }
+  };
+
+  UI_StartFrame();
+
+  sg_begin_default_pass(&defaultPass, width, height);
+
+  // Draw emulated frame to window
+  sgl_defaults();
+  sgl_load_pipeline(this.pipeline);
+  sgl_enable_texture();
+  sgl_texture(this.screenTexture, this.samplers[this.currScreenFilter]);
+  sgl_matrix_mode_projection();
+  sgl_push_matrix();
+  sgl_ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
+  sgl_begin_quads();
+
+  sgl_c1i(0xffffffff);
+
+  if (this.keepAspectRatio) {
+    float outWidth = width, outHeight = height;
+    if (height > (width*0.75f)) {
+      outWidth = width;
+      outHeight = width*0.75f;
+    }
+    else if ((width*0.75f) > height) {
+      outWidth = height;
+      outHeight = height*(0.75f);
+    }
+
+    sgl_v2f_t2f(width*0.5f-(outWidth*0.5f),  height*0.5f-(outHeight*0.5f), 0.0f, 0.0f);
+    sgl_v2f_t2f(width*0.5f+(outWidth*0.5f),  height*0.5f-(outHeight*0.5f), 1.0f, 0.0f);
+    sgl_v2f_t2f(width*0.5f+(outWidth*0.5f),  height*0.5f+(outHeight*0.5f), 1.0f, 1.0f);
+    sgl_v2f_t2f(width*0.5f-(outWidth*0.5f),  height*0.5f+(outHeight*0.5f), 0.0f, 1.0f);
+  } else {
+    sgl_v2f_t2f(0,      0,      0.0f, 0.0f);
+    sgl_v2f_t2f(width,  0,      1.0f, 0.0f);
+    sgl_v2f_t2f(width,  height, 1.0f, 1.0f);
+    sgl_v2f_t2f(0,      height, 0.0f, 1.0f);
+  }
+
+  sgl_end();
+  sgl_draw();
+  sgl_pop_matrix();
+
+  UI_RunFrame();
+
+  // End rendering
+  UI_Render();
+  sg_end_pass();
+  sg_commit();
+
+  // if (this.oscilloscopeEnabled) {
+  //   memset(this.pixelBuffer, 0, 320*240*sizeof(uint32_t));
+  //   for (int32_t i = 0; i < 16; i++)
+  //     this.currSampleX[i] = 0;
+  // }
 }
 
 
@@ -74,7 +197,23 @@ void Backend_GetFileName(const char* path) {
 }
 
 
+const char* Backend_OpenFileDialog(const char* title) {
+  return tinyfd_openFileDialog(
+  	title,
+  	NULL, 0, 0, NULL, 0
+  );
+}
+
+
+void Backend_OpenMessageBox(const char* title, const char* message) {
+  tinyfd_messageBox(title, message, NULL, NULL, 0);
+}
+
+
 void Backend_WriteSave(void* data, uint32_t size) {
+  if (!this.saveFile)
+    return;
+
   uint8_t* bytes = (uint8_t*)data;
   for (int32_t i = 0; i < size; i++)
     fputc(bytes[i], this.saveFile);
@@ -87,6 +226,9 @@ void Backend_WriteSave(void* data, uint32_t size) {
 
 
 void Backend_ReadSave(void* data, uint32_t size) {
+  if (!this.saveFile)
+    return;
+
   uint8_t* bytes = (uint8_t*)data;
   for (int32_t i = 0; i < size; i++)
     bytes[i] = fgetc(this.saveFile);
@@ -170,8 +312,13 @@ void Backend_SetSpeed(float newSpeed) {
 }
 
 
+void Backend_SetControlsEnable(bool isEnabled) {
+  this.controlsEnabled = isEnabled;
+}
+
+
 uint32_t* Backend_GetScanlinePointer(uint16_t scanlineNum) {
-  return (uint32_t*)&this.pixelBuffer[scanlineNum][0];
+  return PPU_GetPixelBuffer() + (320*scanlineNum);
 }
 
 
@@ -236,15 +383,63 @@ void Backend_ShowLeds(bool shouldShowLeds) {
 }
 
 
-void Backend_InitAudioDevice(float* buffer, int32_t* count) {
-  this.sampleBuffer = buffer;
-  this.sampleCount = count;
+void Backend_PushAudioSample(float leftSample, float rightSample) {
+  if (!this.samplesEmpty && this.sampleHead == this.sampleTail) // Buffer is full
+    return;
+
+  this.sampleBuffer[this.sampleHead++] = leftSample;
+  this.sampleHead %= MAX_SAMPLES;
+
+  this.sampleBuffer[this.sampleHead++] = rightSample;
+  this.sampleHead %= MAX_SAMPLES;
+
+  // this.prevL = (this.prevL+leftSample) * 0.5f;
+  // this.sampleBuffer[this.sampleHead++] = this.prevL;
+  // this.sampleHead %= MAX_SAMPLES;
+
+  // this.prevR = (this.prevR+rightSample)*0.5f;
+  // this.sampleBuffer[this.sampleHead++] = this.prevR;
+  // this.sampleHead %= MAX_SAMPLES;
+
+  this.samplesEmpty = false;
 }
 
-void Backend_PushBuffer() {
-  saudio_push(this.sampleBuffer, (*this.sampleCount)/2);
-  memset(this.sampleBuffer, 0, (*this.sampleCount)*sizeof(float));
-  (*this.sampleCount) = 0;
+void Backend_AudioCallback(float* buffer, int numFrames, int numChannels) {
+  if (numChannels != 2) {
+    VSmile_Error("Audio callback expects 2 channels, %d recieved", numChannels);
+    return;
+  }
+
+  if (VSmile_GetPaused()) {
+    for (int i = 0; i < numFrames; i++) {
+      buffer[(i<<1)  ] = 0.0f;
+      buffer[(i<<1)+1] = 0.0f;
+    }
+  } else {
+    for (int i = 0; i < numFrames; i++) {
+      // Left channel
+      if (!this.samplesEmpty) {
+        this.filterL = (this.filterL + this.sampleBuffer[this.sampleTail++]) * 0.5f;
+        this.sampleTail %= MAX_SAMPLES;
+        this.samplesEmpty = (this.sampleHead == this.sampleTail);
+      } else {
+        this.filterL *= 0.5f;
+      }
+
+      // Right channel
+      if (!this.samplesEmpty) {
+        this.filterR = (this.filterR + this.sampleBuffer[this.sampleTail++]) * 0.5f;
+        this.sampleTail %= MAX_SAMPLES;
+        this.samplesEmpty = (this.sampleHead == this.sampleTail);
+      } else {
+        this.filterR *= 0.5f;
+      }
+
+      buffer[(i<<1)  ] = this.filterL * 2.0f;
+      buffer[(i<<1)+1] = this.filterR * 2.0f;
+
+    }
+  }
 }
 
 static const uint16_t channelColors[] = {
@@ -302,6 +497,11 @@ void Backend_SetOscilloscopeEnabled(bool shouldShow) {
   this.oscilloscopeEnabled = shouldShow;
 }
 
+
+void Backend_SetScreenFilter(uint8_t filterMode) {
+  this.currScreenFilter = filterMode;
+}
+
 // Old SDL keycodes
 // case SDLK_BACKQUOTE: SDLBackend_ToggleFullscreen(); break;
 // case SDLK_1: PPU_ToggleLayer(0); break; // Layer 0
@@ -337,11 +537,12 @@ void Backend_SetOscilloscopeEnabled(bool shouldShow) {
 void Backend_HandleInput(int32_t keycode, int32_t eventType) {
   if (eventType == SAPP_EVENTTYPE_KEY_DOWN) {
     switch (keycode) {
-    case SAPP_KEYCODE_0: VSmile_Reset(); break;
-    case SAPP_KEYCODE_1: PPU_ToggleLayer(0); break;
-    case SAPP_KEYCODE_2: PPU_ToggleLayer(1); break;
-    case SAPP_KEYCODE_3: PPU_ToggleLayer(2); break;
+    // case SAPP_KEYCODE_1: PPU_ToggleLayer(0); break;
+    // case SAPP_KEYCODE_2: PPU_ToggleLayer(1); break;
+    // case SAPP_KEYCODE_3: PPU_ToggleLayer(2); break;
 
+    case SAPP_KEYCODE_R: VSmile_Reset(); break;
+    case SAPP_KEYCODE_U: UI_Toggle(); break;
     case SAPP_KEYCODE_O: VSmile_Step(); break;
     case SAPP_KEYCODE_P: VSmile_SetPause(!VSmile_GetPaused()); break;
 
@@ -386,6 +587,11 @@ void Backend_HandleInput(int32_t keycode, int32_t eventType) {
 }
 
 
+void Backend_UpdateButtonMapping(const char* buttonName, char* mappingText, uint32_t mappingLen) {
+
+}
+
+
 void Backend_SetDrawColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
   this.drawColor = (a << 24) | (b << 16) | (g << 8) | r;
 }
@@ -397,8 +603,8 @@ void Backend_SetDrawColor32(uint32_t color) {
 
 
 void Backend_SetPixel(int32_t x, int32_t y) {
-  if (x >= 0 && x < 320 && y >= 0 && y < 240)
-    this.pixelBuffer[y][x] = this.drawColor;
+  // if (x >= 0 && x < 320 && y >= 0 && y < 240)
+  //   this.pixelBuffer[y][x] = this.drawColor;
 }
 
 
@@ -467,4 +673,9 @@ void Backend_DrawChar(int32_t x, int32_t y, char c) {
 
       Backend_SetPixel(x+i, y+j);
     }
+}
+
+
+void Backend_SetKeepAspectRatio(bool keepAR) {
+  this.keepAspectRatio = keepAR;
 }

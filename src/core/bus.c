@@ -1,4 +1,6 @@
 #include "bus.h"
+#include "cpu.h"
+#include "hw/misc.h"
 #include "vsmile.h"
 
 static Bus_t this;
@@ -74,8 +76,7 @@ void Bus_LoadROM(const char* filePath) {
     free(this.romBuffer);
 
   this.romBuffer = malloc(BUS_SIZE*sizeof(uint16_t));
-  int r = fread(this.romBuffer, this.romSize, sizeof(uint8_t), file);
-  if (!r) VSmile_Error("error reading romfile");
+  fread(this.romBuffer, this.romSize, sizeof(uint8_t), file);
 
   fclose(file);
 }
@@ -97,10 +98,7 @@ void Bus_LoadSysRom(const char* filePath) {
     free(this.sysRomBuffer);
 
   this.sysRomBuffer = malloc(this.sysRomSize);
-  int32_t success = fread(this.sysRomBuffer, this.sysRomSize, sizeof(uint16_t), file);
-
-  if (!success)
-    VSmile_Error("error reading system rom");
+  fread(this.sysRomBuffer, this.sysRomSize, sizeof(uint16_t), file);
 
   fclose(file);
 }
@@ -127,11 +125,9 @@ uint16_t Bus_Load(uint32_t addr) {
     return 0x0000;
   }
   else if (addr < IO_START+IO_SIZE+DMA_SIZE) {
-    // if (addr != 0x3d21 && addr != 0x3d22)
-    //   VSmile_Log("Read from IO address %04x at %06x", addr, CPU_GetCSPC());
-
+    // printf("read IO %04x (%04x)\n", addr, GPIO_Read(addr));
     switch (addr) {
-    case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):
+    case GPIO_START ... (GPIO_START+GPIO_SIZE-1):
       return GPIO_Read(addr);
 
     case TIMERS_START ... (TIMERS_START+TIMERS_SIZE-1):
@@ -154,7 +150,7 @@ uint16_t Bus_Load(uint32_t addr) {
     return 0x0000;
   }
 
-  if ((this.romDecodeMode & 2) && this.sysRomBuffer && (addr >= SYSROM_START)) {
+  if ((this.romDecodeMode & 2) && this.sysRomBuffer && (addr >= SYSROM_START) && (addr < BUS_SIZE)) {
     return this.sysRomBuffer[addr - SYSROM_START];
   }
 
@@ -188,11 +184,9 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     return;
   }
   else if (addr < IO_START+IO_SIZE+DMA_SIZE) {
-    // if (addr != 0x3d21 && addr != 0x3d22 && addr != 0x3d24)
-    //   VSmile_Log("Write to IO address %04x with %04x at %06x", addr, data, CPU_GetCSPC());
-
+    // printf("write IO %04x (%04x)\n", addr, data);
     switch (addr) {
-    case GPIO_START   ... (GPIO_START+GPIO_SIZE-1):
+    case GPIO_START ... (GPIO_START+GPIO_SIZE-1):
       GPIO_Write(addr, data);
       return;
 
@@ -213,7 +207,7 @@ void Bus_Store(uint32_t addr, uint16_t data) {
       return;
     }
 
-    VSmile_Warning("write to unknown IO port %04x with %04x at %06x\n", addr, data, CPU_GetCSPC());
+    VSmile_Warning("write to unknown IO port %04x with %04x at %06x", addr, data, CPU_GetCSPC());
     return;
   }
   else if (addr < 0x4000) {
@@ -221,7 +215,8 @@ void Bus_Store(uint32_t addr, uint16_t data) {
     return;
   }
 
-  VSmile_Error("attempt to write to out of bounds location %06x with %04x", addr, data);
+  // VSmile_Warning("attempt to write to out of bounds location %06x with %04x", addr, data);
+  // printf("%06x\n", CPU_GetCSPC());
 }
 
 

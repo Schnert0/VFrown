@@ -5,19 +5,19 @@ static Timers_t this;
 bool Timers_Init() {
   memset(&this, 0, sizeof(Timers_t));
 
-  this.sysTimers = Timer_Init(SYSCLOCK / 4096, Timers_TickSysTimers, 0);
+  this.sysTimers = Timer_Init(SYSCLOCK / 4096, (TimerFunc_t)Timers_TickSysTimers, 0);
   if (!this.sysTimers)
     return false;
 
-  this.tmb[0] = Timer_Init(SYSCLOCK / 128, Timers_TickTMB, 0);
+  this.tmb[0] = Timer_Init(SYSCLOCK / 128, (TimerFunc_t)Timers_TickTMB, 0);
   if (!this.tmb[0])
     return false;
 
-  this.tmb[1] = Timer_Init(SYSCLOCK / 8, Timers_TickTMB, 1);
+  this.tmb[1] = Timer_Init(SYSCLOCK / 8, (TimerFunc_t)Timers_TickTMB, 1);
   if (!this.tmb[1])
     return false;
 
-  this.timerABSource = Timer_Init(0, Timers_TickAB, 0);
+  this.timerABSource = Timer_Init(0, (TimerFunc_t)Timers_TickAB, 0);
   if (!this.timerABSource)
     return false;
 

@@ -1,31 +1,36 @@
 #ifndef BACKEND_H
 #define BACKEND_H
 
-#ifndef DNDEBUG
-  #define SOKOL_LOG(s) VSmile_Error(s);
-#endif // DNDEBUG
-
-#include "lib/nuklear_def.h"
-
-#include "font.xpm"
-
 #include "../common.h"
 #include "../core/vsmile.h"
-
-#include "lib/sokol_app.h"
-#include "lib/sokol_audio.h"
+#include "libs.h"
 #include "lib/sokol_gfx.h"
-#include "lib/sokol_glue.h"
-#include "lib/sokol_gp.h"
-#include "lib/sokol_nuklear.h"
+#include "lib/sokol_gl.h"
+
+#include "ui.h"
+
+#define MAX_SAMPLES 65536
+
+enum {
+  SCREENFILTER_NEAREST,
+  SCREENFILTER_LINEAR,
+  NUM_SCREENFILTERS,
+};
 
 typedef struct {
-  float* sampleBuffer;
-  int32_t* sampleCount;
+  sgl_context  context;
+  sgl_pipeline pipeline;
+  sg_image     screenTexture;
+  sg_sampler   samplers[NUM_SCREENFILTERS];
+
   FILE* saveFile;
 
+  float sampleBuffer[MAX_SAMPLES];
+  float filterL, filterR;
+  int32_t sampleHead, sampleTail;
+  bool samplesEmpty;
+
   float emulationSpeed;
-  uint32_t pixelBuffer[240][320];
   int32_t currSampleX[16];
   int16_t prevSample[16];
   uint32_t drawColor;
@@ -35,14 +40,21 @@ typedef struct {
   char title[256];
   bool showLeds;
   bool oscilloscopeEnabled;
+  bool controlsEnabled;
+  bool keepAspectRatio;
+  uint8_t currScreenFilter;
 } Backend_t;
 
 bool Backend_Init();
 void Backend_Cleanup();
 void Backend_Update();
 
+void Backend_AudioCallback(float* buffer, int numFrames, int numChannels);
+
 // Save states
 void Backend_GetFileName(const char* path);
+const char* Backend_OpenFileDialog(const char* title);
+void Backend_OpenMessageBox(const char* title, const char* message);
 void Backend_WriteSave(void* data, uint32_t size);
 void Backend_ReadSave(void* data, uint32_t size);
 void Backend_SaveState();
@@ -50,6 +62,7 @@ void Backend_LoadState();
 
 float Backend_GetSpeed();
 void Backend_SetSpeed(float newSpeed);
+void Backend_SetControlsEnable(bool isEnabled);
 
 // Window
 uint32_t* Backend_GetScanlinePointer(uint16_t scanlineNum);
@@ -60,6 +73,7 @@ bool Backend_GetInput();
 uint32_t Backend_GetButtonStates();
 uint32_t Backend_GetChangedButtons();
 void Backend_HandleInput(int32_t keycode, int32_t eventType);
+void Backend_UpdateButtonMapping(const char* buttonName, char* mappingText, uint32_t mappingLen);
 
 // Leds
 uint8_t Backend_SetLedStates(uint8_t state);
@@ -67,11 +81,14 @@ void Backend_RenderLeds();
 void Backend_ShowLeds(bool shouldShowLeds);
 
 // Audio
+void Backend_PushAudioSample(float leftSample, float rightSample);
 void Backend_InitAudioDevice(float* buffer, int32_t* count);
 void Backend_PushBuffer();
 void Backend_PushOscilloscopeSample(uint8_t ch, int16_t sample);
 bool Backend_GetOscilloscopeEnabled();
 void Backend_SetOscilloscopeEnabled(bool shouldShow);
+
+void Backend_SetScreenFilter(uint8_t filterMode);
 
 // Drawing
 void Backend_SetDrawColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
@@ -80,5 +97,7 @@ void Backend_SetPixel(int32_t x, int32_t y);
 void Backend_DrawCircle(int32_t x, int32_t y, uint32_t radius);
 void Backend_DrawText(int32_t x, int32_t y, const char* text, ...);
 void Backend_DrawChar(int32_t x, int32_t y, char c);
+
+void Backend_SetKeepAspectRatio(bool keepAR);
 
 #endif // BACKEND_H

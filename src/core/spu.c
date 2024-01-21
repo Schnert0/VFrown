@@ -1,10 +1,9 @@
 #include "spu.h"
+#include "cpu.h"
 
 static SPU_t this;
 
-static const float rateCutoff = 48000.0f;
-static float sampleBuffer[MAX_SAMPLES];
-static int32_t sampleCount;
+static const float rateCutoff = OUTPUT_FREQUENCY;
 
 // static const char* registerNames0[] = {
 //   "wave address",          // 0x0
@@ -140,15 +139,14 @@ static const int32_t envelopeFrameCounts[] = {
 bool SPU_Init() {
   memset(&this, 0, sizeof(SPU_t));
 
-  Backend_InitAudioDevice((float*)&sampleBuffer, &sampleCount);
-
   this.sampleTimer = SPU_SAMPLE_TIMER;
 
   for (int32_t i = 0; i < 16; i++) {
     this.channels[i].timer = Timer_Init(0, (TimerFunc_t)SPU_TriggerChannelIRQ, i);
   }
 
-  this.beatTimer = Timer_Init(SYSCLOCK / (281250.0f/4.0f), (TimerFunc_t)SPU_TriggerBeatIRQ, 0);
+  //SYSCLOCK / (281250.0f/4.0f)
+  this.beatTimer = Timer_Init(384, (TimerFunc_t)SPU_TriggerBeatIRQ, 0);
   Timer_Reset(this.beatTimer);
 
   this.enabledChannels = 0xffff;
@@ -240,9 +238,6 @@ void SPU_Tick(int32_t cycles) {
 
   }
 
-  if (sampleCount >= MAX_SAMPLES)
-    return;
-
   leftSample  *= (1.0f/32.0f);
   rightSample *= (1.0f/32.0f);
 
@@ -275,8 +270,9 @@ void SPU_Tick(int32_t cycles) {
   if (rightSample < -1.0f) rightSample = -1.0f;
 
   // Push to audio buffer
-  sampleBuffer[sampleCount++] = leftSample;
-  sampleBuffer[sampleCount++] = rightSample;
+  Backend_PushAudioSample(leftSample, rightSample);
+  this.leftOut = (int16_t)(leftSample*32767.0f);
+  this.rightOut = (int16_t)(rightSample*32767.0f);
 }
 
 
@@ -321,8 +317,7 @@ uint16_t SPU_TickSample(uint8_t ch) {
         if (channel->adpcmSel.codec) {
           channel->waveData = SPU_GetADPCM36Sample(ch, nybble);
         } else {
-          channel->waveData = SPU_GetADPCMSample(ch, nybble);
-          channel->waveData = (channel->waveData << 4) ^ 0x8000;
+          channel->waveData = SPU_GetADPCMSample(ch, nybble) ^ 0x8000;
         }
 
         channel->pcmShift += 4;
@@ -386,7 +381,7 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
   int32_t sample = (int16_t)(channel->waveData ^ 0x8000);
   if (!(this.ctrl & 0x0200)) { // Audio CTRL
     int32_t prevSample = (int16_t)(channel->waveData ^ 0x8000);
-    int32_t lerp = (int32_t)((channel->rate / 48000.0f) * 256.0f);
+    int32_t lerp = (int32_t)((channel->rate / OUTPUT_FREQUENCY) * 256.0f);
     prevSample = (prevSample * (0x100 - lerp)) >> 8;
     sample = (sample * lerp) >> 8;
     sample += prevSample;
@@ -395,6 +390,7 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
   Backend_PushOscilloscopeSample(ch, (int16_t)sample);
 
   float fsample = ((sample * (int32_t)channel->envData.envelopeData) >> 7) / 8192.0f;
+  if (channel->mode.pcmMode & 2) fsample *= 8.0f; // Hack to make VOX samples louder
 
   float pan = channel->panVol.pan / 127.0f;
   float vol = channel->panVol.vol;
@@ -416,8 +412,8 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
       channel->rampDownFrame--;
 
     if (channel->rampDownFrame == 0) {
-      uint8_t prevEnvData = channel->envData.envelopeData;
-      uint8_t currEnvData = prevEnvData - channel->envLoopCtrl.rampDownOffset;
+      uint16_t prevEnvData = channel->envData.envelopeData;
+      uint16_t currEnvData = prevEnvData - channel->envLoopCtrl.rampDownOffset;
       if (currEnvData > prevEnvData)
         currEnvData = 0;
 
@@ -425,11 +421,12 @@ void SPU_TickChannel(uint8_t ch, int32_t* left, int32_t* right) {
         channel->envData.envelopeData = currEnvData;
         channel->rampDownFrame = rampdownFrameCounts[channel->rampDownClock & 7];
       } else {
-        this.chanEnable  &= ~(1 << ch);
-        this.chanStat    &= ~(1 << ch);
-        this.chanStop    |=  (1 << ch);
-        this.envRampDown &= ~(1 << ch);
-        this.toneRelease &= ~(1 << ch);
+        SPU_StopChannel(ch);
+        // this.chanEnable  &= ~(1 << ch);
+        // this.chanStat    &= ~(1 << ch);
+        // this.chanStop    |=  (1 << ch);
+        // this.envRampDown &= ~(1 << ch);
+        // this.toneRelease &= ~(1 << ch);
       }
     }
   }
@@ -682,7 +679,7 @@ void SPU_Write(uint16_t addr, uint16_t data) {
       return;
     case 0x05: SPU_WriteBeatCount(data); return;
     case 0x0b: this.regs4[reg] &= ~data; return;
-    case 0x1b: case 0x1c: printf("0x34%02x = %04x\n", reg, data);
+    // case 0x1b: case 0x1c: printf("0x34%02x = %04x\n", reg, data);
     default:   this.regs4[reg] = data;   return;
     }
 
@@ -750,6 +747,7 @@ void SPU_StopChannel(uint8_t ch) {
 
   this.chanEnable  &= ~(1 << ch);
   this.envRampDown &= ~(1 << ch);
+  this.chanStop    |=  (1 << ch);
   this.chanStat    &= ~(1 << ch);
   this.toneRelease &= ~(1 << ch);
 
@@ -757,6 +755,8 @@ void SPU_StopChannel(uint8_t ch) {
   channel->pcmShift = 0;
   channel->adpcmLastSample = 0;
   channel->adpcmStepIndex = 0;
+  channel->waveData = 0;
+  channel->prevWaveData = 0;
 
   Timer_Stop(channel->timer);
 
@@ -767,11 +767,11 @@ void SPU_StopChannel(uint8_t ch) {
 void SPU_WriteBeatCount(uint16_t data) {
   // printf("write to beat count with %04x\n", data);
 
-  this.regs4[0x5] &= ~(data & 0x4000);
-  this.regs4[0x5] &= 0x4000;
-  this.regs4[0x5] |= (data & ~0x4000);
+  this.beatCount.raw &= ~(data & 0x4000);
+  this.beatCount.raw &= 0x4000;
+  this.beatCount.raw |= (data & ~0x4000);
 
-  if ((this.regs4[0x5] & 0xc000) == 0xc000) {
+  if ((this.beatCount.raw & 0xc000) == 0xc000) {
     this.irq = true;
     CPU_ActivatePendingIRQs();
   } else {

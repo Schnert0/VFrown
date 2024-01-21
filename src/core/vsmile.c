@@ -28,6 +28,9 @@ void VSmile_Cleanup() {
 
 
 void VSmile_RunFrame() {
+  if (this.isHalted)
+    return;
+
   if (this.paused && !this.step)
     return;
 
@@ -37,6 +40,8 @@ void VSmile_RunFrame() {
     this.cyclesLeft += cyclesPerLine;
     while (this.cyclesLeft > 0) {
       int32_t cycles = CPU_Tick();
+      if (this.isHalted) // If the System crashes, stop running instructions
+        return;
       SPU_Tick(cycles);
       this.cyclesLeft -= cycles;
     }
@@ -48,7 +53,6 @@ void VSmile_RunFrame() {
     if (PPU_RenderLine())
       break;
   }
-  Backend_PushBuffer();
   this.step = false;
 }
 
@@ -57,6 +61,8 @@ void VSmile_Reset() {
   Bus_Reset();
   CPU_Reset();
   PPU_Reset();
+
+  this.isHalted = false;
 }
 
 
@@ -169,8 +175,11 @@ void VSmile_Error(const char* message, ...) {
 
     printf("\x1b[31m[ERROR]\x1b[0m %s\n", buffer);
     // CPU_PrintCPUState();
+    Backend_OpenMessageBox("Fatal Emulation Error", (const char*)&buffer);
   }
 
-  VSmile_Cleanup();
-  exit(0);
+  this.isHalted = true;
+
+  // VSmile_Cleanup();
+  // exit(0);
 }

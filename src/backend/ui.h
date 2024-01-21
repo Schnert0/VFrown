@@ -4,16 +4,26 @@
 #include "../common.h"
 #include "../core/vsmile.h"
 #include "backend.h"
-#include "lib/sokol_nuklear.h"
 
-#define ITEM_HEIGHT 40
+#include "libs.h"
+#include "lib/sokol_app.h"
 
 typedef struct {
-  size_t placeholderValue;
-} UI_t;
+  void* next;
+  char* name;
+  uint16_t value;
+  bool isFrozen;
+} MemWatchValue_t;
+
+// typedef struct {
+// } UI_t;
 
 bool UI_Init();
 void UI_Cleanup();
-void UI_RunFrame(struct nk_context* ctx);
+void UI_HandleEvent(sapp_event* event);
+void UI_StartFrame();
+void UI_RunFrame();
+void UI_Render();
+void UI_Toggle();
 
 #endif // UI_H
