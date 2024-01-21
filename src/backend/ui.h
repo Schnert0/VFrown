@@ -8,6 +8,8 @@
 #include "libs.h"
 #include "lib/sokol_app.h"
 
+#include "userSettings.h"
+
 typedef struct {
   void* next;
   char* name;

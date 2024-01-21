@@ -5,8 +5,16 @@
 
 #define GET_NKCOLOR(r, g, b, a) (struct nk_color){ r, g, b, a }
 
+enum {
+  THEME_TEXT,
+  THEME_HEADER,
+  THEME_BORDER,
+  THEME_WINDOW,
+  THEME_BUTTON,
+};
+
 // UI Style //
-static const struct nk_color theme[NK_COLOR_COUNT] = {
+static struct nk_color theme[NK_COLOR_COUNT] = {
   [NK_COLOR_TEXT]                    = GET_NKCOLOR(210, 210, 210, 255),
   [NK_COLOR_WINDOW]                  = GET_NKCOLOR( 57,  67,  71, 255),
   [NK_COLOR_HEADER]                  = GET_NKCOLOR( 51,  51,  56, 255),
@@ -137,6 +145,74 @@ void controllerMapping(const char* buttonName, char* mappingText, int* mappingLe
   // }
 }
 
+static nk_bool openColorPicker = false;
+static struct nk_colorf pickedColor;
+static uint8_t colorToPick;
+void chooseColor(struct nk_context* ctx, const char* name, uint8_t type) {
+  struct nk_color color;
+  switch (type) {
+  case THEME_TEXT:   color = theme[NK_COLOR_TEXT];   break;
+  case THEME_HEADER: color = theme[NK_COLOR_HEADER]; break;
+  case THEME_BORDER: color = theme[NK_COLOR_BORDER]; break;
+  case THEME_WINDOW: color = theme[NK_COLOR_WINDOW]; break;
+  case THEME_BUTTON: color = theme[NK_COLOR_BUTTON]; break;
+  }
+
+  nk_layout_row_dynamic(ctx, 25, 3);
+  nk_label(ctx, name, NK_TEXT_LEFT);
+  nk_button_color(ctx, color);
+  if (nk_button_label(ctx, "Choose...")) {
+    openColorPicker = true;
+    colorToPick = type;
+    pickedColor.r = color.r/255.0f;
+    pickedColor.g = color.g/255.0f;
+    pickedColor.b = color.b/255.0f;
+    pickedColor.a = 1.0f;
+  }
+}
+
+
+void updateColor(uint8_t type, struct nk_color chosen) {
+  // Adjust click and highlight color
+  struct nk_color hover  = nk_rgba_u32(((nk_color_u32(chosen) & 0xefefefef) << 1) | 0xff010101);
+  struct nk_color active = nk_rgba_u32(((nk_color_u32(chosen) & 0x3f3f3f3f) << 2) | 0xff030303);
+  struct nk_color blank  = nk_rgba_u32(((nk_color_u32(chosen) & 0xfefefefe) >> 1) | 0xff000000);
+
+  switch (type) {
+  case THEME_TEXT:   theme[NK_COLOR_TEXT]   = chosen; break;
+  case THEME_HEADER: theme[NK_COLOR_HEADER] = chosen; break;
+  case THEME_BORDER: theme[NK_COLOR_BORDER] = chosen; break;
+
+  case THEME_BUTTON: {
+    theme[NK_COLOR_BUTTON]        = chosen;
+    theme[NK_COLOR_BUTTON_HOVER]  = hover;
+    theme[NK_COLOR_BUTTON_ACTIVE] = active;
+
+    theme[NK_COLOR_TOGGLE]        = chosen;
+    theme[NK_COLOR_TOGGLE_HOVER]  = hover;
+    theme[NK_COLOR_TOGGLE_CURSOR] = active;
+
+    theme[NK_COLOR_SLIDER]               = blank;
+    theme[NK_COLOR_SLIDER_CURSOR]        = chosen;
+    theme[NK_COLOR_SLIDER_CURSOR_HOVER]  = hover;
+    theme[NK_COLOR_SLIDER_CURSOR_ACTIVE] = active;
+
+    theme[NK_COLOR_SCROLLBAR]               = blank;
+    theme[NK_COLOR_SCROLLBAR_CURSOR]        = hover;
+    theme[NK_COLOR_SCROLLBAR_CURSOR_HOVER]  = active;
+    theme[NK_COLOR_SCROLLBAR_CURSOR_ACTIVE] = hover;
+  } break;
+
+  case THEME_WINDOW: {
+    theme[NK_COLOR_WINDOW]      = chosen;
+    theme[NK_COLOR_COMBO]       = blank;
+    theme[NK_COLOR_EDIT]        = blank;
+    theme[NK_COLOR_EDIT_CURSOR] = chosen;
+  } break;
+
+  }
+}
+
 
 // UI functions //
 
@@ -146,6 +222,35 @@ bool UI_Init() {
   snk_setup(&(snk_desc_t){
     .dpi_scale = sapp_dpi_scale()
   });
+
+  char hex[8];
+  struct nk_color color;
+
+  if (UserSettings_ReadString("textColor", hex, 8)) {
+    color = nk_rgb_hex(hex);
+    updateColor(THEME_TEXT, color);
+  }
+
+  if (UserSettings_ReadString("headerColor", hex, 8)) {
+    color = nk_rgb_hex(hex);
+    updateColor(THEME_HEADER, color);
+  }
+
+  if (UserSettings_ReadString("borderColor", hex, 8)) {
+    color = nk_rgb_hex(hex);
+    updateColor(THEME_BORDER, color);
+  }
+
+  if (UserSettings_ReadString("windowColor", hex, 8)) {
+    color = nk_rgb_hex(hex);
+    updateColor(THEME_WINDOW, color);
+  }
+
+  if (UserSettings_ReadString("buttonColor", hex, 8)) {
+    color = nk_rgb_hex(hex);
+    updateColor(THEME_BUTTON, color);
+  }
+
 
   return true;
 }
@@ -308,6 +413,30 @@ void UI_RunFrame() {
         nk_tree_pop(ctx);
       }
 
+      if (nk_tree_push(ctx, NK_TREE_NODE, "UI Theme", NK_MINIMIZED)) {
+        chooseColor(ctx, "Text",    THEME_TEXT);
+        chooseColor(ctx, "Header",  THEME_HEADER);
+        chooseColor(ctx, "Border",  THEME_BORDER);
+        chooseColor(ctx, "Window",  THEME_WINDOW);
+        chooseColor(ctx, "Buttons", THEME_BUTTON);
+        if (nk_button_label(ctx, "Save colors to profile")) {
+          char hexColor[7];
+
+          nk_color_hex_rgb(hexColor, theme[NK_COLOR_TEXT]);
+          UserSettings_WriteString("textColor", hexColor, 7);
+          nk_color_hex_rgb(hexColor, theme[NK_COLOR_HEADER]);
+          UserSettings_WriteString("headerColor", hexColor, 7);
+          nk_color_hex_rgb(hexColor, theme[NK_COLOR_BORDER]);
+          UserSettings_WriteString("borderColor", hexColor, 7);
+          nk_color_hex_rgb(hexColor, theme[NK_COLOR_WINDOW]);
+          UserSettings_WriteString("windowColor", hexColor, 7);
+          nk_color_hex_rgb(hexColor, theme[NK_COLOR_BUTTON]);
+          UserSettings_WriteString("buttonColor", hexColor, 7);
+        }
+
+        nk_tree_pop(ctx);
+      }
+
 
     } else showEmuSettings = false;
     nk_end(ctx);
@@ -327,6 +456,69 @@ void UI_RunFrame() {
         nk_label(ctx, "for source code and a full list of contributors, go to:", NK_TEXT_LEFT);
         nk_label(ctx, "https://github.com/Schnert0/VFrown", NK_TEXT_LEFT);
     } else showAbout = false;
+    nk_end(ctx);
+  }
+
+  // Color Picker //
+  if (openColorPicker) {
+    const float width  = sapp_widthf();
+    const float height = sapp_heightf();
+    if (nk_begin(
+      ctx, "Choose a color...",
+      nk_rect(width*0.5f - 600*0.5f, height*0.5f - 400*0.5f, 600, 400),
+      NK_WINDOW_CLOSABLE | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE
+    )) {
+
+      static char hexText[8];
+      static int hexTextLen = 0;
+      static bool updatingColor = false;
+
+      nk_layout_row_static(ctx, 256, 256, 1);
+      nk_color_pick(ctx, &pickedColor, NK_RGB);
+      struct nk_color preview = {
+        .r = pickedColor.r*255.0f,
+        .g = pickedColor.g*255.0f,
+        .b = pickedColor.b*255.0f,
+        .a = pickedColor.a*255.0f,
+      };
+
+      nk_layout_row_dynamic(ctx, 25, 3);
+      if (nk_button_label(ctx, "Confirm")) {
+        if (updatingColor) {
+          updatingColor = false;
+          preview = nk_rgb_hex(hexText);
+          pickedColor.r = preview.r/255.0f;
+          pickedColor.g = preview.g/255.0f;
+          pickedColor.b = preview.b/255.0f;
+          pickedColor.a = preview.a/255.0f;
+        }
+
+        updateColor(colorToPick, preview);
+
+        themeUpdated = false;
+        openColorPicker = false;
+      }
+
+      nk_flags flags = nk_edit_string(ctx, NK_EDIT_SIMPLE, hexText, &hexTextLen, 8, nk_filter_hex);
+      if (flags & NK_EDIT_ACTIVATED) {
+        updatingColor = true;
+      }
+      else if (flags & (NK_EDIT_DEACTIVATED | NK_EDIT_COMMITED)) {
+        updatingColor = false;
+        preview = nk_rgb_hex(hexText);
+        pickedColor.r = preview.r/255.0f;
+        pickedColor.g = preview.g/255.0f;
+        pickedColor.b = preview.b/255.0f;
+        pickedColor.a = preview.a/255.0f;
+      }
+
+      if (!updatingColor) {
+        nk_color_hex_rgb(hexText, preview);
+        hexTextLen = strlen(hexText);
+      }
+      nk_button_color(ctx, preview);
+
+    } else openColorPicker = false;
     nk_end(ctx);
   }
 

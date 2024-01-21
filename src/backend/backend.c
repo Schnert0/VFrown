@@ -1,6 +1,7 @@
 #include "backend.h"
 #include "font.xpm" // TODO: remove
 #include "lib/tinyfiledialogs.h"
+#include "userSettings.h"
 
 static Backend_t this;
 
@@ -75,11 +76,15 @@ bool Backend_Init() {
   this.currButtons = 0;
   this.prevButtons = 0;
 
+  if (!UserSettings_Init()) return false;
+
   return true;
 }
 
 
 void Backend_Cleanup() {
+  UserSettings_Cleanup();
+
   saudio_shutdown();
 }
 

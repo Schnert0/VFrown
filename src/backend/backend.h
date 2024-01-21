@@ -8,6 +8,7 @@
 #include "lib/sokol_gl.h"
 
 #include "ui.h"
+#include "userSettings.h"
 
 #define MAX_SAMPLES 65536
 
