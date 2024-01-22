@@ -61,6 +61,8 @@ bool Input_Init() {
   this.gamepadID[0] = -1;
   this.gamepadID[1] = -1;
 
+  this.inputEnabled = true;
+
   char string[11];
   Mapping_t mapping;
 
