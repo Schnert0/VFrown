@@ -46,7 +46,7 @@
 #elif defined(__APPLE__)
   #include "lib/gamepad/Gamepad_macosx.c"
 #elif defined(__linux__)
-  #include "lib/gampead/Gamepad_linux.c"
+  #include "lib/gamepad/Gamepad_linux.c"
 #else
   #error Unknown platform
 #endif
