@@ -371,7 +371,7 @@ void Controller_UpdateButtons(uint8_t ctrlNum, uint32_t buttons) {
     return;
   }
 
-  uint32_t changed = Backend_GetChangedButtons();
+  uint32_t changed = Input_GetChangedButtons(ctrlNum);
 
   if (changed & INPUT_DIRECTIONS) {
     bool up = (buttons & (1 << INPUT_UP)) != 0;

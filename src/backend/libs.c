@@ -1,3 +1,13 @@
+#if defined(_WIN32)
+  #define SOKOL_D3D11
+#elif defined(__APPLE__)
+  #define SOKOL_METAL
+#elif defined(__linux__)
+  #define SOKOL_GLCORE33
+#else
+  #error Unknown platform
+#endif
+
 #ifndef INI_IMPLEMENTATION
 #define INI_IMPLEMENTATION
 #endif // INI_IMPLEMENTATION
@@ -29,5 +39,16 @@
 #ifndef SOKOL_GLUE_IMPL
 #define SOKOL_GLUE_IMPL
 #endif // SOKOL_GLUE_IMPL
+
+#include "lib/gamepad/Gamepad_private.c"
+#if defined(_WIN32)
+  #include "lib/gamepad/Gamepad_windows_dinput.c"
+#elif defined(__APPLE__)
+  #include "lib/gamepad/Gamepad_macosx.c"
+#elif defined(__linux__)
+  #include "lib/gampead/Gamepad_linux.c"
+#else
+  #error Unknown platform
+#endif
 
 #include "libs.h"

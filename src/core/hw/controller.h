@@ -4,6 +4,7 @@
 #include "../../common.h"
 #include "../vsmile.h"
 #include "../timer.h"
+#include "../../backend/input.h"
 
 typedef void (*ControllerFunc_t)();
 struct Timer_t;

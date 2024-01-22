@@ -90,11 +90,11 @@ void Backend_Cleanup() {
 
 
 void Backend_Update() {
-  if (this.controlsEnabled) {
-    if (Backend_GetChangedButtons())
-      Controller_UpdateButtons(0, this.currButtons);
-    this.prevButtons = this.currButtons;
-  }
+  // if (this.controlsEnabled) {
+  //   if (Backend_GetChangedButtons())
+  //     Controller_UpdateButtons(0, this.currButtons);
+  //   this.prevButtons = this.currButtons;
+  // }
 
   // Update screen texture
   sg_image_data imageData;
@@ -131,6 +131,7 @@ void Backend_Update() {
   sgl_c1i(0xffffffff);
 
   if (this.keepAspectRatio) {
+
     float outWidth = width, outHeight = height;
     if (height > (width*0.75f)) {
       outWidth = width;
@@ -145,11 +146,14 @@ void Backend_Update() {
     sgl_v2f_t2f(width*0.5f+(outWidth*0.5f),  height*0.5f-(outHeight*0.5f), 1.0f, 0.0f);
     sgl_v2f_t2f(width*0.5f+(outWidth*0.5f),  height*0.5f+(outHeight*0.5f), 1.0f, 1.0f);
     sgl_v2f_t2f(width*0.5f-(outWidth*0.5f),  height*0.5f+(outHeight*0.5f), 0.0f, 1.0f);
+
   } else {
+
     sgl_v2f_t2f(0,      0,      0.0f, 0.0f);
     sgl_v2f_t2f(width,  0,      1.0f, 0.0f);
     sgl_v2f_t2f(width,  height, 1.0f, 1.0f);
     sgl_v2f_t2f(0,      height, 0.0f, 1.0f);
+
   }
 
   sgl_end();
@@ -274,6 +278,7 @@ void Backend_SaveState() {
 
   VSmile_Log("State saved!");
 }
+
 
 void Backend_LoadState() {
   char path[256];
@@ -560,34 +565,34 @@ void Backend_HandleInput(int32_t keycode, int32_t eventType) {
         Backend_LoadState();
       break;
 
-    case SAPP_KEYCODE_UP:    this.currButtons |= (1 << INPUT_UP);     break;
-    case SAPP_KEYCODE_DOWN:  this.currButtons |= (1 << INPUT_DOWN);   break;
-    case SAPP_KEYCODE_LEFT:  this.currButtons |= (1 << INPUT_LEFT);   break;
-    case SAPP_KEYCODE_RIGHT: this.currButtons |= (1 << INPUT_RIGHT);  break;
-    case SAPP_KEYCODE_SPACE: this.currButtons |= (1 << INPUT_ENTER);  break;
-    case SAPP_KEYCODE_Z:     this.currButtons |= (1 << INPUT_RED);    break;
-    case SAPP_KEYCODE_X:     this.currButtons |= (1 << INPUT_YELLOW); break;
-    case SAPP_KEYCODE_V:     this.currButtons |= (1 << INPUT_BLUE);   break;
-    case SAPP_KEYCODE_C:     this.currButtons |= (1 << INPUT_GREEN);  break;
-    case SAPP_KEYCODE_A:     this.currButtons |= (1 << INPUT_HELP);   break;
-    case SAPP_KEYCODE_S:     this.currButtons |= (1 << INPUT_EXIT);   break;
-    case SAPP_KEYCODE_D:     this.currButtons |= (1 << INPUT_ABC);    break;
+    // case SAPP_KEYCODE_UP:    this.currButtons |= (1 << INPUT_UP);     break;
+    // case SAPP_KEYCODE_DOWN:  this.currButtons |= (1 << INPUT_DOWN);   break;
+    // case SAPP_KEYCODE_LEFT:  this.currButtons |= (1 << INPUT_LEFT);   break;
+    // case SAPP_KEYCODE_RIGHT: this.currButtons |= (1 << INPUT_RIGHT);  break;
+    // case SAPP_KEYCODE_SPACE: this.currButtons |= (1 << INPUT_ENTER);  break;
+    // case SAPP_KEYCODE_Z:     this.currButtons |= (1 << INPUT_RED);    break;
+    // case SAPP_KEYCODE_X:     this.currButtons |= (1 << INPUT_YELLOW); break;
+    // case SAPP_KEYCODE_V:     this.currButtons |= (1 << INPUT_BLUE);   break;
+    // case SAPP_KEYCODE_C:     this.currButtons |= (1 << INPUT_GREEN);  break;
+    // case SAPP_KEYCODE_A:     this.currButtons |= (1 << INPUT_HELP);   break;
+    // case SAPP_KEYCODE_S:     this.currButtons |= (1 << INPUT_EXIT);   break;
+    // case SAPP_KEYCODE_D:     this.currButtons |= (1 << INPUT_ABC);    break;
     }
   } else if (eventType == SAPP_EVENTTYPE_KEY_UP){
-    switch (keycode) {
-    case SAPP_KEYCODE_UP:    this.currButtons &= ~(1 << INPUT_UP);     break;
-    case SAPP_KEYCODE_DOWN:  this.currButtons &= ~(1 << INPUT_DOWN);   break;
-    case SAPP_KEYCODE_LEFT:  this.currButtons &= ~(1 << INPUT_LEFT);   break;
-    case SAPP_KEYCODE_RIGHT: this.currButtons &= ~(1 << INPUT_RIGHT);  break;
-    case SAPP_KEYCODE_SPACE: this.currButtons &= ~(1 << INPUT_ENTER);  break;
-    case SAPP_KEYCODE_Z:     this.currButtons &= ~(1 << INPUT_RED);    break;
-    case SAPP_KEYCODE_X:     this.currButtons &= ~(1 << INPUT_YELLOW); break;
-    case SAPP_KEYCODE_V:     this.currButtons &= ~(1 << INPUT_BLUE);   break;
-    case SAPP_KEYCODE_C:     this.currButtons &= ~(1 << INPUT_GREEN);  break;
-    case SAPP_KEYCODE_A:     this.currButtons &= ~(1 << INPUT_HELP);   break;
-    case SAPP_KEYCODE_S:     this.currButtons &= ~(1 << INPUT_EXIT);   break;
-    case SAPP_KEYCODE_D:     this.currButtons &= ~(1 << INPUT_ABC);    break;
-    }
+    // switch (keycode) {
+    // case SAPP_KEYCODE_UP:    this.currButtons &= ~(1 << INPUT_UP);     break;
+    // case SAPP_KEYCODE_DOWN:  this.currButtons &= ~(1 << INPUT_DOWN);   break;
+    // case SAPP_KEYCODE_LEFT:  this.currButtons &= ~(1 << INPUT_LEFT);   break;
+    // case SAPP_KEYCODE_RIGHT: this.currButtons &= ~(1 << INPUT_RIGHT);  break;
+    // case SAPP_KEYCODE_SPACE: this.currButtons &= ~(1 << INPUT_ENTER);  break;
+    // case SAPP_KEYCODE_Z:     this.currButtons &= ~(1 << INPUT_RED);    break;
+    // case SAPP_KEYCODE_X:     this.currButtons &= ~(1 << INPUT_YELLOW); break;
+    // case SAPP_KEYCODE_V:     this.currButtons &= ~(1 << INPUT_BLUE);   break;
+    // case SAPP_KEYCODE_C:     this.currButtons &= ~(1 << INPUT_GREEN);  break;
+    // case SAPP_KEYCODE_A:     this.currButtons &= ~(1 << INPUT_HELP);   break;
+    // case SAPP_KEYCODE_S:     this.currButtons &= ~(1 << INPUT_EXIT);   break;
+    // case SAPP_KEYCODE_D:     this.currButtons &= ~(1 << INPUT_ABC);    break;
+    // }
   }
 }
 

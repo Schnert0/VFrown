@@ -4,6 +4,7 @@
 #include "common.h"
 #include "backend/libs.h"
 #include "backend/backend.h"
+#include "backend/input.h"
 #include "core/vsmile.h"
 
 #endif // MAIN_H

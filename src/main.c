@@ -1,4 +1,5 @@
 #include "main.h"
+#include "backend/input.h"
 #include "backend/ui.h"
 
 static float speed;
@@ -11,6 +12,10 @@ static void initFunc() {
 
   if (!Backend_Init()) {
     VSmile_Error("Failed to initialize backend");
+  }
+
+  if (!Input_Init()) {
+    VSmile_Error("Failed to initialize input handler");
   }
 
   // Emulator core
@@ -45,6 +50,8 @@ static void initFunc() {
 
 // Called on every frame of the application.
 static void frameFunc() {
+  Input_Update();
+
   float systemSpeed = Backend_GetSpeed();
   speed += systemSpeed;
   if (speed >= 1.0f) {
@@ -63,6 +70,7 @@ static void frameFunc() {
 static void cleanupFunc() {
   UI_Cleanup();
   VSmile_Cleanup();
+  Input_Cleanup();
   Backend_Cleanup();
 
   sg_shutdown();
@@ -73,7 +81,7 @@ static void cleanupFunc() {
 static void eventFunc(sapp_event* event) {
   UI_HandleEvent(event);
   Backend_HandleInput(event->key_code, event->type);
-
+  Input_KeyboardMouseEvent(event);
 
   // TODO: move this to the backend
   if (event->type == SAPP_EVENTTYPE_FILES_DROPPED) {

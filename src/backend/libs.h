@@ -52,4 +52,7 @@
 #include "lib/sokol_glue.h"
 #endif // SOKOL_GLUE_INCLUDED
 
+
+#include "lib/gamepad/Gamepad.h"
+
 #endif // LIBS_H

@@ -23,8 +23,8 @@ and replace `<build>` with `debug` or `release`. Without these, it will default 
 ```
 Arrow keys: directional movement
 Space: Enter/OK
-A: Exit
-S: Help
+A: Help
+S: Exit
 D: Learning Zone
 Z: Red
 X: Yellow
