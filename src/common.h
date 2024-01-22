@@ -15,8 +15,8 @@
 #define PATH_CHAR '/'
 #endif
 
-#include "backend/libs.h"
-#include "backend/backend.h"
+// #include "backend/libs.h"
+// #include "backend/backend.h"
 
 #define RGB5A1_TO_RGBA8(color) (((color & 0x1f) << 19) | ((color & 0x3e0) << 6) | ((color & 0x7c00) >> 7) | 0xff000000)
 

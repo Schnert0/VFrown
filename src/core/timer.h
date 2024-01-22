@@ -2,6 +2,7 @@
 #define TIMER_H
 
 #include "../common.h"
+#include "../backend/backend.h"
 
 typedef void (*TimerFunc_t)(int32_t index);
 

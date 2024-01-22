@@ -51,4 +51,6 @@ uint32_t Input_GetChangedButtons(uint8_t ctrlNum);
 
 void Input_KeyboardMouseEvent(sapp_event* event);
 
+void Input_SaveMappings();
+
 #endif // INPUT_H
