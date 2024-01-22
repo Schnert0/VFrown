@@ -132,20 +132,13 @@ void Backend_Update() {
 
   if (this.keepAspectRatio) {
 
-    float outWidth = width, outHeight = height;
-    if (height > (width*0.75f)) {
-      outWidth = width;
-      outHeight = width*0.75f;
-    }
-    else if ((width*0.75f) > height) {
-      outWidth = height;
-      outHeight = height*(0.75f);
-    }
+    float outHeight = ((int)(height/240))*240.0f; // Get first integer multiple of height
+    float outWidth  = outHeight*(4.0f/3.0f); // Maintain 4:3 aspect ratio
 
-    sgl_v2f_t2f(width*0.5f-(outWidth*0.5f),  height*0.5f-(outHeight*0.5f), 0.0f, 0.0f);
-    sgl_v2f_t2f(width*0.5f+(outWidth*0.5f),  height*0.5f-(outHeight*0.5f), 1.0f, 0.0f);
-    sgl_v2f_t2f(width*0.5f+(outWidth*0.5f),  height*0.5f+(outHeight*0.5f), 1.0f, 1.0f);
-    sgl_v2f_t2f(width*0.5f-(outWidth*0.5f),  height*0.5f+(outHeight*0.5f), 0.0f, 1.0f);
+    sgl_v2f_t2f(width*0.5f-(outWidth*0.5f), height*0.5f-(outHeight*0.5f), 0.0f, 0.0f);
+    sgl_v2f_t2f(width*0.5f+(outWidth*0.5f), height*0.5f-(outHeight*0.5f), 1.0f, 0.0f);
+    sgl_v2f_t2f(width*0.5f+(outWidth*0.5f), height*0.5f+(outHeight*0.5f), 1.0f, 1.0f);
+    sgl_v2f_t2f(width*0.5f-(outWidth*0.5f), height*0.5f+(outHeight*0.5f), 0.0f, 1.0f);
 
   } else {
 
