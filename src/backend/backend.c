@@ -551,6 +551,8 @@ void Backend_HandleInput(int32_t keycode, int32_t eventType) {
     // case SAPP_KEYCODE_2: PPU_ToggleLayer(1); break;
     // case SAPP_KEYCODE_3: PPU_ToggleLayer(2); break;
 
+    case SAPP_KEYCODE_ESCAPE: sapp_request_quit(); break;
+    case SAPP_KEYCODE_Y: sapp_toggle_fullscreen(); break;
     case SAPP_KEYCODE_R: VSmile_Reset(); break;
     case SAPP_KEYCODE_U: UI_Toggle(); break;
     case SAPP_KEYCODE_O: VSmile_Step(); break;

@@ -104,11 +104,13 @@ void Input_Update() {
     Gamepad_detectDevices();
   }
 
-  if (Input_GetChangedButtons(0)) {
-    Controller_UpdateButtons(0, this.curr[0]);
-  }
-  if (Input_GetChangedButtons(1)) {
-    Controller_UpdateButtons(1, this.curr[1]);
+  if (this.inputEnabled) {
+    if (Input_GetChangedButtons(0)) {
+      Controller_UpdateButtons(0, this.curr[0]);
+    }
+    if (Input_GetChangedButtons(1)) {
+      Controller_UpdateButtons(1, this.curr[1]);
+    }
   }
 
   this.prev[0] = this.curr[0];
@@ -118,6 +120,11 @@ void Input_Update() {
 
 uint32_t Input_GetChangedButtons(uint8_t ctrlNum) {
   return this.curr[ctrlNum] ^ this.prev[ctrlNum];
+}
+
+
+void Input_SetControlsEnable(bool isEnabled) {
+  this.inputEnabled = isEnabled;
 }
 
 

@@ -65,10 +65,6 @@ static nk_bool showLayer[3] = { true, true, true };
 static nk_bool showSpriteOutlines = false;
 static nk_bool showSpriteFlip = false;
 
-static char     updateText[5];
-static uint32_t holdAddr = 0xffffffff;
-static int      updateTextLen;
-
 static char jumpAddressText[7];
 static int  jumpAddressTextLen;
 
@@ -106,33 +102,42 @@ void fPercentSlider(const char* name, float min, float max, float step, float* v
   nk_slider_float(ctx, min, value, max, step);
 }
 
+
+static char     updateText[5];
+static int      updateTextLen;
+static uint32_t holdAddr = 0xffffffff;
 void IOReg(const char* name, uint16_t addr) {
   if (name)
     nk_label(ctx, name, NK_TEXT_LEFT);
 
-  if (holdAddr != addr) {
+  if (addr == holdAddr) {
+    nk_flags flags = nk_edit_string(ctx, NK_EDIT_SIMPLE, updateText, &updateTextLen, 5, nk_filter_hex);
+    if (flags & NK_EDIT_ACTIVATED) {
+      holdAddr = addr;
+      updateTextLen = 0;
+      memset(updateText, 0, 5);
+      Input_SetControlsEnable(false);
+    }
+    else if (flags & (NK_EDIT_COMMITED | NK_EDIT_DEACTIVATED)) {
+      if (updateTextLen > 0)
+        Bus_Store(addr, strtol(updateText, NULL, 16));
+      holdAddr = 0xffffffff;
+      Input_SetControlsEnable(true);
+    }
+  } else {
     char text[5];
-    int  textLen;
-
     uint16_t value = Bus_Load(addr);
     snprintf((char*)&text, 5, "%04x", value);
-    textLen = 4;
 
-    nk_flags flags = nk_edit_string(ctx, NK_EDIT_SIMPLE, text, &textLen, 5, nk_filter_hex);
-    if (flags & NK_EDIT_ACTIVATED) {
+    if (nk_button_label(ctx, text)) {
+      if (holdAddr != 0xffffffff && updateTextLen > 0)
+        Bus_Store(holdAddr, strtol(updateText, NULL, 16));
       holdAddr = addr;
       updateTextLen = 0;
       memset(updateText, 0, 5);
       Backend_SetControlsEnable(false);
     }
-  } else {
-    nk_flags flags = nk_edit_string(ctx, NK_EDIT_SIMPLE, updateText, &updateTextLen, 5, nk_filter_hex);
-    if (flags & (NK_EDIT_COMMITED | NK_EDIT_DEACTIVATED)) {
-      if (updateTextLen > 0)
-        Bus_Store(addr, strtol(updateText, NULL, 16));
-      holdAddr = 0xffffffff;
-      Backend_SetControlsEnable(true);
-    }
+
   }
 }
 
@@ -292,13 +297,13 @@ void UI_RunFrame() {
 
     // Menu
     nk_layout_row_push(ctx, 48);
-    if (nk_menu_begin_label(ctx, " Menu", NK_TEXT_LEFT, nk_vec2(165, 200))) {
+    if (nk_menu_begin_label(ctx, " Menu", NK_TEXT_LEFT, nk_vec2(175, 200))) {
       nk_layout_row_dynamic(ctx, 25, 1);
-      if (nk_menu_item_label(ctx, "    Open ROM...",       NK_TEXT_LEFT)) romPath = (char*)Backend_OpenFileDialog("Please Select a ROM...");
-      if (nk_menu_item_label(ctx, "    Toggle Fullscreen", NK_TEXT_LEFT)) sapp_toggle_fullscreen();
-      if (nk_menu_item_label(ctx, "(U) Toggle UI",         NK_TEXT_LEFT)) showUI = false;
-      if (nk_menu_item_label(ctx, "    About",             NK_TEXT_LEFT)) showAbout = true;
-      if (nk_menu_item_label(ctx, "    Quit",              NK_TEXT_LEFT)) sapp_request_quit();
+      if (nk_menu_item_label(ctx, "      Open ROM...",       NK_TEXT_LEFT)) romPath = (char*)Backend_OpenFileDialog("Please Select a ROM...");
+      if (nk_menu_item_label(ctx, "[Y]   Toggle Fullscreen", NK_TEXT_LEFT)) sapp_toggle_fullscreen();
+      if (nk_menu_item_label(ctx, "[U]   Toggle UI",         NK_TEXT_LEFT)) showUI = false;
+      if (nk_menu_item_label(ctx, "      About",             NK_TEXT_LEFT)) showAbout = true;
+      if (nk_menu_item_label(ctx, "[ESC] Quit",              NK_TEXT_LEFT)) sapp_request_quit();
       nk_menu_end(ctx);
     }
 
@@ -306,11 +311,11 @@ void UI_RunFrame() {
     nk_layout_row_push(ctx, 48);
     if (nk_menu_begin_label(ctx, "System", NK_TEXT_LEFT, nk_vec2(120, 200))) {
       nk_layout_row_dynamic(ctx, 25, 1);
-      if (nk_menu_item_label(ctx, "(P) Pause",       NK_TEXT_LEFT)) VSmile_SetPause(!VSmile_GetPaused());
-      if (nk_menu_item_label(ctx, "(O) Step",        NK_TEXT_LEFT)) VSmile_Step();
-      if (nk_menu_item_label(ctx, "(R) Reset",       NK_TEXT_LEFT)) VSmile_Reset();
-      if (nk_menu_item_label(ctx, "(J) Save State",  NK_TEXT_LEFT)) VSmile_SaveState();
-      if (nk_menu_item_label(ctx, "(K) Load State",  NK_TEXT_LEFT)) VSmile_LoadState();
+      if (nk_menu_item_label(ctx, "[P] Pause",       NK_TEXT_LEFT)) VSmile_SetPause(!VSmile_GetPaused());
+      if (nk_menu_item_label(ctx, "[O] Step",        NK_TEXT_LEFT)) VSmile_Step();
+      if (nk_menu_item_label(ctx, "[R] Reset",       NK_TEXT_LEFT)) VSmile_Reset();
+      if (nk_menu_item_label(ctx, "[J] Save State",  NK_TEXT_LEFT)) VSmile_SaveState();
+      if (nk_menu_item_label(ctx, "[K] Load State",  NK_TEXT_LEFT)) VSmile_LoadState();
       if (nk_menu_item_label(ctx, "    Settings",    NK_TEXT_LEFT)) showEmuSettings = true;
       nk_menu_end(ctx);
     }

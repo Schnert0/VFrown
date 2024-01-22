@@ -40,6 +40,7 @@ typedef struct {
   int8_t  buttons[2][NUM_INPUTS];
   uint32_t curr[2], prev[2];
   int8_t checkPadTimer;
+  bool inputEnabled;
 } Input_t;
 
 
@@ -48,6 +49,7 @@ void Input_Cleanup();
 
 void Input_Update();
 uint32_t Input_GetChangedButtons(uint8_t ctrlNum);
+void Input_SetControlsEnable(bool isEnabled);
 
 void Input_KeyboardMouseEvent(sapp_event* event);
 
